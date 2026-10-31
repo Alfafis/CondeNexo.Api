@@ -1,0 +1,26 @@
+meta {
+  name: unidades / editar
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/unidades/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{unidadeId}}
+}
+
+body:json {
+  {
+    "bloco": "exemplo",
+    "numero": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `unidade.editar`
+}

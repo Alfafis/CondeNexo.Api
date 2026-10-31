@@ -1,0 +1,26 @@
+meta {
+  name: leituramaster / pessoas
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/pessoas
+  body: none
+  auth: none
+}
+
+params:query {
+  ~categoria: visitante
+  ~cursor: exemplo
+  ~incluirDesativadas: true
+  ~limite: 50
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

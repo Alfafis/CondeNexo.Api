@@ -1,0 +1,32 @@
+meta {
+  name: importacao / analisar
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/importacoes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "arquivo": "exemplo",
+    "linhas": [
+      {
+        "linha": 0,
+        "bloco": "exemplo",
+        "unidade": "exemplo",
+        "nome": "Fulano de Tal",
+        "documento": "111.444.777-35",
+        "telefone": "11955550000",
+        "tipo": "exemplo"
+      }
+    ]
+  }
+}
+
+docs {
+  Permissão: `importacao.executar`
+}

@@ -1,0 +1,19 @@
+meta {
+  name: acesso / previstas
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/autorizacoes-previas/previstas
+  body: none
+  auth: none
+}
+
+params:query {
+  ~horas: 12
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

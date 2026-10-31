@@ -1,0 +1,19 @@
+meta {
+  name: lgpd / exportar
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/lgpd/pessoas/:id/exportacao
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{pessoaId}}
+}
+
+docs {
+  Permissão: `lgpd.exportar`
+}

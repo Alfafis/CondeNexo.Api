@@ -1,0 +1,27 @@
+meta {
+  name: ocorrencias / criar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/ocorrencias
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tipo": "conflito",
+    "descricao": "exemplo",
+    "unidadeId": "{{unidadeId}}",
+    "envolvidos": "exemplo",
+    "eventoIds": [
+      "{{eventoId}}"
+    ]
+  }
+}
+
+docs {
+  Permissão: `ocorrencia.operar`
+}

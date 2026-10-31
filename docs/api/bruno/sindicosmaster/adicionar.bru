@@ -1,0 +1,28 @@
+meta {
+  name: sindicosmaster / adicionar
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/sindicos
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "login": "exemplo",
+    "motivo": "exemploxxxxxxxx",
+    "senhaMaster": "{{senhaMaster}}"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.sindicos`
+}

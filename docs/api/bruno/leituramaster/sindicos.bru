@@ -1,0 +1,19 @@
+meta {
+  name: leituramaster / sindicos
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/sindicos
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

@@ -1,0 +1,20 @@
+meta {
+  name: usuarios / listar
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/usuarios
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+}
+
+docs {
+  Permissão: `usuario.gerenciar`
+}

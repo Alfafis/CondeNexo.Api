@@ -1,0 +1,19 @@
+meta {
+  name: leituramaster / autorizacoesHoje
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/autorizacoes-previas/hoje
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

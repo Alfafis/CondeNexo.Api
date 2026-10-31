@@ -1,0 +1,900 @@
+{
+  "id": "cdf6466d-a41d-4929-85e1-f18edefa38e0",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.ancora_diaria": {
+      "name": "ancora_diaria",
+      "schema": "",
+      "columns": {
+        "data": {
+          "name": "data",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "raiz": {
+          "name": "raiz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "folhas": {
+          "name": "folhas",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criada_em": {
+          "name": "criada_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ancora_diaria_raiz_ck": {
+          "name": "ancora_diaria_raiz_ck",
+          "value": "raiz ~ '^[0-9a-f]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.condominio": {
+      "name": "condominio",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "codigo": {
+          "name": "codigo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "banco": {
+          "name": "banco",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'provisionando'"
+        },
+        "plano": {
+          "name": "plano",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ancora_id": {
+          "name": "ancora_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "encerrado_em": {
+          "name": "encerrado_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "condominio_codigo_uq": {
+          "name": "condominio_codigo_uq",
+          "columns": [
+            {
+              "expression": "codigo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "condominio_banco_uq": {
+          "name": "condominio_banco_uq",
+          "columns": [
+            {
+              "expression": "banco",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "condominio_ancora_uq": {
+          "name": "condominio_ancora_uq",
+          "columns": [
+            {
+              "expression": "ancora_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "condominio_codigo_ck": {
+          "name": "condominio_codigo_ck",
+          "value": "codigo ~ '^[a-z][a-z0-9-]{2,30}$'"
+        },
+        "condominio_banco_ck": {
+          "name": "condominio_banco_ck",
+          "value": "banco ~ '^portaria(_[a-z0-9]{8})?$'"
+        },
+        "condominio_status_ck": {
+          "name": "condominio_status_ck",
+          "value": "status IN ('provisionando', 'ativo', 'suspenso', 'encerrado', 'excluido')"
+        },
+        "condominio_nome_ck": {
+          "name": "condominio_nome_ck",
+          "value": "length(btrim(nome)) BETWEEN 1 AND 200"
+        },
+        "condominio_encerrado_ck": {
+          "name": "condominio_encerrado_ck",
+          "value": "(status IN ('encerrado', 'excluido')) = (encerrado_em IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.condominio_chave": {
+      "name": "condominio_chave",
+      "schema": "",
+      "columns": {
+        "condominio_id": {
+          "name": "condominio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versao": {
+          "name": "versao",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chave_cifrada": {
+          "name": "chave_cifrada",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nonce": {
+          "name": "nonce",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mestra_versao": {
+          "name": "mestra_versao",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ativa": {
+          "name": "ativa",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criada_em": {
+          "name": "criada_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "condominio_chave_ativa_uq": {
+          "name": "condominio_chave_ativa_uq",
+          "columns": [
+            {
+              "expression": "condominio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tipo",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "ativa",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "condominio_chave_condominio_id_condominio_id_fk": {
+          "name": "condominio_chave_condominio_id_condominio_id_fk",
+          "tableFrom": "condominio_chave",
+          "tableTo": "condominio",
+          "columnsFrom": [
+            "condominio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "condominio_chave_pk": {
+          "name": "condominio_chave_pk",
+          "columns": [
+            "condominio_id",
+            "tipo",
+            "versao"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "condominio_chave_tipo_ck": {
+          "name": "condominio_chave_tipo_ck",
+          "value": "tipo IN ('hmac_cpf', 'kek_documentos')"
+        },
+        "condominio_chave_versao_ck": {
+          "name": "condominio_chave_versao_ck",
+          "value": "versao > 0 AND mestra_versao > 0"
+        },
+        "condominio_chave_nonce_ck": {
+          "name": "condominio_chave_nonce_ck",
+          "value": "length(nonce) = 12"
+        },
+        "condominio_chave_tamanho_ck": {
+          "name": "condominio_chave_tamanho_ck",
+          "value": "length(chave_cifrada) BETWEEN 48 AND 144"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.condominio_contrato": {
+      "name": "condominio_contrato",
+      "schema": "",
+      "columns": {
+        "condominio_id": {
+          "name": "condominio_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "razao_social": {
+          "name": "razao_social",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cnpj": {
+          "name": "cnpj",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contato_nome": {
+          "name": "contato_nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contato_email": {
+          "name": "contato_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "limites": {
+          "name": "limites",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "condominio_contrato_condominio_id_condominio_id_fk": {
+          "name": "condominio_contrato_condominio_id_condominio_id_fk",
+          "tableFrom": "condominio_contrato",
+          "tableTo": "condominio",
+          "columnsFrom": [
+            "condominio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "condominio_contrato_cnpj_ck": {
+          "name": "condominio_contrato_cnpj_ck",
+          "value": "cnpj ~ '^[0-9]{14}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.condominio_metrica": {
+      "name": "condominio_metrica",
+      "schema": "",
+      "columns": {
+        "condominio_id": {
+          "name": "condominio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dia": {
+          "name": "dia",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "eventos": {
+          "name": "eventos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tamanho_bytes": {
+          "name": "tamanho_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ultimo_selo": {
+          "name": "ultimo_selo",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jobs_atrasados": {
+          "name": "jobs_atrasados",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "condominio_metrica_condominio_id_condominio_id_fk": {
+          "name": "condominio_metrica_condominio_id_condominio_id_fk",
+          "tableFrom": "condominio_metrica",
+          "tableTo": "condominio",
+          "columnsFrom": [
+            "condominio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "condominio_metrica_pk": {
+          "name": "condominio_metrica_pk",
+          "columns": [
+            "condominio_id",
+            "dia"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.master_codigo_recuperacao": {
+      "name": "master_codigo_recuperacao",
+      "schema": "",
+      "columns": {
+        "master_usuario_id": {
+          "name": "master_usuario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "codigo_hash": {
+          "name": "codigo_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usado_em": {
+          "name": "usado_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "master_codigo_recuperacao_master_usuario_id_master_usuario_id_fk": {
+          "name": "master_codigo_recuperacao_master_usuario_id_master_usuario_id_fk",
+          "tableFrom": "master_codigo_recuperacao",
+          "tableTo": "master_usuario",
+          "columnsFrom": [
+            "master_usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "master_codigo_recuperacao_pk": {
+          "name": "master_codigo_recuperacao_pk",
+          "columns": [
+            "master_usuario_id",
+            "codigo_hash"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "master_codigo_recuperacao_hash_ck": {
+          "name": "master_codigo_recuperacao_hash_ck",
+          "value": "codigo_hash LIKE '$argon2id$%'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.master_sessao": {
+      "name": "master_sessao",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "master_usuario_id": {
+          "name": "master_usuario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criada_em": {
+          "name": "criada_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ultimo_uso_em": {
+          "name": "ultimo_uso_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expira_em": {
+          "name": "expira_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revogada_em": {
+          "name": "revogada_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totp_confirmado_em": {
+          "name": "totp_confirmado_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "name": "ip",
+          "type": "inet",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "master_sessao_token_uq": {
+          "name": "master_sessao_token_uq",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "master_sessao_master_usuario_id_master_usuario_id_fk": {
+          "name": "master_sessao_master_usuario_id_master_usuario_id_fk",
+          "tableFrom": "master_sessao",
+          "tableTo": "master_usuario",
+          "columnsFrom": [
+            "master_usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "master_sessao_token_hash_ck": {
+          "name": "master_sessao_token_hash_ck",
+          "value": "token_hash ~ '^[0-9a-f]{64}$'"
+        },
+        "master_sessao_expira_ck": {
+          "name": "master_sessao_expira_ck",
+          "value": "expira_em > criada_em"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.master_usuario": {
+      "name": "master_usuario",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senha_hash": {
+          "name": "senha_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "totp_cifrado": {
+          "name": "totp_cifrado",
+          "type": "bytea",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "papel": {
+          "name": "papel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ativo": {
+          "name": "ativo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "master_usuario_email_uq": {
+          "name": "master_usuario_email_uq",
+          "columns": [
+            {
+              "expression": "lower(\"email\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "master_usuario_senha_ck": {
+          "name": "master_usuario_senha_ck",
+          "value": "senha_hash LIKE '$argon2id$%'"
+        },
+        "master_usuario_papel_ck": {
+          "name": "master_usuario_papel_ck",
+          "value": "papel IN ('master', 'suporte')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.plataforma_audit": {
+      "name": "plataforma_audit",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "seq": {
+          "name": "seq",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "plataforma_audit_seq_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "em": {
+          "name": "em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "clock_timestamp()"
+        },
+        "master_usuario_id": {
+          "name": "master_usuario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "acao": {
+          "name": "acao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "condominio_id": {
+          "name": "condominio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detalhes": {
+          "name": "detalhes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "plataforma_audit_master_usuario_id_master_usuario_id_fk": {
+          "name": "plataforma_audit_master_usuario_id_master_usuario_id_fk",
+          "tableFrom": "plataforma_audit",
+          "tableTo": "master_usuario",
+          "columnsFrom": [
+            "master_usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "plataforma_audit_condominio_id_condominio_id_fk": {
+          "name": "plataforma_audit_condominio_id_condominio_id_fk",
+          "tableFrom": "plataforma_audit",
+          "tableTo": "condominio",
+          "columnsFrom": [
+            "condominio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "plataforma_audit_seq_uq": {
+          "name": "plataforma_audit_seq_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "seq"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "plataforma_audit_acao_ck": {
+          "name": "plataforma_audit_acao_ck",
+          "value": "acao ~ '^[a-z][a-zA-Z_]*\\.[a-z][a-zA-Z_]*$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.plataforma_login_limite": {
+      "name": "plataforma_login_limite",
+      "schema": "",
+      "columns": {
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chave": {
+          "name": "chave",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "falhas": {
+          "name": "falhas",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "janela_inicio": {
+          "name": "janela_inicio",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bloqueado_ate": {
+          "name": "bloqueado_ate",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "plataforma_login_limite_pk": {
+          "name": "plataforma_login_limite_pk",
+          "columns": [
+            "tipo",
+            "chave"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "plataforma_login_limite_tipo_ck": {
+          "name": "plataforma_login_limite_tipo_ck",
+          "value": "tipo IN ('ip', 'master')"
+        },
+        "plataforma_login_limite_chave_ck": {
+          "name": "plataforma_login_limite_chave_ck",
+          "value": "chave ~ '^[0-9a-f]{64}$'"
+        },
+        "plataforma_login_limite_falhas_ck": {
+          "name": "plataforma_login_limite_falhas_ck",
+          "value": "falhas >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -1,0 +1,23 @@
+meta {
+  name: ocorrencias / listar
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ocorrencias
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+  ~status: exemplo
+  ~tipo: conflito
+  ~unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `ocorrencia.ver`
+}

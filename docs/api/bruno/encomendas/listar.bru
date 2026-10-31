@@ -1,0 +1,23 @@
+meta {
+  name: encomendas / listar
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/encomendas
+  body: none
+  auth: none
+}
+
+params:query {
+  ~atrasadasDias: 0
+  ~cursor: exemplo
+  ~limite: 50
+  ~status: aguardando
+  ~unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `encomenda.ver`
+}

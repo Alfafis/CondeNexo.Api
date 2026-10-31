@@ -1,0 +1,173 @@
+// Funcionários do condomínio (RF-09): pessoa (mesmas regras de CPF e telefone) + função, escala e ativo. Escala que atravessa a meia-noite (22:00–06:00) vale no dia do início do turno
+// (`escalaVigente` do domain; o CHECK funcionario_escala_ck só barra início = fim).
+// Leitura (lista e ficha): funcionario.ver — síndico, administração e auditor; o porteiro NÃO vê a lista (ver spec §14,
+// decisão nº 29). A entrada por escala é validada pela própria API (eventos.service). Para a tela de entrada, a
+// portaria lê só a escala da pessoa sendo registrada (GET /funcionarios/:id/escala, sem dados da pessoa).
+// Escrita: funcionario.gerenciar (SI, AD).
+import { Body, Controller, Get, Inject, Injectable, Module, Param, Patch, Post, Query } from '@nestjs/common';
+import { escalaVigente, validarEscala } from '../dominio/rules';
+import { and, asc, eq, sql, type SQL } from 'drizzle-orm';
+import { z } from 'zod';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { Acao, Ctx } from '../auth/decorators';
+import type { Contexto } from '../auth/tipos';
+import { codigoPg, erroApi } from '../comum/erros';
+import { codificarCursor, decodificarCursor, Pagina, PaginacaoDto } from '../comum/pagina';
+import { RELOGIO, type Relogio } from '../comum/relogio';
+import { uuidParam, ZodPipe } from '../comum/zod.pipe';
+import { DB, type Db, type Executor } from '../database/database.module';
+import { funcionario, pessoa } from '../db/schema';
+import { colunasPessoa, paraPessoaApi, type LinhaPessoa, type PessoaApi } from '../pessoas/pessoa-view';
+import { PessoasModule } from '../pessoas/pessoas.module';
+import { PessoasService } from '../pessoas/pessoas.service';
+import { Modulo } from '../saas/modulo.guard';
+
+interface Escala { diasSemana: number[]; horaInicio: string; horaFim: string }
+export interface FuncionarioApi {
+  pessoaId: string; funcao: string; escala: Escala; ativo: boolean; pessoa: PessoaApi; emEscalaAgora: boolean;
+}
+
+const EscalaDto = z.strictObject({ diasSemana: z.array(z.number()).max(7), horaInicio: z.string().max(5), horaFim: z.string().max(5) });
+const NovoFuncionarioDto = z.strictObject({
+  nome: z.string().max(150), documento: z.string().max(20), telefone: z.string().max(20),
+  funcao: z.string().max(80), escala: EscalaDto, ativo: z.boolean().optional(),
+});
+const EdicaoFuncionarioDto = z.strictObject({ funcao: z.string().max(80).optional(), escala: EscalaDto.optional(), ativo: z.boolean().optional() });
+const CursorFuncionarios = z.strictObject({ n: z.string().max(400), id: z.uuid() });
+
+const colunasFuncionario = {
+  pessoaId: funcionario.pessoaId, funcao: funcionario.funcao, diasSemana: funcionario.diasSemana,
+  horaInicio: funcionario.horaInicio, horaFim: funcionario.horaFim, ativo: funcionario.ativo,
+};
+type LinhaFuncionario = { pessoaId: string; funcao: string; diasSemana: number[]; horaInicio: string; horaFim: string; ativo: boolean };
+
+/** Escala normalizada (dias ordenados) ou 422 com a mensagem do domain. */
+function escalaValida(e: Escala): Escala {
+  const erro = validarEscala(e);
+  if (erro) throw erroApi(422, 'ESCALA_INVALIDA', erro);
+  return { diasSemana: [...e.diasSemana].sort((a, b) => a - b), horaInicio: e.horaInicio, horaFim: e.horaFim };
+}
+
+@Injectable()
+export class FuncionariosService {
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    @Inject(RELOGIO) private readonly relogio: Relogio,
+    @Inject(AuditoriaService) private readonly auditoria: AuditoriaService,
+    @Inject(PessoasService) private readonly pessoas: PessoasService,
+  ) {}
+
+  private view(f: LinhaFuncionario, p: LinhaPessoa): FuncionarioApi {
+    const escala = { diasSemana: f.diasSemana, horaInicio: f.horaInicio.slice(0, 5), horaFim: f.horaFim.slice(0, 5) };
+    return {
+      pessoaId: f.pessoaId, funcao: f.funcao, escala, ativo: f.ativo, pessoa: paraPessoaApi(p),
+      emEscalaAgora: escalaVigente({ pessoaId: f.pessoaId, funcao: f.funcao, escala, ativo: f.ativo }, this.relogio.agora().getTime()),
+    };
+  }
+
+  private async carregar(exec: Executor, pessoaId: string): Promise<FuncionarioApi> {
+    const [l] = await exec.select({ f: colunasFuncionario, p: colunasPessoa }).from(funcionario)
+      .innerJoin(pessoa, eq(pessoa.id, funcionario.pessoaId)).where(eq(funcionario.pessoaId, pessoaId));
+    if (!l) throw erroApi(404, 'FUNCIONARIO_NAO_ENCONTRADO', 'Funcionário não encontrado.');
+    return this.view(l.f, l.p);
+  }
+
+  obter(pessoaId: string) { return this.carregar(this.db, pessoaId); }
+
+  async listar(f: { limite: number; cursor?: string }) {
+    const depois = f.cursor ? decodificarCursor(f.cursor, CursorFuncionarios) : null;
+    const filtros: SQL[] = [];
+    if (depois) filtros.push(sql`(${pessoa.nome}, ${pessoa.id}) > (${depois.n}, ${depois.id}::uuid)`);
+    const linhas = await this.db.select({ f: colunasFuncionario, p: colunasPessoa }).from(funcionario)
+      .innerJoin(pessoa, eq(pessoa.id, funcionario.pessoaId))
+      .where(filtros.length ? and(...filtros) : undefined)
+      .orderBy(asc(pessoa.nome), asc(pessoa.id)).limit(f.limite + 1);
+    const pagina = linhas.slice(0, f.limite);
+    const ultimo = pagina[pagina.length - 1];
+    const proximo = linhas.length > f.limite && ultimo ? codificarCursor({ n: ultimo.p.nome, id: ultimo.p.id }) : null;
+    return new Pagina(pagina.map((l) => this.view(l.f, l.p)), proximo);
+  }
+
+  async criar(ctx: Contexto, i: z.infer<typeof NovoFuncionarioDto>): Promise<FuncionarioApi> {
+    const funcao = i.funcao.trim();
+    if (!funcao) throw erroApi(422, 'FUNCAO_OBRIGATORIA', 'Informe a função.');
+    const escala = escalaValida(i.escala);
+    const agora = this.relogio.agora();
+    try {
+      return await this.db.transaction(async (tx) => {
+        const valores = await this.pessoas.valoresNovaPessoa(tx, { nome: i.nome, documento: i.documento, telefone: i.telefone, categoria: 'funcionario' }, agora, ctx.ator);
+        const [p] = await tx.insert(pessoa).values(valores).returning(colunasPessoa);
+        const [f] = await tx.insert(funcionario).values({
+          pessoaId: p!.id, funcao, diasSemana: escala.diasSemana, horaInicio: escala.horaInicio, horaFim: escala.horaFim,
+          ativo: i.ativo ?? true, criadoEm: agora, atualizadoEm: agora,
+        }).returning(colunasFuncionario);
+        await this.auditoria.registrar(tx, { ator: ctx.ator, ip: ctx.ip, acao: 'pessoa.criar', entidade: 'pessoa', registroId: p!.id, depois: p });
+        await this.auditoria.registrar(tx, { ator: ctx.ator, ip: ctx.ip, acao: 'funcionario.criar', entidade: 'funcionario', registroId: p!.id, depois: f });
+        return this.view(f!, p!);
+      });
+    } catch (e) {
+      if (codigoPg(e) === '23505') throw erroApi(409, 'PESSOA_DUPLICADA', 'Já existe cadastro com este CPF.');
+      throw e;
+    }
+  }
+
+  async editar(ctx: Contexto, pessoaId: string, i: z.infer<typeof EdicaoFuncionarioDto>): Promise<FuncionarioApi> {
+    const agora = this.relogio.agora();
+    return this.db.transaction(async (tx) => {
+      const [antes] = await tx.select(colunasFuncionario).from(funcionario).where(eq(funcionario.pessoaId, pessoaId)).for('update');
+      if (!antes) throw erroApi(404, 'FUNCIONARIO_NAO_ENCONTRADO', 'Funcionário não encontrado.');
+      const mudancas: Partial<typeof funcionario.$inferInsert> = {};
+      if (i.funcao !== undefined) {
+        const funcao = i.funcao.trim();
+        if (!funcao) throw erroApi(422, 'FUNCAO_OBRIGATORIA', 'Informe a função.');
+        if (funcao !== antes.funcao) mudancas.funcao = funcao;
+      }
+      if (i.escala !== undefined) {
+        const e = escalaValida(i.escala);
+        const igual = e.diasSemana.join() === antes.diasSemana.join() && e.horaInicio === antes.horaInicio.slice(0, 5) && e.horaFim === antes.horaFim.slice(0, 5);
+        if (!igual) Object.assign(mudancas, { diasSemana: e.diasSemana, horaInicio: e.horaInicio, horaFim: e.horaFim });
+      }
+      if (i.ativo !== undefined && i.ativo !== antes.ativo) mudancas.ativo = i.ativo;
+      if (Object.keys(mudancas).length) {
+        const [depois] = await tx.update(funcionario).set({ ...mudancas, atualizadoEm: agora }).where(eq(funcionario.pessoaId, pessoaId)).returning(colunasFuncionario);
+        await this.auditoria.registrar(tx, { ator: ctx.ator, ip: ctx.ip, acao: 'funcionario.editar', entidade: 'funcionario', registroId: pessoaId, antes, depois });
+      }
+      return this.carregar(tx, pessoaId);
+    });
+  }
+}
+
+@Modulo('funcionarios')
+@Controller('funcionarios')
+export class FuncionariosController {
+  constructor(@Inject(FuncionariosService) private readonly funcionarios: FuncionariosService) {}
+
+  @Get()
+  @Acao('funcionario.ver')
+  listar(@Query(new ZodPipe(PaginacaoDto)) q: z.infer<typeof PaginacaoDto>) { return this.funcionarios.listar(q); }
+
+  @Get(':pessoaId')
+  @Acao('funcionario.ver')
+  obter(@Param('pessoaId', uuidParam) id: string) { return this.funcionarios.obter(id); }
+
+  /** Só função, escala e se está em escala agora: o que a tela de entrada precisa para o meio "Escala". */
+  @Get(':pessoaId/escala')
+  @Acao('evento.registrar')
+  async escala(@Param('pessoaId', uuidParam) id: string) {
+    const f = await this.funcionarios.obter(id);
+    return { pessoaId: f.pessoaId, funcao: f.funcao, escala: f.escala, ativo: f.ativo, emEscalaAgora: f.emEscalaAgora };
+  }
+
+  @Post()
+  @Acao('funcionario.gerenciar')
+  criar(@Ctx() ctx: Contexto, @Body(new ZodPipe(NovoFuncionarioDto)) b: z.infer<typeof NovoFuncionarioDto>) { return this.funcionarios.criar(ctx, b); }
+
+  @Patch(':pessoaId')
+  @Acao('funcionario.gerenciar')
+  editar(@Ctx() ctx: Contexto, @Param('pessoaId', uuidParam) id: string, @Body(new ZodPipe(EdicaoFuncionarioDto)) b: z.infer<typeof EdicaoFuncionarioDto>) {
+    return this.funcionarios.editar(ctx, id, b);
+  }
+}
+
+@Module({ imports: [PessoasModule], controllers: [FuncionariosController], providers: [FuncionariosService] })
+export class FuncionariosModule {}

@@ -1,0 +1,21 @@
+meta {
+  name: encomendas / atrasadas
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/encomendas/atrasadas
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~dias: 7
+  ~limite: 50
+}
+
+docs {
+  Permissão: `encomenda.ver`
+}

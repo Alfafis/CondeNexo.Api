@@ -1,0 +1,21 @@
+meta {
+  name: leituramaster / anexo
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/ocorrencias/:ocorrenciaId/anexos/:documentoId
+  body: none
+  auth: none
+}
+
+params:path {
+  documentoId: {{documentoId}}
+  id: {{condominioId}}
+  ocorrenciaId: {{ocorrenciaId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

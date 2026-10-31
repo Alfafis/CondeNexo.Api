@@ -1,0 +1,19 @@
+meta {
+  name: usuarios / desativar
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/usuarios/:id/desativar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{usuarioId}}
+}
+
+docs {
+  Permissão: `usuario.gerenciar`
+}

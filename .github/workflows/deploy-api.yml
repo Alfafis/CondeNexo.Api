@@ -1,0 +1,74 @@
+# Deploy da API na VPS a cada push na main que mexa na API (docs/deploy.md, seção 11).
+#
+# 1. testes: typecheck e testes da API (o domínio, src/dominio, é parte dela). Falhou, não sobe.
+# 2. deploy: SSH na VPS com a chave do CI, que no servidor só executa /usr/local/sbin/tcc-portaria-deploy
+#    (scripts/deploy/deploy-vps.sh): fetch da origin/main, backup, build, migrate, /saude e rollback da imagem se falhar.
+#    O workflow não manda comando nem commit: a VPS sempre sobe a origin/main que ela mesma busca.
+#
+# Mudança de infra (compose, Dockerfile, bootstrap do banco, scripts de deploy/backup, .env.producao.example) faz o
+# script sair com código 2 e o job falhar de propósito: esse deploy é manual (docs/deploy.md, seção 11).
+#
+# Configuração (só o dono do repositório; NÃO configurada neste repositório novo, ver README.md, "Publicar"):
+#   variáveis do repositório: DEPLOY_HOST (IP da VPS) e DEPLOY_KNOWN_HOSTS (linha do known_hosts, fixa a chave do host)
+#   environment `producao`, restrito ao branch main: secret DEPLOY_SSH_KEY (chave privada do CI)
+# Sem DEPLOY_HOST o job de deploy é pulado sem falhar.
+name: Deploy da API
+
+on:
+  push:
+    branches: [main]
+    # O repositório é só da API: qualquer push na main dispara, menos documentação e coleções da API.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  testes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # Mesma versão de Node da imagem da API (Dockerfile).
+    container: node:22-bookworm-slim
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    needs: testes
+    if: ${{ vars.DEPLOY_HOST != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: producao
+    permissions: {}
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+    steps:
+      - name: Deploy na VPS
+        run: |
+          if [ -z "$DEPLOY_KNOWN_HOSTS" ] || [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::faltam DEPLOY_KNOWN_HOSTS (variável) ou DEPLOY_SSH_KEY (secret do environment producao)"
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # A chave do host fica fixada: nada de accept-new. O comando remoto é ignorado pelo servidor (forced command).
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 "root@$DEPLOY_HOST" deploy
+      - name: Apagar a chave do runner
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/deploy

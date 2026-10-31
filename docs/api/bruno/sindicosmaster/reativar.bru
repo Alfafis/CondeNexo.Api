@@ -1,0 +1,27 @@
+meta {
+  name: sindicosmaster / reativar
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/reativar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  usuarioId: {{usuarioId}}
+}
+
+body:json {
+  {
+    "motivo": "exemploxxxxxxxx",
+    "senhaMaster": "{{senhaMaster}}"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.sindicos`
+}

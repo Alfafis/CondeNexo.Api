@@ -1,0 +1,23 @@
+meta {
+  name: ocorrencias / anexar
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/ocorrencias/:id/anexos
+  body: multipartForm
+  auth: none
+}
+
+params:path {
+  id: {{ocorrenciaId}}
+}
+
+body:multipart-form {
+  arquivo: @file()
+}
+
+docs {
+  Permissão: `ocorrencia.operar`
+}

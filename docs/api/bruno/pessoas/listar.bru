@@ -1,0 +1,22 @@
+meta {
+  name: pessoas / listar
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/pessoas
+  body: none
+  auth: none
+}
+
+params:query {
+  ~categoria: visitante
+  ~cursor: exemplo
+  ~incluirDesativadas: true
+  ~limite: 50
+}
+
+docs {
+  Permissão: `pessoa.ver`
+}

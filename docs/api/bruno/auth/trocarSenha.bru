@@ -1,0 +1,22 @@
+meta {
+  name: auth / trocarSenha
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/trocar-senha
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "senhaAtual": "{{senhaAtual}}",
+    "novaSenha": "{{novaSenha}}"
+  }
+}
+
+docs {
+  Qualquer usuário logado (inclusive quem ainda deve trocar a senha).
+}

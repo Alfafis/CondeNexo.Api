@@ -1,0 +1,23 @@
+meta {
+  name: leituramaster / restricoesDaUnidade
+  type: http
+  seq: 21
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/restricoes
+  body: none
+  auth: none
+}
+
+params:query {
+  unidadeId: {{unidadeId}}
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

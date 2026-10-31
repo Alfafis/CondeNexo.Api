@@ -1,0 +1,3 @@
+# Alternativa ao timer do systemd (use UM dos dois). `sudo crontab -e` e colar a linha abaixo.
+# 04:30 UTC (01:30 BRT). Saída no syslog (sem SMTP na VPS, MAILTO não entregaria nada).
+30 4 * * * PORTARIA_DIR=/opt/tcc-portaria BACKUP_DIR=/var/backups/tcc-portaria BACKUP_AGE_RECIPIENTES=/etc/tcc-portaria/backup-age.pub /opt/tcc-portaria/db/backup/backup-portaria.sh 2>&1 | logger -t tcc-portaria-backup

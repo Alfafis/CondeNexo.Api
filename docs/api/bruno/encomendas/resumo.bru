@@ -1,0 +1,19 @@
+meta {
+  name: encomendas / resumo
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/encomendas/resumo
+  body: none
+  auth: none
+}
+
+params:query {
+  ~dias: 7
+}
+
+docs {
+  Permissão: `encomenda.ver`
+}

@@ -1,0 +1,19 @@
+meta {
+  name: acesso / revogarAutorizacao
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/autorizacoes-previas/:id/revogar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{autorizacaoPreviaId}}
+}
+
+docs {
+  Permissão: `autorizacao.criar`
+}

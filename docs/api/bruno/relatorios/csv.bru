@@ -1,0 +1,23 @@
+meta {
+  name: relatorios / csv
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/relatorios/resumo/csv
+  body: none
+  auth: none
+}
+
+params:query {
+  ~ate: exemplo
+  ~categoria: visitante
+  ~de: exemplo
+  ~meio: interfone
+  ~unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `relatorio.ver`
+}

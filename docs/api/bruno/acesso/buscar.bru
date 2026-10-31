@@ -1,0 +1,37 @@
+meta {
+  name: acesso / buscar
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso/busca
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "eventoId": "{{eventoId}}",
+    "de": 0,
+    "ate": 0,
+    "unidadeId": "{{unidadeId}}",
+    "pessoaId": "{{pessoaId}}",
+    "pessoa": "exemplo",
+    "placa": "ABC1D23",
+    "operadorId": "{{operadorId}}",
+    "tipo": "entrada",
+    "meio": "interfone",
+    "somenteExcecoes": false,
+    "somenteRetroativos": false,
+    "excluirTipos": [
+      "entrada"
+    ],
+    "limite": 50,
+    "cursor": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `evento.ver`
+}

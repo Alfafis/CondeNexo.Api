@@ -1,0 +1,12 @@
+# Diário às 04:30 (horário do servidor, UTC na VPS = 01:30 BRT): depois do selo da meia-noite BRT e longe do
+# horário de movimento da portaria. Persistent: se a VPS estava desligada na hora, roda ao voltar.
+[Unit]
+Description=Agenda o backup diário do CondNexo
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

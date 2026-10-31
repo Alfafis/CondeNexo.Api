@@ -1,0 +1,28 @@
+meta {
+  name: acesso / saida
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso/:id/saida
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{eventoAcessoId}}
+}
+
+body:json {
+  {
+    "observacao": "exemplo",
+    "retroativo": false,
+    "ocorridoEm": 0,
+    "formularioContingencia": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

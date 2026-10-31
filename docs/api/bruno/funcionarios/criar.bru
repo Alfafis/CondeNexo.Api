@@ -1,0 +1,32 @@
+meta {
+  name: funcionarios / criar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/funcionarios
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "documento": "111.444.777-35",
+    "telefone": "11955550000",
+    "funcao": "exemplo",
+    "escala": {
+      "diasSemana": [
+        1
+      ],
+      "horaInicio": "exemp",
+      "horaFim": "exemp"
+    },
+    "ativo": false
+  }
+}
+
+docs {
+  Permissão: `funcionario.gerenciar`
+}

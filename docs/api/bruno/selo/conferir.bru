@@ -1,0 +1,22 @@
+meta {
+  name: selo / conferir
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auditoria/selos/conferir
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "seq": 0,
+    "hash": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `auditoria.verificar`
+}

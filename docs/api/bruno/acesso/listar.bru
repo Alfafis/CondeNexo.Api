@@ -1,0 +1,31 @@
+meta {
+  name: acesso / listar
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/eventos-acesso
+  body: none
+  auth: none
+}
+
+params:query {
+  ~ate: 1
+  ~cursor: exemplo
+  ~de: 1
+  ~eventoId: {{eventoId}}
+  ~excluirTipos: exemplo
+  ~limite: 50
+  ~meio: interfone
+  ~operadorId: {{operadorId}}
+  ~pessoaId: {{pessoaId}}
+  ~somenteExcecoes: true
+  ~somenteRetroativos: true
+  ~tipo: entrada
+  ~unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `evento.ver`
+}

@@ -1,0 +1,30 @@
+meta {
+  name: acesso / avaliar
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso/avaliacao
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}",
+    "unidadeDestinoId": "{{unidadeDestinoId}}",
+    "areaComumId": "{{areaComumId}}",
+    "autorizadoPorTipo": "interfone",
+    "autorizadoPorPessoaId": "{{autorizadoPorPessoaId}}",
+    "autorizacaoPreviaId": "{{autorizacaoPreviaId}}",
+    "justificativa": "exemplo",
+    "retroativo": false,
+    "ocorridoEm": 0,
+    "tipoVisita": "visita"
+  }
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

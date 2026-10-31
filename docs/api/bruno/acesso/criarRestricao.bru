@@ -1,0 +1,26 @@
+meta {
+  name: acesso / criarRestricao
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/restricoes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}",
+    "unidadeId": "{{unidadeId}}",
+    "motivo": "exemplo",
+    "validaAte": "exemplo",
+    "solicitadaPorPessoaId": "{{solicitadaPorPessoaId}}",
+    "paraTodoCondominio": false
+  }
+}
+
+docs {
+  Permissão: `restricao.criar`
+}

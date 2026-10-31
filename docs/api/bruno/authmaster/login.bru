@@ -1,0 +1,22 @@
+meta {
+  name: authmaster / login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/plataforma/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "pessoa.exemplo@exemplo.org",
+    "senha": "{{senha}}"
+  }
+}
+
+docs {
+  Plataforma (Master). Pública: não exige sessão.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: acesso / vigentes
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/autorizacoes-previas/vigentes
+  body: none
+  auth: none
+}
+
+params:query {
+  ~areaComumId: {{areaComumId}}
+  pessoaId: {{pessoaId}}
+  ~unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `autorizacao.criar`
+}

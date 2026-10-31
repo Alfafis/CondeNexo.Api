@@ -1,0 +1,19 @@
+meta {
+  name: acesso / ultimoVeiculo
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/acessos/ultimo-veiculo
+  body: none
+  auth: none
+}
+
+params:query {
+  pessoaId: {{pessoaId}}
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

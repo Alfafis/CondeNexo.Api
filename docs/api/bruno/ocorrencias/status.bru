@@ -1,0 +1,25 @@
+meta {
+  name: ocorrencias / status
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/ocorrencias/:id/status
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{ocorrenciaId}}
+}
+
+body:json {
+  {
+    "status": "em_andamento"
+  }
+}
+
+docs {
+  Permissão: `ocorrencia.operar`
+}

@@ -1,0 +1,25 @@
+meta {
+  name: vinculos / regularizar
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/vinculos/:id/regularizar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{vinculoId}}
+}
+
+body:json {
+  {
+    "vigenciaFim": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `vinculo.decidir`
+}

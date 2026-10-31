@@ -1,0 +1,23 @@
+meta {
+  name: leituramaster / autorizacoesDaUnidade
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/autorizacoes-previas
+  body: none
+  auth: none
+}
+
+params:query {
+  unidadeId: {{unidadeId}}
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

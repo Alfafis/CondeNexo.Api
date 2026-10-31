@@ -1,0 +1,19 @@
+meta {
+  name: leituramaster / catalogo
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/catalogo
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

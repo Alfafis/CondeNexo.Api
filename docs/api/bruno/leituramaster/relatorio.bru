@@ -1,0 +1,27 @@
+meta {
+  name: leituramaster / relatorio
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/relatorios/resumo
+  body: none
+  auth: none
+}
+
+params:query {
+  ~ate: exemplo
+  ~categoria: visitante
+  ~de: exemplo
+  ~meio: interfone
+  ~unidadeId: {{unidadeId}}
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

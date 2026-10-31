@@ -1,0 +1,118 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792280414451,
+      "tag": "0000_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792280426181,
+      "tag": "0001_regras_imutabilidade",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792289360999,
+      "tag": "0002_conferencia_comprovante",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792291789501,
+      "tag": "0003_autenticacao_sessao",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792376703108,
+      "tag": "0004_lgpd_selo_ancora",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792428205203,
+      "tag": "0005_unidade_bloco",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792431707824,
+      "tag": "0006_senha_temporaria_validade",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792702684258,
+      "tag": "0007_lgpd_titular_retencao",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792704701322,
+      "tag": "0008_login_limite_par",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792709398389,
+      "tag": "0009_pessoa_desativacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792711855204,
+      "tag": "0010_configuracao",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792793505101,
+      "tag": "0011_permanencia",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792816341521,
+      "tag": "0012_mascara_cpf_inicio",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793069900434,
+      "tag": "0013_veiculo_evento",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793288761362,
+      "tag": "0014_sessao_manter_conectado",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793395448952,
+      "tag": "0015_meio_celular",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+meta {
+  name: vinculos / contagem
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/vinculos/contagem
+  body: none
+  auth: none
+}
+
+params:query {
+  status: pendente
+}
+
+docs {
+  Permissão: `vinculo.ver`
+}

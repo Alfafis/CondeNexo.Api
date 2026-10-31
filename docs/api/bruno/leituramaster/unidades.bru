@@ -1,0 +1,25 @@
+meta {
+  name: leituramaster / unidades
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/unidades
+  body: none
+  auth: none
+}
+
+params:query {
+  ~bloco: exemplo
+  ~cursor: exemplo
+  ~limite: 50
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

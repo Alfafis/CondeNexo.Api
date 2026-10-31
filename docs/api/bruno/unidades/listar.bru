@@ -1,0 +1,21 @@
+meta {
+  name: unidades / listar
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/unidades
+  body: none
+  auth: none
+}
+
+params:query {
+  ~bloco: exemplo
+  ~cursor: exemplo
+  ~limite: 50
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

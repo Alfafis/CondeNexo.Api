@@ -1,0 +1,20 @@
+meta {
+  name: ocorrencias / baixar
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/ocorrencias/:id/anexos/:documentoId
+  body: none
+  auth: none
+}
+
+params:path {
+  documentoId: {{documentoId}}
+  id: {{ocorrenciaId}}
+}
+
+docs {
+  Permissão: `documento.ver`
+}

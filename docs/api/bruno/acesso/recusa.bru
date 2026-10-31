@@ -1,0 +1,28 @@
+meta {
+  name: acesso / recusa
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso/recusas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}",
+    "unidadeDestinoId": "{{unidadeDestinoId}}",
+    "meio": "interfone",
+    "moradorPessoaId": "{{moradorPessoaId}}",
+    "observacao": "exemplo",
+    "retroativo": false,
+    "ocorridoEm": 0,
+    "formularioContingencia": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

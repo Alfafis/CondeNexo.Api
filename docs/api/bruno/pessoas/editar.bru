@@ -1,0 +1,30 @@
+meta {
+  name: pessoas / editar
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/pessoas/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{pessoaId}}
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "telefone": "11955550000",
+    "documento": "111.444.777-35",
+    "empresa": "exemplo",
+    "servico": "exemplo",
+    "menorIdade": false
+  }
+}
+
+docs {
+  Permissão: `pessoa.editar`
+}

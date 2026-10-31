@@ -1,0 +1,19 @@
+meta {
+  name: acesso / correcoes
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/eventos-acesso/:id/correcoes
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{eventoAcessoId}}
+}
+
+docs {
+  Permissão: `evento.ver`
+}

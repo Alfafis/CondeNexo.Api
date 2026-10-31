@@ -1,0 +1,27 @@
+meta {
+  name: sindicosmaster / desativar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/desativar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  usuarioId: {{usuarioId}}
+}
+
+body:json {
+  {
+    "motivo": "exemploxxxxxxxx",
+    "senhaMaster": "{{senhaMaster}}"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.sindicos`
+}

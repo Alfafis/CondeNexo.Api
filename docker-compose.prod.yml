@@ -1,0 +1,339 @@
+# PRODUÇÃO do CondNexo (VPS compartilhada; runbook em docs/deploy.md). Arquivo AUTÔNOMO, não é override do
+# docker-compose.yml de dev: nada dele é herdado, e não existe combinação de -f que misture os dois.
+#
+# Na VPS, o .env (copiado de .env.producao.example) traz COMPOSE_FILE=docker-compose.prod.yml: qualquer
+# `docker compose ...` digitado na pasta do clone usa ESTE arquivo, sem depender de lembrar do -f.
+#
+#   docker compose build                         build na própria VPS (amd64), a partir do clone
+#   docker compose up -d                         db -> permissoes + migrate (rodam e terminam) -> api
+#   docker compose ps / logs -f api              estado e log (json-file com rotação)
+#
+# Isolamento da VPS que também roda o Tobe (porta 3333, Postgres próprio):
+#   - projeto `tcc-portaria` (volumes e redes nascem com esse prefixo; nada é compartilhado com outro projeto);
+#   - banco SEM porta publicada, numa rede interna (sem saída para a internet);
+#   - API publicada só em 127.0.0.1:${API_HOST_PORT} (padrão 3100), para o proxy da VPS; nada em 0.0.0.0;
+#   - limite de memória por serviço, CPU e processos na API, logs com rotação, usuário não-root na API, capabilities
+#     mínimas no banco (valores e motivo em docs/deploy.md, seção 15).
+name: tcc-portaria
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:?defina APP_MIGRATOR_PASSWORD no .env}
+      APP_RW_PASSWORD: ${APP_RW_PASSWORD:?defina APP_RW_PASSWORD no .env}
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      # Bootstrap de roles e do banco: roda UMA vez, na primeira subida do volume (00_roles.sh é 100755 no git).
+      # 10_plataforma.sh (banco plataforma do SaaS) cria app_plataforma SEM login aqui: APP_PLATAFORMA_PASSWORD fica de
+      # fora do `db` de propósito (variável nova no serviço recriaria o container do Postgres no próximo `up`). A senha
+      # entra por stdin (docs/deploy.md, seção 12).
+      - ./db/bootstrap:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    networks: [banco]
+    healthcheck:
+      # -h 127.0.0.1: no init o servidor temporário só escuta no socket e o pg_isready sem -h 127.0.0.1 daria saudável cedo demais.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d portaria"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    mem_limit: 512m
+    # Postgres com 512 MiB: buffers e conexões no tamanho do limite (a API abre no máximo 10 conexões).
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=40", "-c", "work_mem=4MB"]
+    shm_size: 128m
+    # Só o que o entrypoint da imagem oficial usa como root antes de descer para `postgres` (testado no postgres:17-alpine,
+    # volume novo, reinício e volume com dono errado): SETUID/SETGID (su-exec), CHOWN e FOWNER (acertar dono e modo do
+    # PGDATA e de /var/run/postgresql), DAC_READ_SEARCH (o `find` do PGDATA 700; no lugar de DAC_OVERRIDE, mais amplo).
+    # O servidor em si roda como `postgres`, sem capability efetiva.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_READ_SEARCH, FOWNER, SETGID, SETUID]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+
+  # Dono dos volumes da API: o volume novo herda o dono da imagem (node), mas um volume restaurado de backup, ou criado
+  # por outra imagem, nasce root e a API (não-root) não grava nele. Roda como root, só com CHOWN, FOWNER e DAC_OVERRIDE
+  # (para descer em pasta 700 de outro dono), e termina.
+  permissoes:
+    image: tcc-portaria-api:${API_TAG:-atual}
+    pull_policy: never
+    user: "0:0"
+    command:
+      - sh
+      - -c
+      - chown -R node:node /var/lib/portaria/documentos /var/lib/portaria/ancoras && chmod 700 /var/lib/portaria/documentos && chmod 750 /var/lib/portaria/ancoras
+    volumes:
+      - documentos:/var/lib/portaria/documentos
+      - ancoras:/var/lib/portaria/ancoras
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    restart: "no"
+    logging: *logging
+
+  # Migrações (drizzle-kit, como app_migrator): roda a cada `up`, aplica só o que falta e termina. A API só sobe
+  # depois que ela conclui com sucesso; migração que falha segura a API velha no ar (o `up` não a recria).
+  # SaaS (F2, SAAS-16): laço scripts/migrar-bancos.mjs = banco `plataforma` e depois cada banco de condomínio
+  # (o `portaria` do piloto primeiro), em série; o primeiro que falhar para o laço e o `up`.
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    image: tcc-portaria-migrate:${API_TAG:-atual}
+    command: ["node", "scripts/migrar-bancos.mjs"]
+    environment:
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [banco]
+    mem_limit: 256m
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    logging: *logging
+
+  # SaaS (docs/05_arquitetura_saas.md; docs/deploy.md, seções 12 e 13). As migrações do banco `plataforma` entraram no
+  # `migrate` acima na F2 (o serviço migrate-plataforma saiu). CLI do operador para o banco plataforma (registro do
+  # piloto e importação das chaves), só com --profile plataforma: a imagem da API, sem porta, só na rede interna.
+  # Vazias, a CLI recusa com o nome da variável que falta.
+  plataforma-cli:
+    profiles: [plataforma]
+    image: tcc-portaria-api:${API_TAG:-atual}
+    pull_policy: never
+    command: ["node", "dist/cli/registrar-piloto.js"]
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+      PORTARIA_HMAC_CPF_KEY: ${PORTARIA_HMAC_CPF_KEY:?defina PORTARIA_HMAC_CPF_KEY no .env}
+      PORTARIA_KEK: ${PORTARIA_KEK:?defina PORTARIA_KEK no .env}
+      PORTARIA_KEK_VERSAO: ${PORTARIA_KEK_VERSAO:?defina PORTARIA_KEK_VERSAO no .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [banco]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    restart: "no"
+    logging: *logging
+
+  # Provisionamento de condomínio novo (SAAS-10; docs/deploy.md, seção 16), só com --profile provisionar. Entrada JSON
+  # pelo stdin (-T), nunca por argumento. Quatro roles, cada um no seu passo: app_provisionador (CREATE DATABASE, banco
+  # `postgres`), app_migrator (migrações do banco novo), app_rw (dados) e app_plataforma (cadastro e chaves). Vazias, a
+  # CLI recusa com o nome da variável que falta. 192m: um hash argon2 de 64 MiB para a senha do síndico.
+  provisionar-cli:
+    profiles: [provisionar]
+    image: tcc-portaria-api:${API_TAG:-atual}
+    pull_policy: never
+    command: ["node", "dist/cli/provisionar-condominio.js"]
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      DATABASE_URL_PROVISIONADOR: postgres://app_provisionador:${APP_PROVISIONADOR_PASSWORD:-}@db:5432/postgres
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [banco]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 192m
+    restart: "no"
+    # Sem log em disco: o stderr leva a senha temporária do síndico (mostrada uma vez no terminal). A saída anexada ao
+    # `docker compose run` continua aparecendo; só o `docker logs` (arquivo json) deixa de guardar.
+    logging:
+      driver: none
+
+  # App do Master, F5 entrega 1 (docs/deploy.md, seção 18). Serviço provisionador: o MESMO provisionar() da CLI acima,
+  # atrás de um HTTP mínimo, chamado pela API em POST /plataforma/condominios. A API não tem as senhas de
+  # app_provisionador e app_migrator: só este container, só na rede interna `banco`, sem porta publicada. SEMPRE LIGADO
+  # desde 2026-10-24 (decisão do usuário: criar condomínio pela tela sem ssh). Risco aceito: quem invadir a API pode
+  # pedir condomínios novos (não lê, não apaga, não toca trilha). Para desligar: docker compose stop provisionador.
+  # Token compartilhado com a API (PROVISIONADOR_TOKEN). Sem log em disco: a resposta leva a senha do síndico (o
+  # serviço nunca a loga; o `logging: none` é a segunda rede).
+  provisionador:
+    image: tcc-portaria-api:${API_TAG:-atual}
+    pull_policy: never
+    command: ["node", "dist/cli/servidor-provisionador.js"]
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      PORT: "3200"
+      PROVISIONADOR_TOKEN: ${PROVISIONADOR_TOKEN:-}
+      DATABASE_URL_PROVISIONADOR: postgres://app_provisionador:${APP_PROVISIONADOR_PASSWORD:-}@db:5432/postgres
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [banco]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 100
+    restart: unless-stopped
+    logging:
+      driver: none
+
+  # Bootstrap do primeiro Master e reemissão de senha (docs/deploy.md, seção 18). Rodar num TERMINAL COMUM, nunca
+  # pelo `!` do Claude Code: a saída traz a senha temporária. Argumentos vão direto (entrypoint):
+  #   docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e-mail> --nome "<nome>"
+  usuario-plataforma-cli:
+    profiles: [plataforma]
+    image: tcc-portaria-api:${API_TAG:-atual}
+    pull_policy: never
+    entrypoint: ["node", "dist/cli/criar-usuario-plataforma.js"]
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [banco]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 192m
+    restart: "no"
+    logging:
+      driver: none
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: tcc-portaria-api:${API_TAG:-atual}
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      PORT: "3000"
+      # app_rw: sem DELETE, sem UPDATE nas trilhas, sem CREATE. Nunca app_migrator. SaaS (F2): é a URL-base dos bancos de
+      # condomínio (o nome do banco vem da plataforma; `portaria` é o do piloto).
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      # SaaS (F2): banco plataforma (app_plataforma: sem CONNECT nos bancos de condomínio) e a chave mestra que
+      # desembrulha as chaves de cada condomínio. A chave mestra NÃO vai ao backup: cópia só no cofre.
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:?defina APP_PLATAFORMA_PASSWORD no .env}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:?defina PORTARIA_CHAVE_MESTRA no .env}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:?defina PORTARIA_CHAVE_MESTRA_VERSAO no .env}
+      # Transição (SAAS-05): login sem código e cookie antigo = piloto. `false` ao fim da janela.
+      SAAS_PILOTO_PADRAO: ${SAAS_PILOTO_PADRAO:-true}
+      # App do Master (F5): para onde a tela "Novo condomínio" manda o pedido (serviço provisionador acima, rede interna).
+      # Vazias: a tela responde 503 e a CLI provisionar-cli continua valendo.
+      PROVISIONADOR_URL: ${PROVISIONADOR_URL:-}
+      PROVISIONADOR_TOKEN: ${PROVISIONADOR_TOKEN:-}
+      # Fixos em produção (não vêm do .env): a API recusa o boot com COOKIE_SECURE=false em producao.
+      PORTARIA_AMBIENTE: producao
+      COOKIE_SECURE: "true"
+      # Mesma origem pelo rewrite da Vercel: CORS desligado.
+      CORS_ORIGENS: ""
+      # Saltos de proxy confiáveis: 2 = Vercel + proxy da VPS (topologias em docs/deploy.md §TRUST_PROXY).
+      TRUST_PROXY: ${TRUST_PROXY:?defina TRUST_PROXY no .env (2 com Vercel + proxy da VPS)}
+      # Prazos da sessão (spec §5.1), em minutos. Vazio = padrão da API: 240/840 (4 h sem uso / 14 h; sempre o do
+      # porteiro) e, com "Manter conectado", 1440/21600 (1 dia / 15 dias). SESSAO_ABSOLUTA_MIN e SESSAO_INATIVIDADE_MIN
+      # antigas não são mais repassadas (a API as ignoraria com aviso).
+      SESSAO_PADRAO_INATIVIDADE_MIN: ${SESSAO_PADRAO_INATIVIDADE_MIN:-}
+      SESSAO_PADRAO_ABSOLUTA_MIN: ${SESSAO_PADRAO_ABSOLUTA_MIN:-}
+      SESSAO_LONGA_INATIVIDADE_MIN: ${SESSAO_LONGA_INATIVIDADE_MIN:-}
+      SESSAO_LONGA_ABSOLUTA_MIN: ${SESSAO_LONGA_ABSOLUTA_MIN:-}
+      LOGIN_MAX_FALHAS_LOGIN: ${LOGIN_MAX_FALHAS_LOGIN:-}
+      LOGIN_MAX_FALHAS_IP: ${LOGIN_MAX_FALHAS_IP:-}
+      LOGIN_JANELA_MIN: ${LOGIN_JANELA_MIN:-}
+      LOGIN_BLOQUEIO_MIN: ${LOGIN_BLOQUEIO_MIN:-}
+      IMPORTACAO_PRAZO_LEGADO_DIAS: ${IMPORTACAO_PRAZO_LEGADO_DIAS:-}
+      # As chaves do piloto vêm da plataforma desde a F2. Estas três ficam OPCIONAIS, só para a conferência no boot: se
+      # estiverem no .env e diferirem das da plataforma, a API recusa subir. Esvaziar quando a transição acabar.
+      PORTARIA_HMAC_CPF_KEY: ${PORTARIA_HMAC_CPF_KEY:-}
+      PORTARIA_KEK: ${PORTARIA_KEK:-}
+      PORTARIA_KEK_VERSAO: ${PORTARIA_KEK_VERSAO:-}
+      PORTARIA_DOCUMENTOS_DIR: /var/lib/portaria/documentos
+      # Âncora: github (endpoint público lido pelo GitHub Actions). E-mail é opcional: para ligar, acrescente `email`
+      # aqui e as variáveis ANCORA_EMAILS/ANCORA_SMTP_* (com TLS) no .env e abaixo.
+      ANCORA_DESTINOS: ${ANCORA_DESTINOS:-github}
+      ANCORA_EMAILS: ${ANCORA_EMAILS:-}
+      ANCORA_REMETENTE: ${ANCORA_REMETENTE:-}
+      ANCORA_SMTP_HOST: ${ANCORA_SMTP_HOST:-}
+      ANCORA_SMTP_PORTA: ${ANCORA_SMTP_PORTA:-}
+      ANCORA_SMTP_TLS: ${ANCORA_SMTP_TLS:-}
+      ANCORA_SMTP_USUARIO: ${ANCORA_SMTP_USUARIO:-}
+      ANCORA_SMTP_SENHA: ${ANCORA_SMTP_SENHA:-}
+      # Cópia local append-only (não é âncora externa; entra no backup).
+      ANCORA_ARQUIVO: /var/lib/portaria/ancoras/ancoras.jsonl
+      JOBS_AGENDADOR: ""
+      RETENCAO_ANEXO_OCORRENCIA_ANOS: ${RETENCAO_ANEXO_OCORRENCIA_ANOS:-}
+      # SEED_SENHA_DEV NÃO fica aqui: o seed é um `docker compose run` de uma vez (docs/deploy.md), com a senha só no
+      # ambiente daquele processo.
+    volumes:
+      - documentos:/var/lib/portaria/documentos
+      - ancoras:/var/lib/portaria/ancoras
+    ports:
+      # Só loopback: o proxy da VPS (fase 2) é o único caminho de fora. 3100 não colide com o Tobe (3333).
+      - "127.0.0.1:${API_HOST_PORT:-3100}:3000"
+    networks: [banco, borda]
+    depends_on:
+      db:
+        condition: service_healthy
+      permissoes:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/v1/saude"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+    # Raiz somente leitura: a API só escreve nos dois volumes; /tmp em memória para o que o Node precisar.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    # 384 MiB: a API e 2 hashes argon2 simultâneos (64 MiB cada, limite em PADROES_ARGON2.concorrencia).
+    mem_limit: 384m
+    # VPS compartilhada com o Tobe: no máximo 1 CPU (2 argon2 simultâneos dividem esse núcleo; o login fica mais lento sob
+    # rajada, a VPS não) e 200 processos/threads (o Node usa ~20; o teto só segura fork bomb ou vazamento de threads).
+    cpus: 1.0
+    pids_limit: 200
+    restart: unless-stopped
+    logging: *logging
+
+networks:
+  # Banco e migração: sem saída para a internet e sem porta publicada (internal não permite publicar).
+  banco:
+    internal: true
+  # Só a API: é a rede que publica 127.0.0.1:${API_HOST_PORT}.
+  borda: {}
+
+volumes:
+  # Sem `name:` fixo: viram tcc-portaria_pgdata etc. (prefixo do projeto), e um teste com `-p outro-nome` usa outros.
+  pgdata: {}
+  documentos: {}
+  ancoras: {}

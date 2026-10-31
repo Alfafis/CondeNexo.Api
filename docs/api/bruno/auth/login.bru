@@ -1,0 +1,22 @@
+meta {
+  name: auth / login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "login": "{{login}}",
+    "senha": "{{senha}}"
+  }
+}
+
+docs {
+  Pública: não exige sessão.
+}

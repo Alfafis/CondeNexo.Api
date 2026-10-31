@@ -1,0 +1,22 @@
+meta {
+  name: authmaster / trocarSenha
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/plataforma/auth/trocar-senha
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "senhaAtual": "{{senhaAtual}}",
+    "novaSenha": "{{novaSenha}}"
+  }
+}
+
+docs {
+  Plataforma (Master): qualquer usuário da plataforma logado.
+}

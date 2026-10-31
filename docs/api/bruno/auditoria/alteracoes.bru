@@ -1,0 +1,25 @@
+meta {
+  name: auditoria / alteracoes
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/auditoria/alteracoes
+  body: none
+  auth: none
+}
+
+params:query {
+  ~acao: exemplo
+  ~ate: 0
+  ~cursor: exemplo
+  ~de: 0
+  ~entidade: exemplo
+  ~limite: 50
+  ~usuarioId: {{usuarioId}}
+}
+
+docs {
+  Permissão: `auditoria.verificar`
+}

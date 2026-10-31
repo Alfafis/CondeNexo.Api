@@ -1,0 +1,19 @@
+meta {
+  name: acesso / autorizacoesDaUnidade
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/autorizacoes-previas
+  body: none
+  auth: none
+}
+
+params:query {
+  unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

@@ -1,0 +1,25 @@
+meta {
+  name: encomendas / entregar
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/encomendas/:id/retirada
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{encomendaId}}
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}"
+  }
+}
+
+docs {
+  Permissão: `encomenda.operar`
+}

@@ -1,0 +1,19 @@
+meta {
+  name: vinculos / autorizadores
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/unidades/:id/autorizadores
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{unidadeId}}
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792678546660,
+      "tag": "0000_plataforma",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792702843215,
+      "tag": "0001_lgpd_anonimizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792711855577,
+      "tag": "0002_cadastro_modulos",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792796469689,
+      "tag": "0003_master_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792800656594,
+      "tag": "0004_master_sem_totp",
+      "breakpoints": true
+    }
+  ]
+}

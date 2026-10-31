@@ -1,0 +1,19 @@
+meta {
+  name: acesso / revogarRestricao
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/restricoes/:id/revogar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{restricaoId}}
+}
+
+docs {
+  Permissão: `unidade.editar`
+}

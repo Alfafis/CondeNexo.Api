@@ -1,0 +1,23 @@
+meta {
+  name: acesso / prorrogar
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso/:id/permanencia/prorrogacoes
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{eventoAcessoId}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

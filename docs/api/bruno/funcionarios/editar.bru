@@ -1,0 +1,33 @@
+meta {
+  name: funcionarios / editar
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/funcionarios/:pessoaId
+  body: json
+  auth: none
+}
+
+params:path {
+  pessoaId: {{pessoaId}}
+}
+
+body:json {
+  {
+    "funcao": "exemplo",
+    "escala": {
+      "diasSemana": [
+        1
+      ],
+      "horaInicio": "exemp",
+      "horaFim": "exemp"
+    },
+    "ativo": false
+  }
+}
+
+docs {
+  Permissão: `funcionario.gerenciar`
+}

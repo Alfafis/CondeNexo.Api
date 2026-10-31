@@ -1,0 +1,254 @@
+# Ambiente de desenvolvimento do CondNexo: db -> migrate (roda e termina) -> api.
+# Uso: cp .env.example .env (preencher) e então (o mailpit, só de dev, recebe a âncora do selo: http://localhost:8025):
+#   docker compose up --build --watch     API com reload: salvar em src recompila e reinicia (tsc-watch)
+#   docker compose up -d --build          sem reload (o watch também pode ser ligado depois: docker compose watch)
+#   API_TARGET=runtime docker compose up -d --build   a imagem de produção (sem tsc-watch, usuário node)
+# Mudou o schema/migração? docker compose run --rm migrate (o migrate não roda sozinho de novo).
+# Ver README.md e db/README.md.
+# Docker Desktop no macOS: export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+name: portaria
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      APP_MIGRATOR_PASSWORD: ${APP_MIGRATOR_PASSWORD:?defina APP_MIGRATOR_PASSWORD no .env}
+      APP_RW_PASSWORD: ${APP_RW_PASSWORD:?defina APP_RW_PASSWORD no .env}
+      # Banco plataforma do SaaS (db/bootstrap/10_plataforma.sh). Vazia: o role nasce sem LOGIN.
+      APP_PLATAFORMA_PASSWORD: ${APP_PLATAFORMA_PASSWORD:-}
+      # CLI provisionar-condominio (db/bootstrap/10_plataforma.sh). Vazia: o role nasce sem LOGIN.
+      APP_PROVISIONADOR_PASSWORD: ${APP_PROVISIONADOR_PASSWORD:-}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "127.0.0.1:${DB_HOST_PORT:-5432}:5432"
+    volumes:
+      # Roda UMA vez, na primeira subida do volume (00_roles.sh precisa de chmod +x: o entrypoint o executa com /bin/sh)
+      - ./db/bootstrap:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -h 127.0.0.1 força TCP: durante o init o servidor temporário só escuta no socket unix e
+      # enganaria um pg_isready sem -h, liberando o migrate antes da hora.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d portaria"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    mem_limit: 512m
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    image: portaria-migrate:dev
+    # SaaS (F2): plataforma e depois cada banco de condomínio (scripts/migrar-bancos.mjs).
+    environment:
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+    command: ["node", "scripts/migrar-bancos.mjs"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # SaaS: a API (F2) só sobe com o piloto registrado no banco `plataforma` (docs/deploy.md, seção 13). Uma vez por volume:
+  #   docker compose --profile plataforma run --rm plataforma-cli node dist/cli/registrar-piloto.js --codigo piloto --nome "Dev"
+
+  plataforma-cli:
+    profiles: [plataforma]
+    image: portaria-api:${API_TARGET:-dev}
+    pull_policy: never
+    command: ["node", "dist/cli/registrar-piloto.js"]
+    environment:
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+      PORTARIA_HMAC_CPF_KEY: ${PORTARIA_HMAC_CPF_KEY:?defina PORTARIA_HMAC_CPF_KEY no .env}
+      PORTARIA_KEK: ${PORTARIA_KEK:?defina PORTARIA_KEK no .env}
+      PORTARIA_KEK_VERSAO: ${PORTARIA_KEK_VERSAO:?defina PORTARIA_KEK_VERSAO no .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  # Provisionamento de condomínio novo (docs/deploy.md, seção 16): API_TARGET=runtime ou dev (as duas têm dist/ e drizzle/).
+  #   docker compose --profile provisionar run --rm -T provisionar-cli < condominio.json
+  provisionar-cli:
+    profiles: [provisionar]
+    image: portaria-api:${API_TARGET:-dev}
+    pull_policy: never
+    command: ["node", "dist/cli/provisionar-condominio.js"]
+    environment:
+      DATABASE_URL_PROVISIONADOR: postgres://app_provisionador:${APP_PROVISIONADOR_PASSWORD:-}@db:5432/postgres
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    # O stderr leva a senha temporária do síndico: sem arquivo de log (a saída do `run` continua no terminal).
+    logging:
+      driver: none
+
+  # App do Master (docs/deploy.md, seção 18): serviço provisionador chamado pela API em POST /plataforma/condominios.
+  #   docker compose --profile provisionar up -d provisionador
+  provisionador:
+    profiles: [provisionar]
+    image: portaria-api:${API_TARGET:-dev}
+    pull_policy: never
+    command: ["node", "dist/cli/servidor-provisionador.js"]
+    environment:
+      PORT: "3200"
+      PROVISIONADOR_TOKEN: ${PROVISIONADOR_TOKEN:-}
+      DATABASE_URL_PROVISIONADOR: postgres://app_provisionador:${APP_PROVISIONADOR_PASSWORD:-}@db:5432/postgres
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    logging:
+      driver: none
+
+  # Primeiro usuário da plataforma (Master): docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e> --nome "<n>"
+  usuario-plataforma-cli:
+    profiles: [plataforma]
+    image: portaria-api:${API_TARGET:-dev}
+    pull_policy: never
+    entrypoint: ["node", "dist/cli/criar-usuario-plataforma.js"]
+    environment:
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    logging:
+      driver: none
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # dev (padrão): tsc-watch com reload. runtime: a imagem de produção, para conferir antes do deploy.
+      target: ${API_TARGET:-dev}
+    image: portaria-api:${API_TARGET:-dev}
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      PORT: "3000"
+      # A API usa app_rw (sem DELETE, sem UPDATE nas trilhas, sem CREATE). Nunca app_migrator.
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      # SaaS (F2): banco plataforma (app_plataforma) e chave mestra; as chaves do condomínio vêm de lá.
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:?defina APP_PLATAFORMA_PASSWORD no .env}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:?defina PORTARIA_CHAVE_MESTRA no .env}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:?defina PORTARIA_CHAVE_MESTRA_VERSAO no .env}
+      SAAS_PILOTO_PADRAO: ${SAAS_PILOTO_PADRAO:-true}
+      # App do Master: serviço provisionador (perfil provisionar). Vazias = criação pela tela desligada (503).
+      PROVISIONADOR_URL: ${PROVISIONADOR_URL:-}
+      PROVISIONADOR_TOKEN: ${PROVISIONADOR_TOKEN:-}
+      # Cada variável repassada uma a uma (nunca env_file com o .env inteiro: a API não recebe senha de superusuário).
+      PORTARIA_AMBIENTE: ${PORTARIA_AMBIENTE:?defina PORTARIA_AMBIENTE (dev ou producao) no .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:?defina COOKIE_SECURE (true ou false) no .env}
+      TRUST_PROXY: ${TRUST_PROXY:?defina TRUST_PROXY (false ou número de proxies) no .env}
+      # Prazos da sessão (spec §5.1), em minutos. Vazio = padrão da API: 240/840 (4 h sem uso / 14 h; sempre o do
+      # porteiro) e, com "Manter conectado", 1440/21600 (1 dia / 15 dias). SESSAO_ABSOLUTA_MIN e SESSAO_INATIVIDADE_MIN
+      # antigas não são mais repassadas (a API as ignoraria com aviso).
+      SESSAO_PADRAO_INATIVIDADE_MIN: ${SESSAO_PADRAO_INATIVIDADE_MIN:-}
+      SESSAO_PADRAO_ABSOLUTA_MIN: ${SESSAO_PADRAO_ABSOLUTA_MIN:-}
+      SESSAO_LONGA_INATIVIDADE_MIN: ${SESSAO_LONGA_INATIVIDADE_MIN:-}
+      SESSAO_LONGA_ABSOLUTA_MIN: ${SESSAO_LONGA_ABSOLUTA_MIN:-}
+      # Limite de login (spec §5.1). Vazio = padrão da API: 10 por login, 30 por IP, janela e bloqueio de 15 min.
+      LOGIN_MAX_FALHAS_LOGIN: ${LOGIN_MAX_FALHAS_LOGIN:-}
+      LOGIN_MAX_FALHAS_IP: ${LOGIN_MAX_FALHAS_IP:-}
+      LOGIN_JANELA_MIN: ${LOGIN_JANELA_MIN:-}
+      LOGIN_BLOQUEIO_MIN: ${LOGIN_BLOQUEIO_MIN:-}
+      # Prazo de regularização do legado (RN-09, definido em assembleia). Vazio = 90 dias.
+      IMPORTACAO_PRAZO_LEGADO_DIAS: ${IMPORTACAO_PRAZO_LEGADO_DIAS:-}
+      # Opcionais desde a F2: só conferidas no boot contra as do piloto na plataforma.
+      PORTARIA_HMAC_CPF_KEY: ${PORTARIA_HMAC_CPF_KEY:-}
+      PORTARIA_KEK: ${PORTARIA_KEK:-}
+      PORTARIA_KEK_VERSAO: ${PORTARIA_KEK_VERSAO:-}
+      # Anexos de ocorrência cifrados (AES-256-GCM, spec §9.2): só o conteúdo cifrado, no volume abaixo (fora do banco).
+      PORTARIA_DOCUMENTOS_DIR: /var/lib/portaria/documentos
+      # Vazios são válidos: sem CORS (mesma origem) e sem seed de dev (produção).
+      CORS_ORIGENS: ${CORS_ORIGENS:-}
+      SEED_SENHA_DEV: ${SEED_SENHA_DEV:-}
+      # Âncora externa do selo diário (spec §4.6). Padrão de DEV: o Mailpit abaixo (sem TLS, só na rede do compose) e
+      # destinatários fictícios. Em produção o destino é o GitHub Actions (docker-compose.prod.yml); e-mail é opcional
+      # (a API recusa TLS=nenhum e a ausência de destino externo com PORTARIA_AMBIENTE=producao).
+      # Destinos externos: github (endpoint público GET /api/v1/auditoria/selos/publico, lido pelo GitHub Actions em
+      # produção) e email (o Mailpit, em dev). Produção: docker-compose.prod.yml (github, sem SMTP).
+      ANCORA_DESTINOS: ${ANCORA_DESTINOS:-github,email}
+      ANCORA_EMAILS: ${ANCORA_EMAILS:-sindico@condominio.test,conselho@condominio.test}
+      ANCORA_REMETENTE: ${ANCORA_REMETENTE:-portaria@condominio.test}
+      ANCORA_SMTP_HOST: ${ANCORA_SMTP_HOST:-mailpit}
+      ANCORA_SMTP_PORTA: ${ANCORA_SMTP_PORTA:-1025}
+      ANCORA_SMTP_TLS: ${ANCORA_SMTP_TLS:-nenhum}
+      ANCORA_SMTP_USUARIO: ${ANCORA_SMTP_USUARIO:-}
+      ANCORA_SMTP_SENHA: ${ANCORA_SMTP_SENHA:-}
+      # Cópia append-only (uma linha JSON por selo) num volume próprio, fora do volume do banco. Só vale como âncora se
+      # for copiada para fora do servidor (backup externo).
+      ANCORA_ARQUIVO: /var/lib/portaria/ancoras/ancoras.jsonl
+      # Agendador interno (selo de ontem, âncoras pendentes e retenção diária a partir das 3h BRT). Vazio = ligado.
+      JOBS_AGENDADOR: ${JOBS_AGENDADOR:-}
+      # Anexos de ocorrência: a seção 7 dos requisitos não define o prazo (spec §14). Vazio = nenhum anexo sai por prazo.
+      RETENCAO_ANEXO_OCORRENCIA_ANOS: ${RETENCAO_ANEXO_OCORRENCIA_ANOS:-}
+    volumes:
+      # Sem a KEK (PORTARIA_KEK, só no .env) o volume é ilegível; backup do volume e da KEK em lugares separados.
+      - documentos:/var/lib/portaria/documentos
+      - ancoras:/var/lib/portaria/ancoras
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/v1/saude"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # No target dev, a primeira compilação do tsc-watch leva alguns segundos antes de a API escutar.
+      start_period: 30s
+    # 384m cabem a API e 2 hashes argon2 simultâneos (64 MiB cada); o tsc-watch do dev pede mais.
+    mem_limit: ${API_MEM_LIMIT:-768m}
+    restart: unless-stopped
+    # Reload (só com `up --watch` ou `docker compose watch`; ignorado no target runtime, que não tem tsc-watch).
+    develop:
+      watch:
+        # Código da API (inclui o domínio, src/dominio): copiado para dentro do container; o tsc-watch recompila e reinicia.
+        - action: sync
+          path: ./src
+          target: /app/src
+        # Dependências e config do TypeScript: reconstrói a imagem.
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./tsconfig.build.json
+
+  # SÓ DEV: caixa de e-mail falsa que recebe a âncora do selo (http://localhost:8025). Não vai para o compose de
+  # produção: lá o destino é o GitHub Actions; e-mail real, se ligado, exige TLS (a API recusa SMTP sem TLS).
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    environment:
+      MP_MAX_MESSAGES: "500"
+    ports:
+      - "127.0.0.1:8025:8025"
+    mem_limit: 128m
+    restart: unless-stopped
+
+volumes:
+  pgdata: {}
+  documentos: {}
+  ancoras: {}

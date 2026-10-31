@@ -1,0 +1,24 @@
+meta {
+  name: vinculos / listar
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/vinculos
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+  ~ordem: recentes
+  ~pessoaId: {{pessoaId}}
+  ~status: exemplo
+  ~unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `vinculo.ver`
+}

@@ -1,0 +1,19 @@
+meta {
+  name: vinculos / aprovar
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/vinculos/:id/aprovar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{vinculoId}}
+}
+
+docs {
+  Permissão: `vinculo.decidir`
+}

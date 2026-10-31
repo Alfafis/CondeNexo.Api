@@ -1,0 +1,4877 @@
+{
+  "info": {
+    "name": "CondNexo",
+    "description": "API do CondNexo (v0.1.0). Gerada de docs/api/openapi.json (npm run colecoes): não editar à mão. Selecione o ambiente (producao ou local), preencha login e senha e rode \"auth / login\" primeiro: o cookie de sessão fica no cookie jar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "auth / login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Pública: não exige sessão.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"{{login}}\",\n  \"senha\": \"{{senha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "auth / logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Qualquer usuário logado (inclusive quem ainda deve trocar a senha)."
+          }
+        },
+        {
+          "name": "auth / me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Qualquer usuário logado (inclusive quem ainda deve trocar a senha)."
+          }
+        },
+        {
+          "name": "auth / trocarSenha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/trocar-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "trocar-senha"
+              ]
+            },
+            "description": "Qualquer usuário logado (inclusive quem ainda deve trocar a senha).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"{{senhaAtual}}\",\n  \"novaSenha\": \"{{novaSenha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "acesso",
+      "item": [
+        {
+          "name": "acesso / presentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/acessos/presentes?cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "acessos",
+                "presentes"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `evento.ver`"
+          }
+        },
+        {
+          "name": "acesso / ultimoVeiculo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/acessos/ultimo-veiculo?pessoaId={{pessoaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "acessos",
+                "ultimo-veiculo"
+              ],
+              "query": [
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.registrar`"
+          }
+        },
+        {
+          "name": "acesso / autorizacoesDaUnidade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/autorizacoes-previas?unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "autorizacoes-previas"
+              ],
+              "query": [
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "acesso / criarAutorizacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/autorizacoes-previas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "autorizacoes-previas"
+              ]
+            },
+            "description": "Permissão: `autorizacao.criar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"areaComumId\": \"{{areaComumId}}\",\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"validaDe\": \"exemplo\",\n  \"validaAte\": \"exemplo\",\n  \"diasSemana\": [\n    0\n  ],\n  \"horaInicio\": \"exemplo\",\n  \"horaFim\": \"exemplo\",\n  \"solicitadaPorPessoaId\": \"{{solicitadaPorPessoaId}}\",\n  \"justificativa\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / autorizacoesHoje",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/autorizacoes-previas/hoje",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "autorizacoes-previas",
+                "hoje"
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "acesso / previstas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/autorizacoes-previas/previstas?horas=12",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "autorizacoes-previas",
+                "previstas"
+              ],
+              "query": [
+                {
+                  "key": "horas",
+                  "value": "12",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "acesso / vigentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/autorizacoes-previas/vigentes?areaComumId={{areaComumId}}&pessoaId={{pessoaId}}&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "autorizacoes-previas",
+                "vigentes"
+              ],
+              "query": [
+                {
+                  "key": "areaComumId",
+                  "value": "{{areaComumId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `autorizacao.criar`"
+          }
+        },
+        {
+          "name": "acesso / revogarAutorizacao",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/autorizacoes-previas/:id/revogar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "autorizacoes-previas",
+                ":id",
+                "revogar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{autorizacaoPreviaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `autorizacao.criar`"
+          }
+        },
+        {
+          "name": "acesso / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso?ate=1&cursor=exemplo&de=1&eventoId={{eventoId}}&excluirTipos=exemplo&limite=50&meio=interfone&operadorId={{operadorId}}&pessoaId={{pessoaId}}&somenteExcecoes=true&somenteRetroativos=true&tipo=entrada&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "eventoId",
+                  "value": "{{eventoId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "excluirTipos",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "meio",
+                  "value": "interfone",
+                  "disabled": true
+                },
+                {
+                  "key": "operadorId",
+                  "value": "{{operadorId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "somenteExcecoes",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "somenteRetroativos",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "tipo",
+                  "value": "entrada",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `evento.ver`"
+          }
+        },
+        {
+          "name": "acesso / entrada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso"
+              ]
+            },
+            "description": "Permissão: `evento.registrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"unidadeDestinoId\": \"{{unidadeDestinoId}}\",\n  \"areaComumId\": \"{{areaComumId}}\",\n  \"autorizadoPorTipo\": \"interfone\",\n  \"autorizadoPorPessoaId\": \"{{autorizadoPorPessoaId}}\",\n  \"autorizacaoPreviaId\": \"{{autorizacaoPreviaId}}\",\n  \"justificativa\": \"exemplo\",\n  \"retroativo\": false,\n  \"ocorridoEm\": 0,\n  \"observacao\": \"exemplo\",\n  \"formularioContingencia\": \"exemplo\",\n  \"tipoVisita\": \"visita\",\n  \"veiculo\": {\n    \"placa\": \"ABC1D23\",\n    \"modelo\": \"exemplo\",\n    \"cor\": \"exemplo\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / avaliar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/avaliacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                "avaliacao"
+              ]
+            },
+            "description": "Permissão: `evento.registrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"unidadeDestinoId\": \"{{unidadeDestinoId}}\",\n  \"areaComumId\": \"{{areaComumId}}\",\n  \"autorizadoPorTipo\": \"interfone\",\n  \"autorizadoPorPessoaId\": \"{{autorizadoPorPessoaId}}\",\n  \"autorizacaoPreviaId\": \"{{autorizacaoPreviaId}}\",\n  \"justificativa\": \"exemplo\",\n  \"retroativo\": false,\n  \"ocorridoEm\": 0,\n  \"tipoVisita\": \"visita\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / buscar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/busca",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                "busca"
+              ]
+            },
+            "description": "Permissão: `evento.ver`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoId}}\",\n  \"de\": 0,\n  \"ate\": 0,\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"pessoa\": \"exemplo\",\n  \"placa\": \"ABC1D23\",\n  \"operadorId\": \"{{operadorId}}\",\n  \"tipo\": \"entrada\",\n  \"meio\": \"interfone\",\n  \"somenteExcecoes\": false,\n  \"somenteRetroativos\": false,\n  \"excluirTipos\": [\n    \"entrada\"\n  ],\n  \"limite\": 50,\n  \"cursor\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / recusa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/recusas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                "recusas"
+              ]
+            },
+            "description": "Permissão: `evento.registrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"unidadeDestinoId\": \"{{unidadeDestinoId}}\",\n  \"meio\": \"interfone\",\n  \"moradorPessoaId\": \"{{moradorPessoaId}}\",\n  \"observacao\": \"exemplo\",\n  \"retroativo\": false,\n  \"ocorridoEm\": 0,\n  \"formularioContingencia\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{eventoAcessoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.ver`"
+          }
+        },
+        {
+          "name": "acesso / correcoes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/:id/correcoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                ":id",
+                "correcoes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{eventoAcessoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.ver`"
+          }
+        },
+        {
+          "name": "acesso / corrigir",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/:id/correcoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                ":id",
+                "correcoes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{eventoAcessoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.corrigir`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"justificativa\": \"exemplo\",\n  \"observacao\": \"exemplo\",\n  \"valores\": {\n    \"unidadeDestinoId\": \"{{unidadeDestinoId}}\",\n    \"ocorridoEm\": 0,\n    \"pessoaId\": \"{{pessoaId}}\",\n    \"autorizadoPorPessoaId\": \"{{autorizadoPorPessoaId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / prorrogar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/:id/permanencia/prorrogacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                ":id",
+                "permanencia",
+                "prorrogacoes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{eventoAcessoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.registrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / saida",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/eventos-acesso/:id/saida",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "eventos-acesso",
+                ":id",
+                "saida"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{eventoAcessoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.registrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"observacao\": \"exemplo\",\n  \"retroativo\": false,\n  \"ocorridoEm\": 0,\n  \"formularioContingencia\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / restricoesDaUnidade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restricoes?unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restricoes"
+              ],
+              "query": [
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "acesso / criarRestricao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/restricoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restricoes"
+              ]
+            },
+            "description": "Permissão: `restricao.criar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"motivo\": \"exemplo\",\n  \"validaAte\": \"exemplo\",\n  \"solicitadaPorPessoaId\": \"{{solicitadaPorPessoaId}}\",\n  \"paraTodoCondominio\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "acesso / pendentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restricoes/pendentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restricoes",
+                "pendentes"
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "acesso / verificar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restricoes/verificar?pessoaId={{pessoaId}}&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restricoes",
+                "verificar"
+              ],
+              "query": [
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "acesso / aprovar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restricoes/:id/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restricoes",
+                ":id",
+                "aprovar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{restricaoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `restricao.aprovar`"
+          }
+        },
+        {
+          "name": "acesso / revogarRestricao",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/restricoes/:id/revogar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "restricoes",
+                ":id",
+                "revogar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{restricaoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.editar`"
+          }
+        },
+        {
+          "name": "acesso / turno",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/turnos/resumo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "turnos",
+                "resumo"
+              ]
+            },
+            "description": "Permissão: `turno.ver`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "auditoria",
+      "item": [
+        {
+          "name": "auditoria / acessosPlataforma",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/acessos-plataforma?ate=0&cursor=exemplo&de=0&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "acessos-plataforma"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `auditoria.acessos_plataforma`"
+          }
+        },
+        {
+          "name": "auditoria / alteracoes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/alteracoes?acao=exemplo&ate=0&cursor=exemplo&de=0&entidade=exemplo&limite=50&usuarioId={{usuarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "alteracoes"
+              ],
+              "query": [
+                {
+                  "key": "acao",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "ate",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "entidade",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `auditoria.verificar`"
+          }
+        },
+        {
+          "name": "auditoria / exportar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/exportacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "exportacoes"
+              ]
+            },
+            "description": "Permissão: `auditoria.exportar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoId\": \"{{eventoId}}\",\n  \"de\": 0,\n  \"ate\": 0,\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"pessoa\": \"exemplo\",\n  \"placa\": \"ABC1D23\",\n  \"operadorId\": \"{{operadorId}}\",\n  \"tipo\": \"entrada\",\n  \"meio\": \"interfone\",\n  \"somenteExcecoes\": false,\n  \"somenteRetroativos\": false,\n  \"excluirTipos\": [\n    \"entrada\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "auditoria / integridade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/integridade",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "integridade"
+              ]
+            },
+            "description": "Permissão: `auditoria.verificar`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "authmaster",
+      "item": [
+        {
+          "name": "authmaster / login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Plataforma (Master). Pública: não exige sessão.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pessoa.exemplo@exemplo.org\",\n  \"senha\": \"{{senha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "authmaster / logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado."
+          }
+        },
+        {
+          "name": "authmaster / me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado."
+          }
+        },
+        {
+          "name": "authmaster / trocarSenha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/trocar-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "trocar-senha"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"{{senhaAtual}}\",\n  \"novaSenha\": \"{{novaSenha}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "condominiosmaster",
+      "item": [
+        {
+          "name": "condominiosmaster / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.listar`"
+          }
+        },
+        {
+          "name": "condominiosmaster / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.criar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"exemplo\",\n  \"nome\": \"Fulano de Tal\",\n  \"cidade\": \"exemplo\",\n  \"uf\": \"exemplo\",\n  \"plano\": \"exemplo\",\n  \"agrupamento\": \"Bloco\",\n  \"estrutura\": {\n    \"agrupamento\": \"Bloco\",\n    \"blocos\": [\n      \"exemplo\"\n    ],\n    \"andares\": [\n      -9007199254740991\n    ],\n    \"finais\": [\n      -9007199254740991\n    ],\n    \"ausentes\": [\n      \"exemplo\"\n    ]\n  },\n  \"unidades\": [\n    {\n      \"bloco\": \"exemplo\",\n      \"numero\": \"exemplo\"\n    }\n  ],\n  \"areasComuns\": [\n    \"exemplo\"\n  ],\n  \"sindico\": {\n    \"nome\": \"Fulano de Tal\",\n    \"login\": \"exemplo\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "condominiosmaster / modulos",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/modulos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "modulos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.modulos`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"modulos\": [\n    \"encomendas\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "encomendas",
+      "item": [
+        {
+          "name": "encomendas / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas?atrasadasDias=0&cursor=exemplo&limite=50&status=aguardando&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas"
+              ],
+              "query": [
+                {
+                  "key": "atrasadasDias",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "aguardando",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `encomenda.ver`"
+          }
+        },
+        {
+          "name": "encomendas / receber",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas"
+              ]
+            },
+            "description": "Permissão: `encomenda.operar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"destinatario\": \"exemplo\",\n  \"transportadora\": \"exemplo\",\n  \"codigoRastreio\": \"exemplo\",\n  \"unidadeConfirmada\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "encomendas / atrasadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas/atrasadas?cursor=exemplo&dias=7&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas",
+                "atrasadas"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "dias",
+                  "value": "7",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `encomenda.ver`"
+          }
+        },
+        {
+          "name": "encomendas / resumo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas/resumo?dias=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas",
+                "resumo"
+              ],
+              "query": [
+                {
+                  "key": "dias",
+                  "value": "7",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `encomenda.ver`"
+          }
+        },
+        {
+          "name": "encomendas / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{encomendaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `encomenda.ver`"
+          }
+        },
+        {
+          "name": "encomendas / autorizar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas/:id/autorizacoes-retirada",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas",
+                ":id",
+                "autorizacoes-retirada"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{encomendaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `encomenda.autorizar_retirada`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"solicitadaPorPessoaId\": \"{{solicitadaPorPessoaId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "encomendas / entregar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/encomendas/:id/retirada",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encomendas",
+                ":id",
+                "retirada"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{encomendaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `encomenda.operar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "funcionarios",
+      "item": [
+        {
+          "name": "funcionarios / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/funcionarios?cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "funcionarios"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `funcionario.ver`"
+          }
+        },
+        {
+          "name": "funcionarios / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/funcionarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "funcionarios"
+              ]
+            },
+            "description": "Permissão: `funcionario.gerenciar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"documento\": \"111.444.777-35\",\n  \"telefone\": \"11955550000\",\n  \"funcao\": \"exemplo\",\n  \"escala\": {\n    \"diasSemana\": [\n      1\n    ],\n    \"horaInicio\": \"exemp\",\n    \"horaFim\": \"exemp\"\n  },\n  \"ativo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "funcionarios / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/funcionarios/:pessoaId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "funcionarios",
+                ":pessoaId"
+              ],
+              "variable": [
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `funcionario.ver`"
+          }
+        },
+        {
+          "name": "funcionarios / editar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/funcionarios/:pessoaId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "funcionarios",
+                ":pessoaId"
+              ],
+              "variable": [
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `funcionario.gerenciar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"funcao\": \"exemplo\",\n  \"escala\": {\n    \"diasSemana\": [\n      1\n    ],\n    \"horaInicio\": \"exemp\",\n    \"horaFim\": \"exemp\"\n  },\n  \"ativo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "funcionarios / escala",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/funcionarios/:pessoaId/escala",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "funcionarios",
+                ":pessoaId",
+                "escala"
+              ],
+              "variable": [
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `evento.registrar`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "importacao",
+      "item": [
+        {
+          "name": "importacao / analisar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/importacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "importacoes"
+              ]
+            },
+            "description": "Permissão: `importacao.executar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"arquivo\": \"exemplo\",\n  \"linhas\": [\n    {\n      \"linha\": 0,\n      \"bloco\": \"exemplo\",\n      \"unidade\": \"exemplo\",\n      \"nome\": \"Fulano de Tal\",\n      \"documento\": \"111.444.777-35\",\n      \"telefone\": \"11955550000\",\n      \"tipo\": \"exemplo\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "importacao / confirmar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/importacoes/:id/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "importacoes",
+                ":id",
+                "confirmar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{importacaoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `importacao.executar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"linhas\": [\n    {\n      \"linha\": 0,\n      \"bloco\": \"exemplo\",\n      \"unidade\": \"exemplo\",\n      \"nome\": \"Fulano de Tal\",\n      \"documento\": \"111.444.777-35\",\n      \"telefone\": \"11955550000\",\n      \"tipo\": \"exemplo\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "leituramaster",
+      "item": [
+        {
+          "name": "leituramaster / presentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/acessos/presentes?cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "acessos",
+                "presentes"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / autorizacoesDaUnidade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/autorizacoes-previas?unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "autorizacoes-previas"
+              ],
+              "query": [
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / autorizacoesHoje",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/autorizacoes-previas/hoje",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "autorizacoes-previas",
+                "hoje"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / catalogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/catalogo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "catalogo"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / encomendas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/encomendas?atrasadasDias=0&cursor=exemplo&limite=50&status=aguardando&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "encomendas"
+              ],
+              "query": [
+                {
+                  "key": "atrasadasDias",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "aguardando",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / encomendasResumo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/encomendas/resumo?dias=7",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "encomendas",
+                "resumo"
+              ],
+              "query": [
+                {
+                  "key": "dias",
+                  "value": "7",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / encomenda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/encomendas/:encomendaId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "encomendas",
+                ":encomendaId"
+              ],
+              "variable": [
+                {
+                  "key": "encomendaId",
+                  "value": "{{encomendaId}}"
+                },
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / eventos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/eventos-acesso?ate=1&cursor=exemplo&de=1&eventoId={{eventoId}}&excluirTipos=exemplo&limite=50&meio=interfone&operadorId={{operadorId}}&pessoaId={{pessoaId}}&somenteExcecoes=true&somenteRetroativos=true&tipo=entrada&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "eventos-acesso"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "eventoId",
+                  "value": "{{eventoId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "excluirTipos",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "meio",
+                  "value": "interfone",
+                  "disabled": true
+                },
+                {
+                  "key": "operadorId",
+                  "value": "{{operadorId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "somenteExcecoes",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "somenteRetroativos",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "tipo",
+                  "value": "entrada",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / evento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/eventos-acesso/:eventoId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "eventos-acesso",
+                ":eventoId"
+              ],
+              "variable": [
+                {
+                  "key": "eventoId",
+                  "value": "{{eventoId}}"
+                },
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / correcoes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/eventos-acesso/:eventoId/correcoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "eventos-acesso",
+                ":eventoId",
+                "correcoes"
+              ],
+              "variable": [
+                {
+                  "key": "eventoId",
+                  "value": "{{eventoId}}"
+                },
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / funcionarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/funcionarios?cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "funcionarios"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / funcionario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/funcionarios/:pessoaId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "funcionarios",
+                ":pessoaId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / ocorrencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/ocorrencias?cursor=exemplo&limite=50&status=exemplo&tipo=conflito&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "ocorrencias"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "tipo",
+                  "value": "conflito",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / ocorrencia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/ocorrencias/:ocorrenciaId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "ocorrencias",
+                ":ocorrenciaId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "ocorrenciaId",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / anexo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/ocorrencias/:ocorrenciaId/anexos/:documentoId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "ocorrencias",
+                ":ocorrenciaId",
+                "anexos",
+                ":documentoId"
+              ],
+              "variable": [
+                {
+                  "key": "documentoId",
+                  "value": "{{documentoId}}"
+                },
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "ocorrenciaId",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / ocorrenciaHistorico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/ocorrencias/:ocorrenciaId/historico",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "ocorrencias",
+                ":ocorrenciaId",
+                "historico"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "ocorrenciaId",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / pessoas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/pessoas?categoria=visitante&cursor=exemplo&incluirDesativadas=true&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "pessoas"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "visitante",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "incluirDesativadas",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / pessoa",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/pessoas/:pessoaId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "pessoas",
+                ":pessoaId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / relatorio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/relatorios/resumo?ate=exemplo&categoria=visitante&de=exemplo&meio=interfone&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "relatorios",
+                "resumo"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "categoria",
+                  "value": "visitante",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "meio",
+                  "value": "interfone",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / relatorioCsv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/relatorios/resumo/csv?ate=exemplo&categoria=visitante&de=exemplo&meio=interfone&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "relatorios",
+                "resumo",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "categoria",
+                  "value": "visitante",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "meio",
+                  "value": "interfone",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / restricoesDaUnidade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/restricoes?unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "restricoes"
+              ],
+              "query": [
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / restricoesPendentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/restricoes/pendentes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "restricoes",
+                "pendentes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / sindicos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/sindicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "sindicos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / unidades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades?bloco=exemplo&cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades"
+              ],
+              "query": [
+                {
+                  "key": "bloco",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / unidade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades/:ref",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades",
+                ":ref"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "ref",
+                  "value": "{{unidadeRef}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / autorizadores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades/:unidadeId/autorizadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades",
+                ":unidadeId",
+                "autorizadores"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/usuarios?cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / vinculos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/vinculos?cursor=exemplo&limite=50&ordem=recentes&pessoaId={{pessoaId}}&status=exemplo&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "vinculos"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "ordem",
+                  "value": "recentes",
+                  "disabled": true
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "leituramaster / vinculo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/vinculos/:vinculoId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "vinculos",
+                ":vinculoId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "vinculoId",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "lgpd",
+      "item": [
+        {
+          "name": "lgpd / anonimizar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lgpd/pessoas/:id/anonimizar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lgpd",
+                "pessoas",
+                ":id",
+                "anonimizar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `lgpd.anonimizar`"
+          }
+        },
+        {
+          "name": "lgpd / exportar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lgpd/pessoas/:id/exportacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lgpd",
+                "pessoas",
+                ":id",
+                "exportacao"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `lgpd.exportar`"
+          }
+        },
+        {
+          "name": "lgpd / ultima",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lgpd/retencao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lgpd",
+                "retencao"
+              ]
+            },
+            "description": "Permissão: `lgpd.retencao`"
+          }
+        },
+        {
+          "name": "lgpd / aplicar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lgpd/retencao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lgpd",
+                "retencao"
+              ]
+            },
+            "description": "Permissão: `lgpd.retencao`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ocorrencias",
+      "item": [
+        {
+          "name": "ocorrencias / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias?cursor=exemplo&limite=50&status=exemplo&tipo=conflito&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "tipo",
+                  "value": "conflito",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `ocorrencia.ver`"
+          }
+        },
+        {
+          "name": "ocorrencias / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias"
+              ]
+            },
+            "description": "Permissão: `ocorrencia.operar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"conflito\",\n  \"descricao\": \"exemplo\",\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"envolvidos\": \"exemplo\",\n  \"eventoIds\": [\n    \"{{eventoId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ocorrencias / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `ocorrencia.ver`"
+          }
+        },
+        {
+          "name": "ocorrencias / anexar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias/:id/anexos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias",
+                ":id",
+                "anexos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `ocorrencia.operar`",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "arquivo",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "ocorrencias / baixar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias/:id/anexos/:documentoId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias",
+                ":id",
+                "anexos",
+                ":documentoId"
+              ],
+              "variable": [
+                {
+                  "key": "documentoId",
+                  "value": "{{documentoId}}"
+                },
+                {
+                  "key": "id",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `documento.ver`"
+          }
+        },
+        {
+          "name": "ocorrencias / vincular",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias/:id/eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias",
+                ":id",
+                "eventos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `ocorrencia.operar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventoIds\": [\n    \"{{eventoId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "ocorrencias / historico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias/:id/historico",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias",
+                ":id",
+                "historico"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `ocorrencia.ver`"
+          }
+        },
+        {
+          "name": "ocorrencias / status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ocorrencias/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ocorrencias",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `ocorrencia.operar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"em_andamento\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "parametros",
+      "item": [
+        {
+          "name": "parametros / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/parametros",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "parametros"
+              ]
+            },
+            "description": "Qualquer usuário logado (inclusive quem ainda deve trocar a senha)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "parametrosmaster",
+      "item": [
+        {
+          "name": "parametrosmaster / parametros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/parametros",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "parametros"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado."
+          }
+        },
+        {
+          "name": "parametrosmaster / analisarUnidades",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/unidades/analise",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "unidades",
+                "analise"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.criar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"texto\": \"exemplo\",\n  \"agrupamento\": \"Bloco\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pessoas",
+      "item": [
+        {
+          "name": "pessoas / global",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/busca",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "busca"
+              ]
+            },
+            "description": "Permissão: `pessoa.ver`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"q\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "pessoas / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas?categoria=visitante&cursor=exemplo&incluirDesativadas=true&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "visitante",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "incluirDesativadas",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `pessoa.ver`"
+          }
+        },
+        {
+          "name": "pessoas / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas"
+              ]
+            },
+            "description": "Permissão: `pessoa.cadastrar_externo`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"documento\": \"111.444.777-35\",\n  \"telefone\": \"11955550000\",\n  \"categoria\": \"visitante\",\n  \"empresa\": \"exemplo\",\n  \"servico\": \"exemplo\",\n  \"semCpf\": false,\n  \"menorIdade\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "pessoas / buscar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas/busca",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas",
+                "busca"
+              ]
+            },
+            "description": "Permissão: `pessoa.ver`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"q\": \"exemplo\",\n  \"limite\": 8,\n  \"semMoradores\": false,\n  \"incluirDesativadas\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "pessoas / ficha",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `pessoa.ver`"
+          }
+        },
+        {
+          "name": "pessoas / editar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `pessoa.editar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"telefone\": \"11955550000\",\n  \"documento\": \"111.444.777-35\",\n  \"empresa\": \"exemplo\",\n  \"servico\": \"exemplo\",\n  \"menorIdade\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "pessoas / desativar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas/:id/desativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas",
+                ":id",
+                "desativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `pessoa.desativar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "pessoas / reativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/pessoas/:id/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pessoas",
+                ":id",
+                "reativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `pessoa.desativar`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "provisionadormaster",
+      "item": [
+        {
+          "name": "provisionadormaster / saude",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/provisionador/saude",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "provisionador",
+                "saude"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.criar`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "relatorios",
+      "item": [
+        {
+          "name": "relatorios / resumo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/relatorios/resumo?ate=exemplo&categoria=visitante&de=exemplo&meio=interfone&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "relatorios",
+                "resumo"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "categoria",
+                  "value": "visitante",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "meio",
+                  "value": "interfone",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `relatorio.ver`"
+          }
+        },
+        {
+          "name": "relatorios / csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/relatorios/resumo/csv?ate=exemplo&categoria=visitante&de=exemplo&meio=interfone&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "relatorios",
+                "resumo",
+                "csv"
+              ],
+              "query": [
+                {
+                  "key": "ate",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "categoria",
+                  "value": "visitante",
+                  "disabled": true
+                },
+                {
+                  "key": "de",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "meio",
+                  "value": "interfone",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `relatorio.ver`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "saude",
+      "item": [
+        {
+          "name": "saude / saude",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/saude",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "saude"
+              ]
+            },
+            "description": "Pública: não exige sessão."
+          }
+        }
+      ]
+    },
+    {
+      "name": "selo",
+      "item": [
+        {
+          "name": "selo / estado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/selos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "selos"
+              ]
+            },
+            "description": "Permissão: `auditoria.verificar`"
+          }
+        },
+        {
+          "name": "selo / selar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/selos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "selos"
+              ]
+            },
+            "description": "Permissão: `auditoria.selar`"
+          }
+        },
+        {
+          "name": "selo / conferir",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/selos/conferir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "selos",
+                "conferir"
+              ]
+            },
+            "description": "Permissão: `auditoria.verificar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seq\": 0,\n  \"hash\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "selo / publico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria/selos/publico",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria",
+                "selos",
+                "publico"
+              ]
+            },
+            "description": "Pública: não exige sessão."
+          }
+        }
+      ]
+    },
+    {
+      "name": "sindicosmaster",
+      "item": [
+        {
+          "name": "sindicosmaster / adicionar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/sindicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "sindicos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.sindicos`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"login\": \"exemplo\",\n  \"motivo\": \"exemploxxxxxxxx\",\n  \"senhaMaster\": \"{{senhaMaster}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "sindicosmaster / desativar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/desativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "sindicos",
+                ":usuarioId",
+                "desativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.sindicos`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"exemploxxxxxxxx\",\n  \"senhaMaster\": \"{{senhaMaster}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "sindicosmaster / reativar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "sindicos",
+                ":usuarioId",
+                "reativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.sindicos`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"exemploxxxxxxxx\",\n  \"senhaMaster\": \"{{senhaMaster}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "sindicosmaster / redefinirSenha",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/redefinir-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "sindicos",
+                ":usuarioId",
+                "redefinir-senha"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.sindicos`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"exemploxxxxxxxx\",\n  \"senhaMaster\": \"{{senhaMaster}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "sindicosmaster / trocar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/trocar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "sindicos",
+                ":usuarioId",
+                "trocar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "usuarioId",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.sindicos`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"login\": \"exemplo\",\n  \"motivo\": \"exemploxxxxxxxx\",\n  \"senhaMaster\": \"{{senhaMaster}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "unidades",
+      "item": [
+        {
+          "name": "unidades / catalogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo"
+              ]
+            },
+            "description": "Qualquer usuário logado."
+          }
+        },
+        {
+          "name": "unidades / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/unidades?bloco=exemplo&cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades"
+              ],
+              "query": [
+                {
+                  "key": "bloco",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "unidades / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/unidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades"
+              ]
+            },
+            "description": "Permissão: `unidade.editar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloco\": \"exemplo\",\n  \"numero\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "unidades / editar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/unidades/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.editar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloco\": \"exemplo\",\n  \"numero\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "unidades / desativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/unidades/:id/desativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades",
+                ":id",
+                "desativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.editar`"
+          }
+        },
+        {
+          "name": "unidades / reativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/unidades/:id/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades",
+                ":id",
+                "reativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.editar`"
+          }
+        },
+        {
+          "name": "unidades / detalhe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/unidades/:ref",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades",
+                ":ref"
+              ],
+              "variable": [
+                {
+                  "key": "ref",
+                  "value": "{{unidadeRef}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "usuarios",
+      "item": [
+        {
+          "name": "usuarios / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios?cursor=exemplo&limite=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `usuario.gerenciar`"
+          }
+        },
+        {
+          "name": "usuarios / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios"
+              ]
+            },
+            "description": "Permissão: `usuario.gerenciar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"login\": \"exemplo\",\n  \"papel\": \"sindico\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "usuarios / alterar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `usuario.gerenciar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"papel\": \"sindico\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "usuarios / desativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/:id/desativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                ":id",
+                "desativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `usuario.gerenciar`"
+          }
+        },
+        {
+          "name": "usuarios / reativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/:id/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                ":id",
+                "reativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `usuario.gerenciar`"
+          }
+        },
+        {
+          "name": "usuarios / redefinirSenha",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/usuarios/:id/redefinir-senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "usuarios",
+                ":id",
+                "redefinir-senha"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{usuarioId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `usuario.gerenciar`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "veiculos",
+      "item": [
+        {
+          "name": "veiculos / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/veiculos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos"
+              ]
+            },
+            "description": "Permissão: `veiculo.cadastrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"placa\": \"ABC1D23\",\n  \"modelo\": \"exemplo\",\n  \"cor\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "veiculos / editar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/veiculos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "veiculos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{veiculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `veiculo.cadastrar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"placa\": \"ABC1D23\",\n  \"modelo\": \"exemplo\",\n  \"cor\": \"exemplo\",\n  \"ativo\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "vinculos",
+      "item": [
+        {
+          "name": "vinculos / autorizadores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/unidades/:id/autorizadores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades",
+                ":id",
+                "autorizadores"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `unidade.ver`"
+          }
+        },
+        {
+          "name": "vinculos / listar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos?cursor=exemplo&limite=50&ordem=recentes&pessoaId={{pessoaId}}&status=exemplo&unidadeId={{unidadeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos"
+              ],
+              "query": [
+                {
+                  "key": "cursor",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "limite",
+                  "value": "50",
+                  "disabled": true
+                },
+                {
+                  "key": "ordem",
+                  "value": "recentes",
+                  "disabled": true
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "exemplo",
+                  "disabled": true
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.ver`"
+          }
+        },
+        {
+          "name": "vinculos / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos"
+              ]
+            },
+            "description": "Permissão: `vinculo.criar`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"unidadeId\": \"{{unidadeId}}\",\n  \"tipo\": \"proprietario\",\n  \"vigenciaInicio\": \"exemplo\",\n  \"vigenciaFim\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "vinculos / contagem",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/contagem?status=pendente",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                "contagem"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pendente"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.ver`"
+          }
+        },
+        {
+          "name": "vinculos / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.ver`"
+          }
+        },
+        {
+          "name": "vinculos / aprovar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/:id/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                ":id",
+                "aprovar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.decidir`"
+          }
+        },
+        {
+          "name": "vinculos / conferir",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/:id/conferencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                ":id",
+                "conferencias"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.decidir`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"escritura\",\n  \"descricao\": \"exemplo\",\n  \"observacao\": \"exemplo\",\n  \"data\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "vinculos / encerrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/:id/encerrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                ":id",
+                "encerrar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.decidir`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"exemplo\",\n  \"data\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "vinculos / regularizar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/:id/regularizar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                ":id",
+                "regularizar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.decidir`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vigenciaFim\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "vinculos / rejeitar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vinculos/:id/rejeitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vinculos",
+                ":id",
+                "rejeitar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{vinculoId}}"
+                }
+              ]
+            },
+            "description": "Permissão: `vinculo.decidir`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"justificativa\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "areaComumId",
+      "value": ""
+    },
+    {
+      "key": "autorizacaoPreviaId",
+      "value": ""
+    },
+    {
+      "key": "autorizadoPorPessoaId",
+      "value": ""
+    },
+    {
+      "key": "condominioId",
+      "value": ""
+    },
+    {
+      "key": "documentoId",
+      "value": ""
+    },
+    {
+      "key": "encomendaId",
+      "value": ""
+    },
+    {
+      "key": "eventoAcessoId",
+      "value": ""
+    },
+    {
+      "key": "eventoId",
+      "value": ""
+    },
+    {
+      "key": "importacaoId",
+      "value": ""
+    },
+    {
+      "key": "moradorPessoaId",
+      "value": ""
+    },
+    {
+      "key": "ocorrenciaId",
+      "value": ""
+    },
+    {
+      "key": "operadorId",
+      "value": ""
+    },
+    {
+      "key": "pessoaId",
+      "value": ""
+    },
+    {
+      "key": "restricaoId",
+      "value": ""
+    },
+    {
+      "key": "solicitadaPorPessoaId",
+      "value": ""
+    },
+    {
+      "key": "unidadeDestinoId",
+      "value": ""
+    },
+    {
+      "key": "unidadeId",
+      "value": ""
+    },
+    {
+      "key": "unidadeRef",
+      "value": ""
+    },
+    {
+      "key": "usuarioId",
+      "value": ""
+    },
+    {
+      "key": "veiculoId",
+      "value": ""
+    },
+    {
+      "key": "vinculoId",
+      "value": ""
+    }
+  ]
+}

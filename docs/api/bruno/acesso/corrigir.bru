@@ -1,0 +1,32 @@
+meta {
+  name: acesso / corrigir
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso/:id/correcoes
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{eventoAcessoId}}
+}
+
+body:json {
+  {
+    "justificativa": "exemplo",
+    "observacao": "exemplo",
+    "valores": {
+      "unidadeDestinoId": "{{unidadeDestinoId}}",
+      "ocorridoEm": 0,
+      "pessoaId": "{{pessoaId}}",
+      "autorizadoPorPessoaId": "{{autorizadoPorPessoaId}}"
+    }
+  }
+}
+
+docs {
+  Permissão: `evento.corrigir`
+}

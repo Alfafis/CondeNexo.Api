@@ -1,0 +1,27 @@
+meta {
+  name: leituramaster / ocorrencias
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/ocorrencias
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+  ~status: exemplo
+  ~tipo: conflito
+  ~unidadeId: {{unidadeId}}
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

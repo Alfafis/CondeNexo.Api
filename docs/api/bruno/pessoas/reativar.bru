@@ -1,0 +1,19 @@
+meta {
+  name: pessoas / reativar
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/pessoas/:id/reativar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{pessoaId}}
+}
+
+docs {
+  Permissão: `pessoa.desativar`
+}

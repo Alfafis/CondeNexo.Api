@@ -1,0 +1,32 @@
+meta {
+  name: acesso / criarAutorizacao
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/autorizacoes-previas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "unidadeId": "{{unidadeId}}",
+    "areaComumId": "{{areaComumId}}",
+    "pessoaId": "{{pessoaId}}",
+    "validaDe": "exemplo",
+    "validaAte": "exemplo",
+    "diasSemana": [
+      0
+    ],
+    "horaInicio": "exemplo",
+    "horaFim": "exemplo",
+    "solicitadaPorPessoaId": "{{solicitadaPorPessoaId}}",
+    "justificativa": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `autorizacao.criar`
+}

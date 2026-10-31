@@ -1,0 +1,35 @@
+meta {
+  name: leituramaster / eventos
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/eventos-acesso
+  body: none
+  auth: none
+}
+
+params:query {
+  ~ate: 1
+  ~cursor: exemplo
+  ~de: 1
+  ~eventoId: {{eventoId}}
+  ~excluirTipos: exemplo
+  ~limite: 50
+  ~meio: interfone
+  ~operadorId: {{operadorId}}
+  ~pessoaId: {{pessoaId}}
+  ~somenteExcecoes: true
+  ~somenteRetroativos: true
+  ~tipo: entrada
+  ~unidadeId: {{unidadeId}}
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

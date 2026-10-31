@@ -1,0 +1,22 @@
+meta {
+  name: auditoria / acessosPlataforma
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/auditoria/acessos-plataforma
+  body: none
+  auth: none
+}
+
+params:query {
+  ~ate: 0
+  ~cursor: exemplo
+  ~de: 0
+  ~limite: 50
+}
+
+docs {
+  Permissão: `auditoria.acessos_plataforma`
+}

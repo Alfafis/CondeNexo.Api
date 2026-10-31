@@ -1,0 +1,35 @@
+# Testes da API em todo push e pull request: typecheck, a suíte inteira sobre PGlite (Postgres em WASM, com as migrações
+# reais; inclui o domínio em test/dominio e a trava de desatualização do docs/api/openapi.json), os testes dos scripts
+# (âncoras, coleções da API) e o build. Sem segredo, sem Docker e sem acesso à VPS. O Postgres real fica em
+# testes-postgres.yml; o deploy, em deploy-api.yml (que roda esta mesma bateria antes de subir).
+name: Testes da API
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: testes-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Mesma versão de Node da imagem da API (Dockerfile).
+    container: node:22-bookworm-slim
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:scripts
+      - run: npm run build

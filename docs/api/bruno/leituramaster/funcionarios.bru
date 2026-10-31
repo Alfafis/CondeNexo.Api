@@ -1,0 +1,24 @@
+meta {
+  name: leituramaster / funcionarios
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/funcionarios
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

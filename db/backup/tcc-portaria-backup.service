@@ -1,0 +1,21 @@
+# Backup diário do CondNexo (docs/deploy.md, seção Backup). Instalar:
+#   sudo install -m 644 db/backup/tcc-portaria-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tcc-portaria-backup.timer
+#   systemctl list-timers tcc-portaria-backup.timer ; journalctl -u tcc-portaria-backup.service
+[Unit]
+Description=Backup cifrado (pg_dump + volumes) do CondNexo
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=PORTARIA_DIR=/opt/tcc-portaria
+Environment=BACKUP_DIR=/var/backups/tcc-portaria
+Environment=BACKUP_AGE_RECIPIENTES=/etc/tcc-portaria/backup-age.pub
+ExecStart=/opt/tcc-portaria/db/backup/backup-portaria.sh
+Nice=10
+IOSchedulingClass=idle
+# Sem ProtectSystem=strict: o docker CLI precisa do socket em /run e do ~/.docker, e o exemplo não foi testado com
+# esse endurecimento num systemd real. Se quiser ligar, teste com `systemctl start` antes de confiar no timer.
+PrivateTmp=true
+NoNewPrivileges=true

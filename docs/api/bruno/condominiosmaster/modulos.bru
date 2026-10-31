@@ -1,0 +1,27 @@
+meta {
+  name: condominiosmaster / modulos
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/plataforma/condominios/:id/modulos
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+body:json {
+  {
+    "modulos": [
+      "encomendas"
+    ]
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.modulos`
+}

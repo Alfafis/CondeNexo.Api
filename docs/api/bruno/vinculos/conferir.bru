@@ -1,0 +1,28 @@
+meta {
+  name: vinculos / conferir
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/vinculos/:id/conferencias
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{vinculoId}}
+}
+
+body:json {
+  {
+    "tipo": "escritura",
+    "descricao": "exemplo",
+    "observacao": "exemplo",
+    "data": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `vinculo.decidir`
+}

@@ -1,0 +1,21 @@
+meta {
+  name: pessoas / global
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/busca
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "q": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `pessoa.ver`
+}

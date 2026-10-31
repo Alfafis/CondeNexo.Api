@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node10",
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true,
+    "types": ["node"]
+  },
+  // O domínio (regras, RBAC, hash chain) mora em src/dominio e compila junto com o resto: sem build separado.
+  "include": ["src"]
+}

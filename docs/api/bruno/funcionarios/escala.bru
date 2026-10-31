@@ -1,0 +1,19 @@
+meta {
+  name: funcionarios / escala
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/funcionarios/:pessoaId/escala
+  body: none
+  auth: none
+}
+
+params:path {
+  pessoaId: {{pessoaId}}
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

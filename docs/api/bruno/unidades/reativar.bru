@@ -1,0 +1,19 @@
+meta {
+  name: unidades / reativar
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/unidades/:id/reativar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{unidadeId}}
+}
+
+docs {
+  Permissão: `unidade.editar`
+}

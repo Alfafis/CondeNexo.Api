@@ -1,0 +1,55 @@
+{
+  "name": "condenexo-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "API do CondNexo (NestJS + Drizzle + PostgreSQL): dona das regras de negócio, do RBAC, da trilha com hash chain e selo, da LGPD e do contrato OpenAPI consumido pelo CondeNexo.Front.",
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node -e \"require('fs').writeFileSync('dist/package.json','{ \\\"type\\\": \\\"commonjs\\\" }\\n')\"",
+    "start": "node dist/main.js",
+    "prestart:dev": "npm run build",
+    "start:dev": "tsc-watch -p tsconfig.build.json --onSuccess \"node dist/main.js\"",
+    "db:generate": "drizzle-kit generate",
+    "db:custom": "drizzle-kit generate --custom",
+    "db:check": "drizzle-kit check",
+    "db:migrate": "drizzle-kit migrate",
+    "test": "vitest run",
+    "test:pg": "vitest run test/postgres-real",
+    "typecheck": "tsc --noEmit",
+    "dev:pglite": "vite-node test/e2e/iniciar.ts",
+    "openapi": "vite-node test/openapi/gerar.ts",
+    "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
+    "colecoes": "node scripts/api-colecoes/gerar.mjs",
+    "e2e:servidor": "vite-node test/e2e/iniciar.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
+    "@node-rs/argon2": "^2.2.2",
+    "drizzle-orm": "0.45.4",
+    "nodemailer": "10.0.14",
+    "pg": "^8.23.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "@nestjs/testing": "^11.2.7",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.15.6",
+    "@types/supertest": "^7.2.1",
+    "drizzle-kit": "0.31.11",
+    "supertest": "^7.3.1",
+    "tsc-watch": "^7.2.1",
+    "typescript": "^5.9.3",
+    "vite-node": "2.1.9",
+    "vitest": "^2.1.9"
+  },
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  }
+}

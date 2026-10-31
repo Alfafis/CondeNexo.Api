@@ -1,0 +1,19 @@
+meta {
+  name: unidades / detalhe
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/unidades/:ref
+  body: none
+  auth: none
+}
+
+params:path {
+  ref: {{unidadeRef}}
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

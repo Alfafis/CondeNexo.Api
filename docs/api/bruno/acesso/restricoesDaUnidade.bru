@@ -1,0 +1,19 @@
+meta {
+  name: acesso / restricoesDaUnidade
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/restricoes
+  body: none
+  auth: none
+}
+
+params:query {
+  unidadeId: {{unidadeId}}
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

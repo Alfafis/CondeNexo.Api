@@ -1,0 +1,15 @@
+meta {
+  name: acesso / autorizacoesHoje
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/autorizacoes-previas/hoje
+  body: none
+  auth: none
+}
+
+docs {
+  Permissão: `unidade.ver`
+}

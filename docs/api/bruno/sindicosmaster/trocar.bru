@@ -1,0 +1,29 @@
+meta {
+  name: sindicosmaster / trocar
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/sindicos/:usuarioId/trocar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  usuarioId: {{usuarioId}}
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "login": "exemplo",
+    "motivo": "exemploxxxxxxxx",
+    "senhaMaster": "{{senhaMaster}}"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.sindicos`
+}

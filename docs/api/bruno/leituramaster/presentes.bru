@@ -1,0 +1,24 @@
+meta {
+  name: leituramaster / presentes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/acessos/presentes
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

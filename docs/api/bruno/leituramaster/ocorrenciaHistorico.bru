@@ -1,0 +1,20 @@
+meta {
+  name: leituramaster / ocorrenciaHistorico
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/ocorrencias/:ocorrenciaId/historico
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  ocorrenciaId: {{ocorrenciaId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

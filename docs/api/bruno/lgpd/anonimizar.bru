@@ -1,0 +1,19 @@
+meta {
+  name: lgpd / anonimizar
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/lgpd/pessoas/:id/anonimizar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{pessoaId}}
+}
+
+docs {
+  Permissão: `lgpd.anonimizar`
+}

@@ -1,0 +1,25 @@
+meta {
+  name: pessoas / desativar
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/pessoas/:id/desativar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{pessoaId}}
+}
+
+body:json {
+  {
+    "motivo": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `pessoa.desativar`
+}

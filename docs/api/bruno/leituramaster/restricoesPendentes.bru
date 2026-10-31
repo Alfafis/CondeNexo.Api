@@ -1,0 +1,19 @@
+meta {
+  name: leituramaster / restricoesPendentes
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/restricoes/pendentes
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

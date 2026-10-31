@@ -1,0 +1,242 @@
+// Leitura dos dados de um condomínio pelo app do Master (SAAS-09, F5 entrega 2): "tudo que o síndico vê", só leitura,
+// com as MESMAS views que o síndico recebe (os serviços são os de sempre, na subárvore do condomínio), MINIMIZADAS na
+// saída: nome de terceiro mascarado, texto livre oculto, placa mascarada (minimizacao.ts). Cada rota passa pelo
+// AcessoPlataformaService, que registra a consulta na trilha do condomínio e minimiza antes de devolver o dado.
+//
+// Fora daqui, de propósito:
+//  - escrita de qualquer tipo (a única exceção é a gestão de síndicos, §5.5, em sindicos-master.controller.ts, com
+//    reautenticação e motivo; a CLI de nova senha continua para o operador da VPS);
+//  - exportação LGPD do titular (GET /lgpd/pessoas/:id/exportacao): leva CPF e telefone em claro (art. 18, II) e é
+//    resposta do CONTROLADOR ao titular. O Master vê só o que vem mascarado;
+//  - a trilha de alterações e a verificação de integridade (auditoria/*): não fazem parte do que o síndico consulta no
+//    dia a dia e não servem ao suporte; ficam para quando houver pedido.
+import { Controller, Get, Inject, Param, Query, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
+import { PaginacaoDto } from '../comum/pagina';
+import { uuidParam, ZodPipe } from '../comum/zod.pipe';
+import { EncomendasService, ListarEncomendasDto, ResumoEncomendasDto } from '../encomendas/encomendas.module';
+import { DaUnidadeDto, ListarEventosDto } from '../eventos/acesso.module';
+import { AutorizacoesService } from '../eventos/autorizacoes.service';
+import { EventosService } from '../eventos/eventos.service';
+import { FuncionariosService } from '../funcionarios/funcionarios.module';
+import { ListarOcorrenciasDto, OcorrenciasService } from '../ocorrencias/ocorrencias.module';
+import { ListarPessoasDto } from '../pessoas/pessoas.module';
+import { PessoasService } from '../pessoas/pessoas.service';
+import { FiltroRelatorioDto, RelatoriosService } from '../relatorios/relatorios.module';
+import { ResolvedorCondominio } from '../saas/resolvedor';
+import { ListarUnidadesDto } from '../unidades/unidades.controller';
+import { UnidadesService } from '../unidades/unidades.service';
+import { UsuariosService } from '../usuarios/usuarios.service';
+import { ListarVinculosDto } from '../vinculos/vinculos.controller';
+import { VinculosService } from '../vinculos/vinculos.service';
+import { AcessoPlataformaService, type AlvoLeitura, type Servicos } from './acesso-plataforma.service';
+import { Master, PlataformaAcao } from './decorators';
+import type { AuthMaster } from './tipos';
+
+/** O síndico: a visão de partida do Master (SAAS-09, "nada a mais que o síndico"), depois minimizada. */
+const VISAO = 'sindico' as const;
+
+/** uuid ou código legível ("A-32"), como em GET /unidades/:ref. */
+const refParam = new ZodPipe(z.string().trim().min(1).max(40));
+
+@Controller('plataforma/condominios/:id')
+@PlataformaAcao('condominio.ler')
+export class LeituraMasterController {
+  constructor(
+    @Inject(AcessoPlataformaService) private readonly acesso: AcessoPlataformaService,
+    @Inject(ResolvedorCondominio) private readonly resolvedor: ResolvedorCondominio,
+  ) {}
+
+  private ler<T>(m: AuthMaster, req: Request, id: string, alvo: AlvoLeitura, fn: (s: Servicos) => Promise<T>) {
+    return this.acesso.ler(m, req, id, alvo, fn);
+  }
+
+  // ----- Unidades e catálogo ----------------------------------------------------------------------------------------
+
+  @Get('catalogo')
+  catalogo(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string) {
+    // Como GET /catalogo do condomínio: o catálogo e os módulos ligados.
+    return this.ler(m, req, id, { entidade: 'unidade' }, async (s) => ({ ...(await (await s(UnidadesService)).catalogo()), modulos: await this.resolvedor.modulosDe(id) }));
+  }
+
+  @Get('unidades')
+  unidades(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ListarUnidadesDto)) q: z.infer<typeof ListarUnidadesDto>) {
+    return this.ler(m, req, id, { entidade: 'unidade' }, async (s) => (await s(UnidadesService)).listar(q));
+  }
+
+  @Get('unidades/:ref')
+  unidade(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('ref', refParam) ref: string) {
+    return this.ler(m, req, id, { entidade: 'unidade', registroId: ref }, async (s) => (await s(UnidadesService)).detalhe(ref));
+  }
+
+  @Get('unidades/:unidadeId/autorizadores')
+  autorizadores(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('unidadeId', uuidParam) unidadeId: string) {
+    return this.ler(m, req, id, { entidade: 'unidade', registroId: unidadeId }, async (s) => (await s(VinculosService)).autorizadores(unidadeId));
+  }
+
+  // ----- Usuários (sem hash nem nada de senha: a mesma view da tela Usuários) ---------------------------------------
+
+  @Get('usuarios')
+  usuarios(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Query(new ZodPipe(PaginacaoDto)) q: z.infer<typeof PaginacaoDto>) {
+    return this.ler(m, req, id, { entidade: 'usuario_sistema' }, async (s) => (await s(UsuariosService)).listar(q));
+  }
+
+  /** Só os síndicos (ativos e desativados), sem paginação: a aba "Síndicos" do app do Master. */
+  @Get('sindicos')
+  sindicos(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string) {
+    return this.ler(m, req, id, { entidade: 'usuario_sistema' }, async (s) => (await s(UsuariosService)).sindicos());
+  }
+
+  // ----- Pessoas, vínculos, funcionários ----------------------------------------------------------------------------
+
+  @Get('pessoas')
+  pessoas(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ListarPessoasDto)) q: z.infer<typeof ListarPessoasDto>) {
+    return this.ler(m, req, id, { entidade: 'pessoa' }, async (s) => (await s(PessoasService)).listar(VISAO, q));
+  }
+
+  @Get('pessoas/:pessoaId')
+  pessoa(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('pessoaId', uuidParam) pessoaId: string) {
+    return this.ler(m, req, id, { entidade: 'pessoa', registroId: pessoaId }, async (s) => (await s(PessoasService)).ficha(VISAO, pessoaId));
+  }
+
+  @Get('vinculos')
+  vinculos(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ListarVinculosDto)) q: z.infer<typeof ListarVinculosDto>) {
+    return this.ler(m, req, id, { entidade: 'vinculo_unidade' }, async (s) => (await s(VinculosService)).listar(q));
+  }
+
+  @Get('vinculos/:vinculoId')
+  vinculo(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('vinculoId', uuidParam) vinculoId: string) {
+    return this.ler(m, req, id, { entidade: 'vinculo_unidade', registroId: vinculoId }, async (s) => (await s(VinculosService)).obter(vinculoId));
+  }
+
+  @Get('funcionarios')
+  funcionarios(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Query(new ZodPipe(PaginacaoDto)) q: z.infer<typeof PaginacaoDto>) {
+    return this.ler(m, req, id, { entidade: 'funcionario' }, async (s) => (await s(FuncionariosService)).listar(q));
+  }
+
+  @Get('funcionarios/:pessoaId')
+  funcionario(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('pessoaId', uuidParam) pessoaId: string) {
+    return this.ler(m, req, id, { entidade: 'funcionario', registroId: pessoaId }, async (s) => (await s(FuncionariosService)).obter(pessoaId));
+  }
+
+  // ----- Eventos de acesso, presentes, exportação ----------------------------------------------------------------------
+
+  @Get('eventos-acesso')
+  eventos(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ListarEventosDto)) q: z.infer<typeof ListarEventosDto>) {
+    return this.ler(m, req, id, { entidade: 'evento_acesso' }, async (s) => (await s(EventosService)).listar(q));
+  }
+
+  @Get('eventos-acesso/:eventoId')
+  evento(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('eventoId', uuidParam) eventoId: string) {
+    return this.ler(m, req, id, { entidade: 'evento_acesso', registroId: eventoId }, async (s) => (await s(EventosService)).obter(eventoId));
+  }
+
+  @Get('eventos-acesso/:eventoId/correcoes')
+  correcoes(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('eventoId', uuidParam) eventoId: string) {
+    return this.ler(m, req, id, { entidade: 'evento_acesso', registroId: eventoId }, async (s) => (await s(EventosService)).correcoesDe(eventoId));
+  }
+
+  @Get('acessos/presentes')
+  presentes(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Query(new ZodPipe(PaginacaoDto)) q: z.infer<typeof PaginacaoDto>) {
+    return this.ler(m, req, id, { entidade: 'evento_acesso' }, async (s) => (await s(EventosService)).presentes(q));
+  }
+
+  // Sem exportação JSONL para o Master (2026-10-30): a linha `evento` leva o texto livre e a placa sob o hash e não
+  // pode ser minimizada sem quebrar a verificação. A conferência offline é do condomínio (tela Histórico do síndico).
+
+
+  // ----- Autorizações prévias e restrições -----------------------------------------------------------------------------
+
+  @Get('autorizacoes-previas/hoje')
+  autorizacoesHoje(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string) {
+    return this.ler(m, req, id, { entidade: 'autorizacao_previa' }, async (s) => (await s(AutorizacoesService)).hoje());
+  }
+
+  @Get('autorizacoes-previas')
+  autorizacoesDaUnidade(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(DaUnidadeDto)) q: z.infer<typeof DaUnidadeDto>) {
+    return this.ler(m, req, id, { entidade: 'autorizacao_previa', registroId: q.unidadeId },
+      async (s) => (await s(AutorizacoesService)).autorizacoesDaUnidade(q.unidadeId));
+  }
+
+  @Get('restricoes/pendentes')
+  restricoesPendentes(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string) {
+    return this.ler(m, req, id, { entidade: 'restricao' }, async (s) => (await s(AutorizacoesService)).pendentes());
+  }
+
+  @Get('restricoes')
+  restricoesDaUnidade(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(DaUnidadeDto)) q: z.infer<typeof DaUnidadeDto>) {
+    return this.ler(m, req, id, { entidade: 'restricao', registroId: q.unidadeId },
+      async (s) => (await s(AutorizacoesService)).restricoesDaUnidade(q.unidadeId));
+  }
+
+  // ----- Encomendas e ocorrências ------------------------------------------------------------------------------------
+
+  @Get('encomendas')
+  encomendas(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ListarEncomendasDto)) q: z.infer<typeof ListarEncomendasDto>) {
+    return this.ler(m, req, id, { entidade: 'encomenda' }, async (s) => (await s(EncomendasService)).listar(q));
+  }
+
+  @Get('encomendas/resumo')
+  encomendasResumo(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ResumoEncomendasDto)) q: z.infer<typeof ResumoEncomendasDto>) {
+    return this.ler(m, req, id, { entidade: 'encomenda' }, async (s) => (await s(EncomendasService)).resumo(q.dias));
+  }
+
+  @Get('encomendas/:encomendaId')
+  encomenda(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('encomendaId', uuidParam) encomendaId: string) {
+    return this.ler(m, req, id, { entidade: 'encomenda', registroId: encomendaId }, async (s) => (await s(EncomendasService)).obter(encomendaId));
+  }
+
+  @Get('ocorrencias')
+  ocorrencias(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(ListarOcorrenciasDto)) q: z.infer<typeof ListarOcorrenciasDto>) {
+    return this.ler(m, req, id, { entidade: 'ocorrencia' }, async (s) => (await s(OcorrenciasService)).listar(q));
+  }
+
+  @Get('ocorrencias/:ocorrenciaId')
+  ocorrencia(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('ocorrenciaId', uuidParam) ocorrenciaId: string) {
+    return this.ler(m, req, id, { entidade: 'ocorrencia', registroId: ocorrenciaId }, async (s) => (await s(OcorrenciasService)).obter(ocorrenciaId));
+  }
+
+  @Get('ocorrencias/:ocorrenciaId/historico')
+  ocorrenciaHistorico(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('ocorrenciaId', uuidParam) ocorrenciaId: string) {
+    return this.ler(m, req, id, { entidade: 'ocorrencia', registroId: ocorrenciaId }, async (s) => (await s(OcorrenciasService)).historico(ocorrenciaId));
+  }
+
+  /** Anexo decifrado, como download (os mesmos cabeçalhos da rota do condomínio). Registrado como exportação. */
+  @Get('ocorrencias/:ocorrenciaId/anexos/:documentoId')
+  async anexo(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string, @Param('ocorrenciaId', uuidParam) ocorrenciaId: string,
+    @Param('documentoId', uuidParam) documentoId: string, @Res() res: Response) {
+    const a = await this.ler(m, req, id, { entidade: 'documento', registroId: documentoId, exportar: true },
+      async (s) => (await s(OcorrenciasService)).lerAnexo(ocorrenciaId, documentoId));
+    res.status(200);
+    res.setHeader('Content-Type', a.mime);
+    res.setHeader('Content-Length', String(a.conteudo.length));
+    res.setHeader('Content-Disposition', `attachment; filename="${a.nome}"`);
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    res.end(a.conteudo);
+  }
+
+  // ----- Relatórios ----------------------------------------------------------------------------------------------------
+
+  @Get('relatorios/resumo')
+  relatorio(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(FiltroRelatorioDto)) q: z.infer<typeof FiltroRelatorioDto>) {
+    return this.ler(m, req, id, { entidade: 'relatorio' }, async (s) => (await s(RelatoriosService)).resumo(q));
+  }
+
+  /** `{ nomeArquivo, conteudo, quantidade }`, como GET /relatorios/resumo/csv. */
+  @Get('relatorios/resumo/csv')
+  relatorioCsv(@Master() m: AuthMaster, @Req() req: Request, @Param('id', uuidParam) id: string,
+    @Query(new ZodPipe(FiltroRelatorioDto)) q: z.infer<typeof FiltroRelatorioDto>) {
+    return this.ler(m, req, id, { entidade: 'relatorio', exportar: true }, async (s) => (await s(RelatoriosService)).csv(q));
+  }
+}

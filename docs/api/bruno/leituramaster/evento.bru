@@ -1,0 +1,20 @@
+meta {
+  name: leituramaster / evento
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/eventos-acesso/:eventoId
+  body: none
+  auth: none
+}
+
+params:path {
+  eventoId: {{eventoId}}
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

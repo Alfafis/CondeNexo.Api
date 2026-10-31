@@ -1,0 +1,19 @@
+meta {
+  name: ocorrencias / historico
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/ocorrencias/:id/historico
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{ocorrenciaId}}
+}
+
+docs {
+  Permissão: `ocorrencia.ver`
+}

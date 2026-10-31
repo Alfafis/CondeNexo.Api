@@ -1,0 +1,28 @@
+meta {
+  name: leituramaster / vinculos
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/vinculos
+  body: none
+  auth: none
+}
+
+params:query {
+  ~cursor: exemplo
+  ~limite: 50
+  ~ordem: recentes
+  ~pessoaId: {{pessoaId}}
+  ~status: exemplo
+  ~unidadeId: {{unidadeId}}
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

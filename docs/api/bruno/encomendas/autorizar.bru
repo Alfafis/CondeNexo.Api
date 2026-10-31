@@ -1,0 +1,26 @@
+meta {
+  name: encomendas / autorizar
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/encomendas/:id/autorizacoes-retirada
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{encomendaId}}
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}",
+    "solicitadaPorPessoaId": "{{solicitadaPorPessoaId}}"
+  }
+}
+
+docs {
+  Permissão: `encomenda.autorizar_retirada`
+}

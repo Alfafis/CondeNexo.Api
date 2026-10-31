@@ -1,0 +1,22 @@
+meta {
+  name: parametrosmaster / analisarUnidades
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/plataforma/unidades/analise
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "texto": "exemplo",
+    "agrupamento": "Bloco"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.criar`
+}

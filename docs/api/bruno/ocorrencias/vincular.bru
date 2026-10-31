@@ -1,0 +1,27 @@
+meta {
+  name: ocorrencias / vincular
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/ocorrencias/:id/eventos
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{ocorrenciaId}}
+}
+
+body:json {
+  {
+    "eventoIds": [
+      "{{eventoId}}"
+    ]
+  }
+}
+
+docs {
+  Permissão: `ocorrencia.operar`
+}

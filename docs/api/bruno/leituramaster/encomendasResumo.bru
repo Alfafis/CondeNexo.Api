@@ -1,0 +1,23 @@
+meta {
+  name: leituramaster / encomendasResumo
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/plataforma/condominios/:id/encomendas/resumo
+  body: none
+  auth: none
+}
+
+params:query {
+  ~dias: 7
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

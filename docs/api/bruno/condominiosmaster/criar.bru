@@ -1,0 +1,54 @@
+meta {
+  name: condominiosmaster / criar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "exemplo",
+    "nome": "Fulano de Tal",
+    "cidade": "exemplo",
+    "uf": "exemplo",
+    "plano": "exemplo",
+    "agrupamento": "Bloco",
+    "estrutura": {
+      "agrupamento": "Bloco",
+      "blocos": [
+        "exemplo"
+      ],
+      "andares": [
+        -9007199254740991
+      ],
+      "finais": [
+        -9007199254740991
+      ],
+      "ausentes": [
+        "exemplo"
+      ]
+    },
+    "unidades": [
+      {
+        "bloco": "exemplo",
+        "numero": "exemplo"
+      }
+    ],
+    "areasComuns": [
+      "exemplo"
+    ],
+    "sindico": {
+      "nome": "Fulano de Tal",
+      "login": "exemplo"
+    }
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.criar`
+}

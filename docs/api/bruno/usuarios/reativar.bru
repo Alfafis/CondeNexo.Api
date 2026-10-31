@@ -1,0 +1,19 @@
+meta {
+  name: usuarios / reativar
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/usuarios/:id/reativar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{usuarioId}}
+}
+
+docs {
+  Permissão: `usuario.gerenciar`
+}

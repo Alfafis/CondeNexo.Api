@@ -1,0 +1,25 @@
+meta {
+  name: vinculos / criar
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/vinculos
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}",
+    "unidadeId": "{{unidadeId}}",
+    "tipo": "proprietario",
+    "vigenciaInicio": "exemplo",
+    "vigenciaFim": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `vinculo.criar`
+}

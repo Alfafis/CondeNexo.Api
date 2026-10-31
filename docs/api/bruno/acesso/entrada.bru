@@ -1,0 +1,37 @@
+meta {
+  name: acesso / entrada
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/eventos-acesso
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "pessoaId": "{{pessoaId}}",
+    "unidadeDestinoId": "{{unidadeDestinoId}}",
+    "areaComumId": "{{areaComumId}}",
+    "autorizadoPorTipo": "interfone",
+    "autorizadoPorPessoaId": "{{autorizadoPorPessoaId}}",
+    "autorizacaoPreviaId": "{{autorizacaoPreviaId}}",
+    "justificativa": "exemplo",
+    "retroativo": false,
+    "ocorridoEm": 0,
+    "observacao": "exemplo",
+    "formularioContingencia": "exemplo",
+    "tipoVisita": "visita",
+    "veiculo": {
+      "placa": "ABC1D23",
+      "modelo": "exemplo",
+      "cor": "exemplo"
+    }
+  }
+}
+
+docs {
+  Permissão: `evento.registrar`
+}

@@ -1,0 +1,19 @@
+meta {
+  name: funcionarios / obter
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/funcionarios/:pessoaId
+  body: none
+  auth: none
+}
+
+params:path {
+  pessoaId: {{pessoaId}}
+}
+
+docs {
+  Permissão: `funcionario.ver`
+}

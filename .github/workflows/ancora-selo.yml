@@ -1,0 +1,108 @@
+# Âncora externa do selo diário da trilha de acessos (spec §4.6; docs/deploy.md §Âncora).
+#
+# Uma vez por dia, lê os selos diários publicados pela API (GET /api/v1/auditoria/selos/publico, sem autenticação:
+# data, seq, hash e total do dia, nada pessoal) e ANEXA os dias novos em selos.jsonl, no branch órfão `ancoras`.
+# Nunca reescreve uma linha: se um dia já ancorado volta com outro valor, a trilha foi reescrita depois da âncora, e
+# o job falha e abre (ou comenta) uma issue. Sem segredo nenhum: só o GITHUB_TOKEN da própria execução.
+# VPS fora do ar: o curl falha, nada é gravado; a resposta traz os últimos 31 selos, então a próxima execução que
+# conseguir ler recupera os dias perdidos.
+#
+# Pré-requisitos (README, seção Âncora): o branch `ancoras` existe e está protegido contra force-push e deleção, e a
+# variável do repositório ANCORA_URL aponta para o endpoint público (https).
+name: Âncora do selo diário
+
+on:
+  schedule:
+    # 05:17 UTC = 02:17 em Brasília. O agendador da API sela "ontem" no primeiro ciclo depois da meia-noite (até
+    # 00:10 BRT); as 2 h de folga cobrem atraso do agendador e da fila do GitHub. Minuto quebrado: na virada da hora
+    # a fila do Actions atrasa mais.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ancora-selo
+  cancel-in-progress: false
+
+jobs:
+  ancorar:
+    # Só roda depois que a variável ANCORA_URL existir (fase 3 do deploy); até lá o agendamento é pulado sem falhar.
+    if: ${{ vars.ANCORA_URL != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # commit no branch ancoras
+      issues: write # issue de divergência
+    env:
+      ANCORA_URL: ${{ vars.ANCORA_URL }}
+    steps:
+      - name: Script de conferência (branch principal)
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          path: codigo
+          sparse-checkout: scripts/ancoras
+          persist-credentials: false
+
+      - name: Branch de âncoras
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ancoras
+          path: ancoras
+          fetch-depth: 1
+
+      - name: Ler os selos públicos da API
+        run: |
+          case "$ANCORA_URL" in
+            https://*) ;;
+            *) echo "::error::defina a variável do repositório ANCORA_URL (https://.../api/v1/auditoria/selos/publico)"; exit 1 ;;
+          esac
+          # Sem --location: um redirecionamento para outro host não vira âncora. Corpo limitado a 1 MiB.
+          curl --fail --silent --show-error --proto '=https' --tlsv1.2 \
+            --max-time 30 --max-filesize 1048576 \
+            --retry 4 --retry-delay 30 --retry-all-errors \
+            -H 'Accept: application/json' -A 'portaria-parque-ancora/1 (GitHub Actions)' \
+            -o "$RUNNER_TEMP/resposta.json" "$ANCORA_URL"
+
+      - name: Conferir com o já ancorado e anexar os dias novos
+        id: anexar
+        run: |
+          node codigo/scripts/ancoras/anexar-selos.mjs \
+            --resposta "$RUNNER_TEMP/resposta.json" \
+            --arquivo ancoras/selos.jsonl \
+            --relatorio "$RUNNER_TEMP/divergencia.md" \
+            --execucao "$GITHUB_RUN_ID"
+
+      - name: Commit (só append) no branch ancoras
+        if: steps.anexar.outputs.novos != '0'
+        working-directory: ancoras
+        env:
+          INTERVALO: ${{ steps.anexar.outputs.intervalo }}
+        run: |
+          git add selos.jsonl
+          # Segunda trava, independente do script: o diff só pode ter linhas ADICIONADAS.
+          if ! git diff --cached --numstat -- selos.jsonl | awk '{ if ($2 != "0") bad = 1 } END { exit bad }'; then
+            echo "::error::o diff de selos.jsonl remove ou altera linhas; abortado sem commit"
+            exit 1
+          fi
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "âncora: selos de $INTERVALO (execução $GITHUB_RUN_ID)"
+          # Sem --force, nunca. Corrida com outra execução: falha e a próxima recupera.
+          git push origin HEAD:refs/heads/ancoras
+
+      - name: Abrir ou comentar a issue de divergência
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          relatorio="$RUNNER_TEMP/divergencia.md"
+          # Só divergência gera relatório; API fora do ar ou formato inválido só falham o job (o GitHub avisa por e-mail).
+          [ -s "$relatorio" ] || exit 0
+          titulo='Âncora do selo: divergência (possível adulteração da trilha)'
+          n=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$titulo\"" --json number --jq '.[0].number // empty')
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body-file "$relatorio"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$titulo" --body-file "$relatorio"
+          fi

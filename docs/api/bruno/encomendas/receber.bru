@@ -1,0 +1,25 @@
+meta {
+  name: encomendas / receber
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/encomendas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "unidadeId": "{{unidadeId}}",
+    "destinatario": "exemplo",
+    "transportadora": "exemplo",
+    "codigoRastreio": "exemplo",
+    "unidadeConfirmada": false
+  }
+}
+
+docs {
+  Permissão: `encomenda.operar`
+}

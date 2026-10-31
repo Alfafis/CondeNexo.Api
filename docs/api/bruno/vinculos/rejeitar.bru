@@ -1,0 +1,25 @@
+meta {
+  name: vinculos / rejeitar
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/vinculos/:id/rejeitar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{vinculoId}}
+}
+
+body:json {
+  {
+    "justificativa": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `vinculo.decidir`
+}

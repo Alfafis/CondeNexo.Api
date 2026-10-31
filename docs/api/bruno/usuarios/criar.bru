@@ -1,0 +1,23 @@
+meta {
+  name: usuarios / criar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/usuarios
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "login": "exemplo",
+    "papel": "sindico"
+  }
+}
+
+docs {
+  Permissão: `usuario.gerenciar`
+}

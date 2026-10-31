@@ -1,0 +1,26 @@
+meta {
+  name: vinculos / encerrar
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/vinculos/:id/encerrar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{vinculoId}}
+}
+
+body:json {
+  {
+    "motivo": "exemplo",
+    "data": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `vinculo.decidir`
+}

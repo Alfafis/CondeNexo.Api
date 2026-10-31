@@ -1,0 +1,24 @@
+meta {
+  name: pessoas / buscar
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/pessoas/busca
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "q": "exemplo",
+    "limite": 8,
+    "semMoradores": false,
+    "incluirDesativadas": false
+  }
+}
+
+docs {
+  Permissão: `pessoa.ver`
+}

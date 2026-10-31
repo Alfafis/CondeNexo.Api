@@ -1,0 +1,35 @@
+meta {
+  name: importacao / confirmar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/importacoes/:id/confirmar
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{importacaoId}}
+}
+
+body:json {
+  {
+    "linhas": [
+      {
+        "linha": 0,
+        "bloco": "exemplo",
+        "unidade": "exemplo",
+        "nome": "Fulano de Tal",
+        "documento": "111.444.777-35",
+        "telefone": "11955550000",
+        "tipo": "exemplo"
+      }
+    ]
+  }
+}
+
+docs {
+  Permissão: `importacao.executar`
+}

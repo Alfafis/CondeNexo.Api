@@ -1,0 +1,22 @@
+meta {
+  name: unidades / criar
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/unidades
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "bloco": "exemplo",
+    "numero": "exemplo"
+  }
+}
+
+docs {
+  Permissão: `unidade.editar`
+}
