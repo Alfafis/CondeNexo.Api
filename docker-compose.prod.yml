@@ -252,10 +252,12 @@ services:
       # Fixos em produção (não vêm do .env): a API recusa o boot com COOKIE_SECURE=false em producao.
       PORTARIA_AMBIENTE: producao
       COOKIE_SECURE: "true"
-      # Mesma origem pelo rewrite da Vercel: CORS desligado.
-      CORS_ORIGENS: ""
-      # Saltos de proxy confiáveis: 2 = Vercel + proxy da VPS (topologias em docs/deploy.md §TRUST_PROXY).
-      TRUST_PROXY: ${TRUST_PROXY:?defina TRUST_PROXY no .env (2 com Vercel + proxy da VPS)}
+      # O front (https://www.condenexo.com.br) chama a API em https://api.condenexo.com.br: CORS com credenciais para a
+      # origem EXATA do front (docs/deploy-subdominio-api.md). Obrigatória: vazia, o CORS fica desligado e o front quebra.
+      CORS_ORIGENS: ${CORS_ORIGENS:?defina CORS_ORIGENS no .env (https://www.condenexo.com.br)}
+      # Saltos de proxy confiáveis: 1 = só o nginx da VPS na frente (sem Vercel). Com 2, o IP do cliente é forjável por XFF
+      # e o limite de login por IP é contornado (docs/deploy-subdominio-api.md).
+      TRUST_PROXY: ${TRUST_PROXY:?defina TRUST_PROXY no .env (1 com o nginx da VPS na frente)}
       # Prazos da sessão (spec §5.1), em minutos. Vazio = padrão da API: 240/840 (4 h sem uso / 14 h; sempre o do
       # porteiro) e, com "Manter conectado", 1440/21600 (1 dia / 15 dias). SESSAO_ABSOLUTA_MIN e SESSAO_INATIVIDADE_MIN
       # antigas não são mais repassadas (a API as ignoraria com aviso).
