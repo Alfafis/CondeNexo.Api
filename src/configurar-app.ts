@@ -3,6 +3,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import type { Config } from './config/config';
 import { logDeRequisicao } from './comum/log';
+import { middlewareOrigem, recusarFormularioUrlencoded } from './comum/origem';
 import { aplicarEstrategiaCondominio, middlewareCondominio } from './tenancy/contexto';
 import { ResolvedorCondominio } from './tenancy/resolvedor';
 
@@ -47,10 +48,27 @@ export function configurarApp(app: NestExpressApplication, config: Config) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     next();
   });
-  // CORS só para as origens exatas listadas (dev com front em outra porta). Produção: mesma origem via rewrite,
-  // lista vazia, CORS desligado. Nunca refletir Origin: com credentials, isso anularia o SameSite.
+  // CORS só para as origens exatas listadas. Produção: o front (https://www.condenexo.com.br) chama a API em
+  // https://api.condenexo.com.br, mesmo site (o SameSite=Strict do cookie continua valendo) mas outra origem: CORS com
+  // credenciais para a origem exata do front. Lista vazia = CORS desligado. Nunca refletir Origin: com credentials,
+  // qualquer site leria as respostas autenticadas.
+  // Superfície mínima, conferida no CondeNexo.Front: métodos e cabeçalhos que ele de fato envia; expostos só os que ele
+  // lê fora da lista segura do CORS (Retry-After do 429; Content-Disposition, nome do anexo baixado). maxAge: o
+  // navegador guarda o preflight por 10 min (Chrome limita a 2 h; Firefox a 24 h) em vez de refazê-lo a cada chamada.
   if (config.corsOrigens.length) {
-    app.enableCors({ origin: config.corsOrigens, credentials: true, methods: ['GET', 'POST', 'PATCH'], allowedHeaders: ['Content-Type', 'X-Condominio'] });
+    app.enableCors({
+      origin: config.corsOrigens,
+      credentials: true,
+      methods: ['GET', 'POST', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'X-Condominio'],
+      exposedHeaders: ['Retry-After', 'Content-Disposition'],
+      maxAge: 600,
+    });
   }
+  // Depois do CORS (o preflight já foi respondido; OPTIONS também é isento por método) e antes de tudo que o Nest
+  // registra no init (parsers padrão, guards, rotas): POST/PATCH/... com Origin de fora morre aqui, sem tocar no limite
+  // de login nem na trilha. Ver comum/origem.ts.
+  app.use(middlewareOrigem(config));
+  app.use(recusarFormularioUrlencoded);
   app.enableShutdownHooks();
 }

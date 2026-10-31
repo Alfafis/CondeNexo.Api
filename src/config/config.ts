@@ -17,7 +17,7 @@ export interface Config {
   ambiente: Ambiente;
   /** false: sem proxy (req.ip = socket). Número: quantos saltos de proxy confiáveis há na frente da API. */
   trustProxy: false | number;
-  /** Origens exatas para CORS com credenciais. Vazio: CORS desligado (produção usa a mesma origem via rewrite). */
+  /** Origens exatas para CORS com credenciais. Vazio: CORS desligado. Produção: a origem do front (https://www.condenexo.com.br). */
   corsOrigens: string[];
   cookie: { secure: boolean; nome: string };
   /**
@@ -274,6 +274,11 @@ export function carregarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     try { origem = new URL(o).origin; } catch { throw new ErroConfig(`CORS_ORIGENS: origem inválida (${o})`); }
     // Origem exata (sem barra, sem caminho, sem curinga): CORS que reflete Origin anula o SameSite.
     if (origem !== o) throw new ErroConfig(`CORS_ORIGENS: use a origem exata, sem caminho nem barra final (${o})`);
+  }
+  // Produção: o front chama a API em outra origem (docs/deploy-subdominio-api.md). Lista vazia deixaria o front quebrado
+  // e a verificação de Origin (comum/origem.ts) caindo na regra de dev (Origin = Host). Recusar no boot.
+  if (ambiente === 'producao' && !corsOrigens.length) {
+    throw new ErroConfig('CORS_ORIGENS é obrigatória com PORTARIA_AMBIENTE=producao (a origem exata do front, ex.: https://www.condenexo.com.br)');
   }
 
   return {

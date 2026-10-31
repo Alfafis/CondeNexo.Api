@@ -25,6 +25,7 @@ import { LgpdModule } from './lgpd/lgpd.module';
 import { JobsModule } from './jobs/agendador';
 import { PlataformaModule } from './plataforma/plataforma.module';
 import { ModuloGuard } from './tenancy/modulo.guard';
+import { GuardaOrigemLeitura } from './comum/origem.guard';
 import { ParametrosModule } from './parametros/parametros.controller';
 
 @Module({
@@ -40,6 +41,9 @@ import { ParametrosModule } from './parametros/parametros.controller';
     // pela árvore de dependências, e sem isso a guarda viraria um objeto nunca construído (SaaS, F2).
     // PapelGuard não depende de banco, mas também é declarado durável: o Nest roda os enhancers globais estáticos ANTES
     // dos por requisição, e a autorização não pode rodar antes da autenticação.
+    // Origin nas leituras de rota não pública (comum/origem.guard.ts): estática, roda antes das duráveis abaixo, ou seja,
+    // antes de tocar sessão ou gravar trilha.
+    { provide: APP_GUARD, useClass: GuardaOrigemLeitura },
     { provide: APP_GUARD, useClass: SessaoGuard, scope: Scope.REQUEST, durable: true },
     { provide: APP_GUARD, useClass: PapelGuard, scope: Scope.REQUEST, durable: true },
     // Módulos por condomínio (SAAS-19): depois da autenticação e da autorização, também durável para manter a ordem.

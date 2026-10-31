@@ -431,7 +431,7 @@ describe('agendador e destinos da âncora', () => {
     expect(dev.ancora.smtp).toMatchObject({ host: 'mailpit', porta: 1025, tls: 'nenhum', usuario: null });
     expect(dev.ancora.emails).toHaveLength(2);
     expect(dev.jobs.agendador).toBe(false);
-    const prod = { ...base, PORTARIA_AMBIENTE: 'producao', COOKIE_SECURE: 'true' };
+    const prod = { ...base, PORTARIA_AMBIENTE: 'producao', COOKIE_SECURE: 'true', CORS_ORIGENS: 'https://www.condenexo.com.br' };
     expect(() => carregarConfig(prod)).toThrow(/ANCORA_DESTINOS \(github e\/ou email\) é obrigatória/);
     // Destino github: produção sobe sem e-mail nem SMTP
     expect(carregarConfig({ ...prod, ANCORA_DESTINOS: 'github' }).ancora).toMatchObject({ github: true, emails: [], smtp: null });

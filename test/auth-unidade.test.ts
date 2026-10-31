@@ -120,8 +120,11 @@ describe('config do ambiente (falha no boot em vez de default silencioso)', () =
     [{ LOGIN_MAX_FALHAS_IP: '1000' }, /LOGIN_MAX_FALHAS_IP/],
     [{ LOGIN_JANELA_MIN: '0' }, /LOGIN_JANELA_MIN/],
     [{ LOGIN_BLOQUEIO_MIN: 'quinze' }, /LOGIN_BLOQUEIO_MIN/],
-    [{ CORS_ORIGENS: 'https://tccgestaoacesso.vercel.app/' }, /origem exata/],
+    [{ CORS_ORIGENS: 'https://www.condenexo.com.br/' }, /origem exata/],
     [{ CORS_ORIGENS: '*' }, /CORS_ORIGENS/],
+    // Produção sem CORS_ORIGENS (o resto da produção válido): recusa no boot. Em dev, vazia continua valendo (base).
+    [{ PORTARIA_AMBIENTE: 'producao', COOKIE_SECURE: 'true', ANCORA_DESTINOS: 'github' }, /CORS_ORIGENS é obrigatória com PORTARIA_AMBIENTE=producao/],
+    [{ PORTARIA_AMBIENTE: 'producao', COOKIE_SECURE: 'true', ANCORA_DESTINOS: 'github', CORS_ORIGENS: ' , ' }, /CORS_ORIGENS é obrigatória/],
     [{ SESSAO_PADRAO_INATIVIDADE_MIN: '900' }, /SESSAO_PADRAO_INATIVIDADE_MIN não pode passar de SESSAO_PADRAO_ABSOLUTA_MIN/],
     [{ SESSAO_PADRAO_ABSOLUTA_MIN: '1500' }, /SESSAO_PADRAO_ABSOLUTA_MIN deve estar entre 5 e 1440/],
     [{ SESSAO_PADRAO_ABSOLUTA_MIN: '4' }, /SESSAO_PADRAO_ABSOLUTA_MIN/],
