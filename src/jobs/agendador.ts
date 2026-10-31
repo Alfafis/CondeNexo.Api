@@ -10,7 +10,7 @@
 //
 // SaaS (F2, SAAS-13): cada ciclo percorre os condomínios atendidos (ativo e suspenso: a trilha de um suspenso não pode
 // ter buraco nem dado vencido retido) e roda selo, âncoras e retenção na subárvore de injeção DE CADA UM (os mesmos
-// serviços duráveis das requisições dele, saas/contexto.ts). Um condomínio por vez (o "no máximo N em paralelo" do
+// serviços duráveis das requisições dele, tenancy/contexto.ts). Um condomínio por vez (o "no máximo N em paralelo" do
 // SAAS-13 com N = 1: não disputa conexões com a portaria). Falha num condomínio vai ao log e o laço segue.
 import { Inject, Injectable, Module, type OnApplicationBootstrap, type OnApplicationShutdown, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -25,10 +25,11 @@ import { auditLog } from '../db/schema';
 import { LgpdModule } from '../lgpd/lgpd.module';
 import { LgpdService } from '../lgpd/lgpd.service';
 import { RetencaoService } from '../lgpd/retencao.service';
-import type { CondominioResolvido } from '../saas/condominio';
-import { contextoDoJob, type ResolvedorDeInstancias } from '../saas/contexto';
-import { ResolvedorCondominio } from '../saas/resolvedor';
-import { NOME_AGENDADOR, SeloModule, SeloService } from '../selo/selo.module';
+import type { CondominioResolvido } from '../tenancy/condominio';
+import { contextoDoJob, type ResolvedorDeInstancias } from '../tenancy/contexto';
+import { ResolvedorCondominio } from '../tenancy/resolvedor';
+import { SeloModule } from '../selo/selo.module';
+import { NOME_AGENDADOR, SeloService } from '../selo/selo.service';
 import { TravaJobs } from './trava';
 
 const BRT_MS = 3 * 3600 * 1000;

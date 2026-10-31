@@ -6,10 +6,10 @@ import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AuditoriaService } from '../src/auditoria/auditoria.service';
 import * as s from '../src/db/schema';
-import { nomeCookieMaster } from '../src/master/cookie-master';
-import { criarUsuario } from '../src/master/usuario-plataforma';
-import { ResolvedorCondominio } from '../src/saas/resolvedor';
-import { condominio, masterUsuario, plataformaAudit } from '../src/saas/schema-plataforma';
+import { nomeCookieMaster } from '../src/plataforma/cookie-master';
+import { criarUsuario } from '../src/plataforma/usuario-plataforma';
+import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
+import { condominio, masterUsuario, plataformaAudit } from '../src/plataforma/schema-plataforma';
 import { type ApiDeTeste, LOGINS, novaApi, novoIp } from './helpers/app';
 
 const V1 = '/api/v1';

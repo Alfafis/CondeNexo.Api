@@ -12,7 +12,7 @@ import * as s from '../src/db/schema';
 import { seedPessoasDev } from '../src/db/seed-pessoas-dev';
 import { DESTINO_GITHUB, EnvioAncoraReal } from '../src/selo/ancora';
 import { conferirAncoras } from '../src/selo/conferir-ancoras';
-import { SeloService } from '../src/selo/selo.module';
+import { SeloService } from '../src/selo/selo.service';
 import { configDeTeste, novaApi, novoIp, type PapelTeste } from './helpers/app';
 import { CHAVE_HMAC_TESTE } from './helpers/banco';
 

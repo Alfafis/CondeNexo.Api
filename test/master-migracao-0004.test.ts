@@ -11,8 +11,8 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import * as sp from '../src/saas/schema-plataforma';
-import { masterSessao, masterUsuario } from '../src/saas/schema-plataforma';
+import * as sp from '../src/plataforma/schema-plataforma';
+import { masterSessao, masterUsuario } from '../src/plataforma/schema-plataforma';
 import { comoAppPlataforma, PASTA_MIGRACOES_PLATAFORMA } from './helpers/plataforma';
 
 const ID = '0a0a0000-0000-4000-8000-000000000001';

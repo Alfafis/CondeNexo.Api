@@ -45,12 +45,12 @@ import {
 } from '../db/schema';
 import { CofreDocumentos } from '../documentos/cofre';
 import { log } from '../comum/log';
-import { CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
-import { RegistroAnonimizacoes } from '../saas/registro-anonimizacao';
-import { codigoEncomenda } from '../encomendas/encomendas.module';
+import { CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
+import { RegistroAnonimizacoes } from '../tenancy/registro-anonimizacao';
+import { codigoEncomenda } from '../encomendas/encomendas.service';
 import { montarViews } from '../eventos/evento-view';
 import { EventosService } from '../eventos/eventos.service';
-import { codigoOcorrencia } from '../ocorrencias/ocorrencias.module';
+import { codigoOcorrencia } from '../ocorrencias/ocorrencias.service';
 import { vinculoValidoSql } from '../vinculos/vinculo-valido';
 
 /** Teto de eventos numa exportação de titular (o mesmo da exportação da trilha). */

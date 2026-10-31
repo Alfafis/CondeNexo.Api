@@ -1,4 +1,4 @@
-// Provisionamento de condomínio novo (src/saas/provisionar.ts, CLI provisionar-condominio). Sobre PGlite: a plataforma
+// Provisionamento de condomínio novo (src/plataforma/provisionar.ts, CLI provisionar-condominio). Sobre PGlite: a plataforma
 // roda como app_plataforma (SET ROLE) e os dados do condomínio como app_rw, então os GRANTs das migrações valem; o que
 // depende de role com LOGIN de verdade (app_provisionador, CONNECT por banco) está em
 // test/postgres-real/saas-provisionar.test.ts. Aqui: o fluxo inteiro, o login no condomínio novo pela API, o
@@ -17,12 +17,12 @@ import { lerAmbiente, lerArgs, lerEntrada } from '../src/cli/provisionar-condomi
 import type { Db } from '../src/database/database.module';
 import { REGISTRO_BANCOS } from '../src/database/registro-bancos';
 import * as s from '../src/db/schema';
-import { ErroChave } from '../src/saas/chave-mestra';
+import { ErroChave } from '../src/plataforma/chave-mestra';
 import {
   type Cluster, ErroProvisionamento, NOME_PROVISIONAMENTO, type Portas, provisionar, validarEntrada,
-} from '../src/saas/provisionar';
-import { ResolvedorCondominio } from '../src/saas/resolvedor';
-import * as sp from '../src/saas/schema-plataforma';
+} from '../src/plataforma/provisionar';
+import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
+import * as sp from '../src/plataforma/schema-plataforma';
 import { type ApiDeTeste, cookieDe, novaApi, novoIp, SENHA } from './helpers/app';
 import { PASTA_MIGRACOES } from './helpers/banco';
 import type { RegistroDeTeste } from './helpers/saas';

@@ -22,7 +22,7 @@ const protecao = {
   senhaMaster: z.string().min(1, 'Digite a sua senha para confirmar.').max(200, 'Senha longa demais.'),
 };
 
-/** Mesmas regras do síndico do provisionamento (saas/provisionar.ts). */
+/** Mesmas regras do síndico do provisionamento (plataforma/provisionar.ts). */
 const NovoSindicoDto = z.strictObject({
   nome: z.string().trim().min(3, 'O nome tem pelo menos 3 caracteres.').max(120, 'O nome tem no máximo 120 caracteres.'),
   login: z.string().trim().toLowerCase().regex(LOGIN_SINDICO, 'Login: 3 a 40 caracteres, começando por letra (a-z, 0-9, ".", "-", "_").'),

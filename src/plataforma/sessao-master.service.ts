@@ -8,8 +8,8 @@ import type { PapelPlataforma } from '../dominio/rbac-plataforma';
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import { createHash, randomBytes } from 'node:crypto';
 import { RELOGIO, type Relogio } from '../comum/relogio';
-import { type DbPlataforma, PLATAFORMA_DB } from '../saas/plataforma-db';
-import { masterSessao, masterUsuario } from '../saas/schema-plataforma';
+import { type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
+import { masterSessao, masterUsuario } from '../plataforma/schema-plataforma';
 import type { ExecPlataforma } from './trilha-plataforma';
 import type { AuthMaster } from './tipos';
 

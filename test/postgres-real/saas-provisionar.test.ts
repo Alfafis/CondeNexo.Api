@@ -1,4 +1,4 @@
-// Provisionamento de condomínio novo sobre PostgreSQL REAL (src/saas/provisionar.ts com as portas da CLI de verdade:
+// Provisionamento de condomínio novo sobre PostgreSQL REAL (src/plataforma/provisionar.ts com as portas da CLI de verdade:
 // ClusterPg como app_provisionador, migrarComo como app_migrator, app_rw nos dados e app_plataforma na plataforma).
 // O que o PGlite não prova: CREATE DATABASE por um role CREATEDB que só tem SET em app_migrator, os GRANTs de CONNECT
 // do banco novo, o provisionador sem CONNECT no banco que criou, login com o código pela API e o isolamento entre
@@ -26,11 +26,11 @@ import { REGISTRO_BANCOS, RegistroBancosPg } from '../../src/database/registro-b
 import * as s from '../../src/db/schema';
 import { seedEstrutura } from '../../src/db/seed';
 import { seedUsuariosDev } from '../../src/db/seed-usuarios';
-import { configurarApp } from '../../src/plataforma';
-import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB, PLATAFORMA_POOL } from '../../src/saas/plataforma-db';
-import { type Portas, provisionar, validarEntrada } from '../../src/saas/provisionar';
-import { ResolvedorCondominio } from '../../src/saas/resolvedor';
-import * as sp from '../../src/saas/schema-plataforma';
+import { configurarApp } from '../../src/configurar-app';
+import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB, PLATAFORMA_POOL } from '../../src/plataforma/plataforma-db';
+import { type Portas, provisionar, validarEntrada } from '../../src/plataforma/provisionar';
+import { ResolvedorCondominio } from '../../src/tenancy/resolvedor';
+import * as sp from '../../src/plataforma/schema-plataforma';
 import { configDeTeste, cookieDe, SENHA } from '../helpers/app';
 import { PASTA_MIGRACOES } from '../helpers/banco';
 import { PASTA_MIGRACOES_PLATAFORMA } from '../helpers/plataforma';

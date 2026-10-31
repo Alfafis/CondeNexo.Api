@@ -12,8 +12,8 @@ import { Autenticado, Ctx, ipDe, Publico } from './decorators';
 import { LoginSemCondominio } from './login-sem-condominio';
 import { SENHA_MAX } from './senha.service';
 import type { Contexto } from './tipos';
-import type { CondominioResolvido } from '../saas/condominio';
-import { ResolvedorCondominio } from '../saas/resolvedor';
+import type { CondominioResolvido } from '../tenancy/condominio';
+import { ResolvedorCondominio } from '../tenancy/resolvedor';
 import { permissoesDe } from './permissoes';
 
 /** O condomínio da sessão para o front (cabeçalho e preferência do código): só código e nome, nunca id nem banco. */

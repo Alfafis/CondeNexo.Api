@@ -35,7 +35,7 @@ COPY src/db/schema.ts ./src/db/schema.ts
 # Banco plataforma do SaaS: config, migrações e schema próprios.
 COPY drizzle-plataforma.config.ts ./
 COPY drizzle-plataforma ./drizzle-plataforma
-COPY src/saas/schema-plataforma.ts ./src/saas/schema-plataforma.ts
+COPY src/plataforma/schema-plataforma.ts ./src/plataforma/schema-plataforma.ts
 # SaaS (F2, SAAS-16): plataforma e depois cada banco de condomínio, em série (MIGRATOR_URL_BASE sem nome de banco).
 COPY scripts/migrar-bancos.mjs ./scripts/migrar-bancos.mjs
 USER node

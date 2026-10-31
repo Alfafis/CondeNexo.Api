@@ -8,15 +8,15 @@ import { and, eq } from 'drizzle-orm';
 import type { Contexto } from '../../src/auth/tipos';
 import { diaBrt, somarDias } from '../../src/comum/datas';
 import { DB, type Db } from '../../src/database/database.module';
-import type { CondominioResolvido } from '../../src/saas/condominio';
+import type { CondominioResolvido } from '../../src/tenancy/condominio';
 import { servicoDe } from '../helpers/saas';
 import { cpfComDv } from '../../src/db/seed-pessoas-dev';
 import { pessoa, unidade, usuarioSistema } from '../../src/db/schema';
-import { EncomendasService } from '../../src/encomendas/encomendas.module';
+import { EncomendasService } from '../../src/encomendas/encomendas.service';
 import { AutorizacoesService } from '../../src/eventos/autorizacoes.service';
 import { EventosService } from '../../src/eventos/eventos.service';
-import { FuncionariosService } from '../../src/funcionarios/funcionarios.module';
-import { OcorrenciasService } from '../../src/ocorrencias/ocorrencias.module';
+import { FuncionariosService } from '../../src/funcionarios/funcionarios.service';
+import { OcorrenciasService } from '../../src/ocorrencias/ocorrencias.service';
 import { PessoasService } from '../../src/pessoas/pessoas.service';
 
 /** Usuários a mais (além dos 4 do seed de dev), com a mesma senha do e2e. */

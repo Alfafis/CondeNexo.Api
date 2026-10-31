@@ -1,5 +1,5 @@
 // Registra o condomínio-piloto no banco `plataforma` e importa as chaves atuais como versão de hoje (fase F1,
-// docs/05_arquitetura_saas.md; regras em src/saas/registrar-piloto.ts). Não mexe no banco `portaria` nem na API.
+// docs/05_arquitetura_saas.md; regras em src/plataforma/registrar-piloto.ts). Não mexe no banco `portaria` nem na API.
 //
 //   docker compose --profile plataforma run --rm plataforma-cli \
 //     node dist/cli/registrar-piloto.js --codigo <slug> --nome "<nome exibido>" [--plano piloto]
@@ -12,9 +12,9 @@
 // mesmas chaves); 1 recusado (nada gravado); 2 uso.
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { carregarChaveMestra, chaveDoAmbiente, ErroChave, versaoDoAmbiente } from '../saas/chave-mestra';
-import { type DbPlataforma, type EntradaPiloto, registrarPiloto } from '../saas/registrar-piloto';
-import * as sp from '../saas/schema-plataforma';
+import { carregarChaveMestra, chaveDoAmbiente, ErroChave, versaoDoAmbiente } from '../plataforma/chave-mestra';
+import { type DbPlataforma, type EntradaPiloto, registrarPiloto } from '../plataforma/registrar-piloto';
+import * as sp from '../plataforma/schema-plataforma';
 
 const USO = 'uso: registrar-piloto.js --codigo <slug> --nome "<nome exibido>" [--plano <plano>]';
 

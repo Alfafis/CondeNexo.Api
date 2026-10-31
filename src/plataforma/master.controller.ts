@@ -11,7 +11,7 @@ import { SENHA_MAX } from '../auth/senha.service';
 import { erroApi } from '../comum/erros';
 import { uuidParam, ZodPipe } from '../comum/zod.pipe';
 import { CONFIG, type Config } from '../config/config';
-import { EntradaJson } from '../saas/provisionar';
+import { EntradaJson } from '../plataforma/provisionar';
 import { AuthMasterService, MENSAGEM_CREDENCIAIS_MASTER, MENSAGEM_TEMPORARIA_EXPIRADA_MASTER } from './auth-master.service';
 import { CondominiosMasterService } from './condominios-master.service';
 import { gravarCookieMaster, limparCookieMaster } from './cookie-master';

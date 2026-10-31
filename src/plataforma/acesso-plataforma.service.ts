@@ -1,5 +1,5 @@
 // Leitura dos dados de um condomínio pelo app do Master (docs/05_arquitetura_saas.md SAAS-09, F5 entrega 2). PONTO ÚNICO:
-// é o único lugar de src/master que obtém a subárvore de injeção de um condomínio (teste de arquitetura em
+// é o único lugar de src/plataforma que obtém a subárvore de injeção de um condomínio (teste de arquitetura em
 // test/master-leitura.test.ts). Para cada requisição de /plataforma/condominios/:id/...:
 //
 //   1. resolve o condomínio (ativo, suspenso ou encerrado; `provisionando` 409; `excluido` ou desconhecido 404);
@@ -37,9 +37,9 @@ import { AuthMasterService } from './auth-master.service';
 import { codigoPg, erroApi } from '../comum/erros';
 import { log } from '../comum/log';
 import { DB, type Db } from '../database/database.module';
-import { contextoDoJob } from '../saas/contexto';
-import { type DbPlataforma, PLATAFORMA_DB } from '../saas/plataforma-db';
-import { ResolvedorCondominio } from '../saas/resolvedor';
+import { contextoDoJob } from '../tenancy/contexto';
+import { type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
+import { ResolvedorCondominio } from '../tenancy/resolvedor';
 import { minimizarLeituraPlataforma } from './minimizacao';
 import type { AuthMaster } from './tipos';
 import { registrarPlataforma } from './trilha-plataforma';

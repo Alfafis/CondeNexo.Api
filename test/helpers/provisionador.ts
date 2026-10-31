@@ -9,10 +9,10 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { Db } from '../../src/database/database.module';
 import * as s from '../../src/db/schema';
-import type { Provisionador } from '../../src/master/provisionador';
-import type { ChaveMestra } from '../../src/saas/chave-mestra';
-import type { DbPlataforma } from '../../src/saas/plataforma-db';
-import { type Cluster, type Portas, provisionar, validarEntrada } from '../../src/saas/provisionar';
+import type { Provisionador } from '../../src/plataforma/provisionador';
+import type { ChaveMestra } from '../../src/plataforma/chave-mestra';
+import type { DbPlataforma } from '../../src/plataforma/plataforma-db';
+import { type Cluster, type Portas, provisionar, validarEntrada } from '../../src/plataforma/provisionar';
 import { PASTA_MIGRACOES } from './banco';
 import type { RegistroDeTeste } from './saas';
 

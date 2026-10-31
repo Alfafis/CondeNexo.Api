@@ -1,7 +1,7 @@
 // Máscara do nome de uma pessoa na leitura do Master (operador do SaaS, LGPD art. 6º, III: o mínimo necessário).
 // Formato do protótipo: primeiro nome + inicial do último sobrenome + asteriscos ("Ana Ribeiro" -> "Ana R******").
 // Os asteriscos são sempre 6: não revelam o tamanho do sobrenome. Os nomes do meio somem.
-// Quem aplica é a API (src/master/minimizacao.ts), nunca o front: o front do Master não recebe o nome completo.
+// Quem aplica é a API (src/plataforma/minimizacao.ts), nunca o front: o front do Master não recebe o nome completo.
 
 /** Nome que a anonimização LGPD grava no lugar do nome (drizzle/0007, `lgpd_anonimizar_pessoa`). */
 export const NOME_ANONIMIZADO = 'Pessoa anonimizada';

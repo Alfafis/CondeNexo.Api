@@ -27,11 +27,11 @@ import { CONFIG, type Config } from '../config/config';
 import { REGISTRO_BANCOS, type RegistroBancos } from '../database/registro-bancos';
 import { configuracao, documento } from '../db/schema';
 import { kekAbreDek } from '../documentos/cofre';
-import { type ChaveMestra, desembrulhar, ErroChave, mesmaChave } from './chave-mestra';
+import { type ChaveMestra, desembrulhar, ErroChave, mesmaChave } from '../plataforma/chave-mestra';
 import { type CondominioResolvido, STATUS_ATENDIDOS, type StatusAtendido } from './condominio';
-import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB } from './plataforma-db';
-import { BANCO_PILOTO } from './registrar-piloto';
-import * as sp from './schema-plataforma';
+import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
+import { BANCO_PILOTO } from '../plataforma/registrar-piloto';
+import * as sp from '../plataforma/schema-plataforma';
 
 export const RENOVAR_MS = 60_000;
 export const RECARGA_MIN_MS = 5_000;

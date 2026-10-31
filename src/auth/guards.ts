@@ -23,7 +23,7 @@ export class SessaoGuard implements CanActivate {
 
   async canActivate(c: ExecutionContext): Promise<boolean> {
     const tipo = politicaDe(this.reflector, c)?.tipo;
-    if (tipo === 'publico' || tipo === 'plataforma') return true; // plataforma: PlataformaGuard (src/master)
+    if (tipo === 'publico' || tipo === 'plataforma') return true; // plataforma: PlataformaGuard (src/plataforma)
     const req = c.switchToHttp().getRequest<Request>();
     const valor = lerCookieSessao(req, this.config);
     if (!valor) throw erroApi(401, 'NAO_AUTENTICADO', 'Entre no sistema para continuar.');

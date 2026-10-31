@@ -9,10 +9,10 @@ import { RouteParamtypes } from '@nestjs/common/enums/route-paramtypes.enum';
 import { ModulesContainer } from '@nestjs/core';
 import { z } from 'zod';
 import { POLITICA, type Politica } from '../auth/decorators';
-import { CAMINHO_COOKIE_MASTER, nomeCookieMaster } from '../master/cookie-master';
-import { POLITICA_MASTER, type PoliticaMaster } from '../master/decorators';
+import { CAMINHO_COOKIE_MASTER, nomeCookieMaster } from '../plataforma/cookie-master';
+import { POLITICA_MASTER, type PoliticaMaster } from '../plataforma/decorators';
 import { ZodPipe } from '../comum/zod.pipe';
-import { PREFIXO_GLOBAL } from '../plataforma';
+import { PREFIXO_GLOBAL } from '../configurar-app';
 
 type Json = Record<string, unknown>;
 
@@ -223,7 +223,7 @@ export function gerarOpenApiComRelatorio(app: INestApplication, opcoes: OpcoesOp
           op.summary = rotulo;
           op.description = politica.permiteTrocaPendente ? 'Qualquer usuário logado (inclusive quem ainda deve trocar a senha).' : 'Qualquer usuário logado.';
         } else if (politica?.tipo === 'plataforma') {
-          // App do Master (src/master): política própria em POLITICA_MASTER, sessão e cookie da plataforma.
+          // App do Master (src/plataforma): política própria em POLITICA_MASTER, sessão e cookie da plataforma.
           const pm = (Reflect.getMetadata(POLITICA_MASTER, handler) ?? Reflect.getMetadata(POLITICA_MASTER, ctrl)) as PoliticaMaster | undefined;
           op.summary = rotulo;
           op.description = pm?.tipo === 'acao' ? `Plataforma (Master). Permissão: \`${pm.acao}\``

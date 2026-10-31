@@ -6,8 +6,8 @@ import { Acao, Autenticado, Ctx } from '../auth/decorators';
 import type { Contexto } from '../auth/tipos';
 import { PaginacaoDto } from '../comum/pagina';
 import { uuidParam, ZodPipe } from '../comum/zod.pipe';
-import { CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
-import { ResolvedorCondominio } from '../saas/resolvedor';
+import { CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
+import { ResolvedorCondominio } from '../tenancy/resolvedor';
 import { UnidadesService } from './unidades.service';
 
 export const ListarUnidadesDto = PaginacaoDto.extend({ bloco: z.string().trim().regex(/^[A-Za-z0-9]{1,3}$/).optional() });

@@ -1,5 +1,5 @@
 // Provisiona um condomínio novo de ponta a ponta (docs/05_arquitetura_saas.md SAAS-10; regras e passos em
-// src/saas/provisionar.ts; passo a passo de produção em docs/deploy.md, seção 16). Entrada: JSON pelo stdin (ou
+// src/plataforma/provisionar.ts; passo a passo de produção em docs/deploy.md, seção 16). Entrada: JSON pelo stdin (ou
 // --entrada <arquivo>), nunca dado pessoal em argumento de linha de comando.
 //
 //   docker compose --profile provisionar run --rm -T provisionar-cli < condominio.json
@@ -24,13 +24,13 @@ import { PADROES_ARGON2 } from '../config/config';
 import type { Db } from '../database/database.module';
 import { NOME_BANCO, urlDoBanco } from '../database/registro-bancos';
 import * as schema from '../db/schema';
-import { carregarChaveMestra, type ChaveMestra, ErroChave } from '../saas/chave-mestra';
+import { carregarChaveMestra, type ChaveMestra, ErroChave } from '../plataforma/chave-mestra';
 import {
   type Cluster, DONO_BANCO, type EntradaProvisionamento, ErroProvisionamento, type OpcoesProvisionamento, type Portas,
   provisionar, validarEntrada,
-} from '../saas/provisionar';
-import type { DbPlataforma } from '../saas/registrar-piloto';
-import * as sp from '../saas/schema-plataforma';
+} from '../plataforma/provisionar';
+import type { DbPlataforma } from '../plataforma/registrar-piloto';
+import * as sp from '../plataforma/schema-plataforma';
 
 const USO = 'uso: provisionar-condominio.js [--entrada <arquivo.json>] [--nova-senha-sindico]   (sem --entrada: JSON pelo stdin)';
 

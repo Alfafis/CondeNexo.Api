@@ -1,6 +1,6 @@
 // Leitura auditada dos dados de um condomínio pelo app do Master (docs/05_arquitetura_saas.md SAAS-09, F5 entrega 2):
 // "tudo que o síndico vê", só leitura, com a view do síndico MINIMIZADA (nome de terceiro mascarado, texto livre oculto,
-// placa mascarada: src/master/minimizacao.ts) e a rota do síndico intacta; uma linha `plataforma.*` no audit_log DAQUELE
+// placa mascarada: src/plataforma/minimizacao.ts) e a rota do síndico intacta; uma linha `plataforma.*` no audit_log DAQUELE
 // condomínio por requisição, antes de devolver o dado (falhou: 503 e nada sai); uma linha em plataforma_audit; ponto
 // único (AcessoPlataformaService) provado por teste de arquitetura; e a tela "Acessos da plataforma" do condomínio.
 import { readdirSync, readFileSync } from 'node:fs';
@@ -13,11 +13,11 @@ import { mascararNome } from '../src/dominio/nome';
 import { AuditoriaService } from '../src/auditoria/auditoria.service';
 import * as s from '../src/db/schema';
 import { seedPessoasDev } from '../src/db/seed-pessoas-dev';
-import { nomeCookieMaster } from '../src/master/cookie-master';
-import { minimizarLeituraPlataforma, TEXTO_LIVRE_OCULTO } from '../src/master/minimizacao';
-import { criarUsuario } from '../src/master/usuario-plataforma';
-import { ResolvedorCondominio } from '../src/saas/resolvedor';
-import { condominio, masterUsuario, plataformaAudit } from '../src/saas/schema-plataforma';
+import { nomeCookieMaster } from '../src/plataforma/cookie-master';
+import { minimizarLeituraPlataforma, TEXTO_LIVRE_OCULTO } from '../src/plataforma/minimizacao';
+import { criarUsuario } from '../src/plataforma/usuario-plataforma';
+import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
+import { condominio, masterUsuario, plataformaAudit } from '../src/plataforma/schema-plataforma';
 import { semearDadosE2e, USUARIOS_E2E } from './e2e/dados';
 import { type ApiDeTeste, novaApi, novoIp } from './helpers/app';
 import { CHAVE_HMAC_TESTE, SENHA_FALSA } from './helpers/banco';
@@ -384,35 +384,35 @@ describe('arquitetura: ponto único', () => {
     .flatMap((e) => (e.isDirectory() ? arquivos(join(dir, e.name)) : e.name.endsWith('.ts') ? [join(dir, e.name)] : []));
   const fontes = arquivos(raiz).map((f) => ({ f: f.slice(raiz.length + 1), texto: readFileSync(f, 'utf8') }));
 
-  it('em src/master, só o AcessoPlataformaService obtém subárvore de condomínio (contextoDoJob, ModuleRef, DB)', () => {
-    const citam = fontes.filter((x) => x.f.startsWith('master/') && /\b(contextoDoJob|ModuleRef|registerRequestByContextId|REGISTRO_BANCOS|estrategiaCondominio)\b|\bDB\b.*from '..\/database/.test(x.texto))
+  it('em src/plataforma, só o AcessoPlataformaService obtém subárvore de condomínio (contextoDoJob, ModuleRef, DB)', () => {
+    const citam = fontes.filter((x) => x.f.startsWith('plataforma/') && /\b(contextoDoJob|ModuleRef|registerRequestByContextId|REGISTRO_BANCOS|estrategiaCondominio)\b|\bDB\b.*from '..\/database/.test(x.texto))
       .map((x) => x.f);
-    expect(citam).toEqual(['master/acesso-plataforma.service.ts']);
+    expect(citam).toEqual(['plataforma/acesso-plataforma.service.ts']);
   });
 
-  it('fora de src/master, só os jobs e o próprio contexto montam subárvore por condomínio sem requisição', () => {
+  it('fora de src/plataforma, só os jobs e o próprio contexto montam subárvore por condomínio sem requisição', () => {
     const citam = fontes.filter((x) => /\bcontextoDoJob\(/.test(x.texto)).map((x) => x.f).sort();
-    expect(citam).toEqual(['jobs/agendador.ts', 'master/acesso-plataforma.service.ts', 'saas/contexto.ts']);
+    expect(citam).toEqual(['jobs/agendador.ts', 'plataforma/acesso-plataforma.service.ts', 'tenancy/contexto.ts']);
   });
 
   it('toda rota do controller de síndicos (escrita, §5.5) passa pelo ponto único, com reautenticação', () => {
-    const texto = fontes.find((x) => x.f === 'master/sindicos-master.controller.ts')!.texto;
+    const texto = fontes.find((x) => x.f === 'plataforma/sindicos-master.controller.ts')!.texto;
     const handlers = [...texto.matchAll(/@(Get|Post|Patch|Put|Delete)\(/g)].length;
     const chamadas = [...texto.matchAll(/this\.acesso\.alterarSindico\(m, req, id, b,/g)].length;
     expect(handlers).toBe(5);
     expect(chamadas).toBe(handlers);
-    const servico = fontes.find((x) => x.f === 'master/acesso-plataforma.service.ts')!.texto;
+    const servico = fontes.find((x) => x.f === 'plataforma/acesso-plataforma.service.ts')!.texto;
     const corpo = servico.slice(servico.indexOf('async alterarSindico('));
     // A reautenticação vem antes de resolver o condomínio e de obter a subárvore.
     expect(corpo.indexOf('this.auth.reautenticar(')).toBeGreaterThan(0);
     expect(corpo.indexOf('this.auth.reautenticar(')).toBeLessThan(corpo.indexOf('this.resolvedor.paraPlataforma('));
     // Fora do ponto único, ninguém chama a escrita do Master nos usuários do condomínio.
     expect(fontes.filter((x) => x.texto.includes('sindicoPelaPlataforma(')).map((x) => x.f).sort())
-      .toEqual(['master/acesso-plataforma.service.ts', 'usuarios/usuarios.service.ts']);
+      .toEqual(['plataforma/acesso-plataforma.service.ts', 'usuarios/usuarios.service.ts']);
   });
 
   it('toda rota do controller de leitura passa pelo ponto único', () => {
-    const texto = fontes.find((x) => x.f === 'master/leitura-master.controller.ts')!.texto;
+    const texto = fontes.find((x) => x.f === 'plataforma/leitura-master.controller.ts')!.texto;
     const handlers = [...texto.matchAll(/@(Get|Post)\('[^']*'\)/g)].length;
     const chamadas = [...texto.matchAll(/this\.ler\(m, req, id,/g)].length;
     expect(handlers).toBeGreaterThan(20);

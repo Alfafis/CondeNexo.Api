@@ -11,7 +11,7 @@ import { ipDe } from '../auth/decorators';
 import { erroApi } from '../comum/erros';
 import { log } from '../comum/log';
 import { CONFIG, type Config } from '../config/config';
-import { type DbPlataforma, PLATAFORMA_DB } from '../saas/plataforma-db';
+import { type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
 import { lerCookieMaster } from './cookie-master';
 import { POLITICA_MASTER, type PoliticaMaster } from './decorators';
 import { SessaoMasterService } from './sessao-master.service';

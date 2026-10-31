@@ -1,4 +1,4 @@
-// App do Master na API (F5, entrega 1; src/master): login com e-mail e senha (sem 2º fator desde 2026-10-23, SAAS-08),
+// App do Master na API (F5, entrega 1; src/plataforma): login com e-mail e senha (sem 2º fator desde 2026-10-23, SAAS-08),
 // sessão e cookie próprios, guarda,
 // trilha da plataforma, troca de senha obrigatória, limite de tentativas, cookies cruzados com o condomínio, lista de
 // condomínios, provisionamento pela tela (provisionar() de verdade sobre PGlite) e módulos.
@@ -7,12 +7,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as s from '../src/db/schema';
 import { SENHA_MIN_MASTER } from '../src/dominio/rbac-plataforma';
 import { problemasDaSenha, SenhaService } from '../src/auth/senha.service';
-import { CondominiosMasterService } from '../src/master/condominios-master.service';
-import { ResolvedorCondominio } from '../src/saas/resolvedor';
-import { nomeCookieMaster } from '../src/master/cookie-master';
-import { ProvisionadorHttp, provisionadorDoAmbiente } from '../src/master/provisionador';
-import { criarUsuario } from '../src/master/usuario-plataforma';
-import { masterSessao, masterUsuario, plataformaAudit, condominio } from '../src/saas/schema-plataforma';
+import { CondominiosMasterService } from '../src/plataforma/condominios-master.service';
+import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
+import { nomeCookieMaster } from '../src/plataforma/cookie-master';
+import { ProvisionadorHttp, provisionadorDoAmbiente } from '../src/plataforma/provisionador';
+import { criarUsuario } from '../src/plataforma/usuario-plataforma';
+import { masterSessao, masterUsuario, plataformaAudit, condominio } from '../src/plataforma/schema-plataforma';
 import { type ApiDeTeste, novaApi, novoIp, trilha } from './helpers/app';
 import { provisionadorPglite } from './helpers/provisionador';
 import { MESTRA_TESTE } from './helpers/saas';

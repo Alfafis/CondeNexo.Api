@@ -27,4 +27,4 @@ import { SindicosMasterController } from './sindicos-master.controller';
     { provide: APP_GUARD, useClass: PlataformaGuard },
   ],
 })
-export class MasterModule {}
+export class PlataformaModule {}

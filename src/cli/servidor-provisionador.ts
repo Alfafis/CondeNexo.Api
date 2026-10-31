@@ -16,8 +16,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { z } from 'zod';
 import { log } from '../comum/log';
-import { ErroChave } from '../saas/chave-mestra';
-import { ErroProvisionamento, type ResultadoProvisionamento, provisionar, validarEntrada } from '../saas/provisionar';
+import { ErroChave } from '../plataforma/chave-mestra';
+import { ErroProvisionamento, type ResultadoProvisionamento, provisionar, validarEntrada } from '../plataforma/provisionar';
 import { abrirPortas, lerAmbiente } from './provisionar-condominio';
 
 export const LIMITE_CORPO = 512 * 1024;

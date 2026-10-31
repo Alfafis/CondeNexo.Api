@@ -8,7 +8,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as s from '../src/db/schema';
 import { TravaJobs } from '../src/jobs/trava';
-import { SeloService } from '../src/selo/selo.module';
+import { SeloService } from '../src/selo/selo.service';
 import { type ApiDeTeste, cookieDe, novaApi, novoIp, SENHA } from './helpers/app';
 
 const V1 = '/api/v1';

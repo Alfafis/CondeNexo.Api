@@ -9,8 +9,8 @@
 // condomínio novo (e isso fica na trilha da plataforma), não tocar nos existentes.
 //
 // Desligado (PROVISIONADOR_URL vazia ou serviço parado): 503 PROVISIONADOR_INDISPONIVEL e a CLI continua valendo.
-import type { ResultadoProvisionamento } from '../saas/provisionar';
-import { ErroProvisionamento } from '../saas/provisionar';
+import type { ResultadoProvisionamento } from '../plataforma/provisionar';
+import { ErroProvisionamento } from '../plataforma/provisionar';
 
 export const PROVISIONADOR = Symbol('PROVISIONADOR');
 

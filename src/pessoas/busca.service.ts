@@ -17,7 +17,7 @@ import { DIGITOS_VISIVEIS_CPF } from '../dominio/cpf';
 import { fmtData, fmtHora } from '../dominio/time';
 import { codigoUnidade, leiturasDoCodigo } from '../dominio/units';
 import { and, asc, desc, eq, gte, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
-import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
+import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
 import { diaBrt } from '../comum/datas';
 import { RELOGIO, type Relogio } from '../comum/relogio';
 import { DB, type Db } from '../database/database.module';

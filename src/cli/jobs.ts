@@ -12,9 +12,9 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { diaBrt, ehDiaValido, somarDias } from '../comum/datas';
-import { NOME_AGENDADOR } from '../selo/selo.module';
+import { NOME_AGENDADOR } from '../selo/selo.service';
 import { servicosDoCondominio } from '../jobs/agendador';
-import { ResolvedorCondominio } from '../saas/resolvedor';
+import { ResolvedorCondominio } from '../tenancy/resolvedor';
 
 const USO = 'uso: jobs.js retencao | selo [AAAA-MM-DD] | ancoras | reaplicar-anonimizacoes   [--condominio <código>]';
 

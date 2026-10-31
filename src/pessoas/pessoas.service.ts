@@ -24,7 +24,7 @@ import { and, asc, eq, gte, inArray, isNotNull, isNull, sql, type SQL } from 'dr
 import { z } from 'zod';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import type { Contexto } from '../auth/tipos';
-import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
+import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
 import { diaBrt } from '../comum/datas';
 import { AcessoNegado, codigoPg, erroApi } from '../comum/erros';
 import { codificarCursor, decodificarCursor, Pagina } from '../comum/pagina';

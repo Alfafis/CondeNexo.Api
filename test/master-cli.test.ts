@@ -6,10 +6,10 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { lerArgsUsuario, textoCredenciais } from '../src/cli/criar-usuario-plataforma';
 import { autorizado, criarServidor, tokenDoAmbiente } from '../src/cli/servidor-provisionador';
-import { criarUsuario, ErroUsuarioPlataforma, reemitirSenha, validarCadastro } from '../src/master/usuario-plataforma';
-import { ErroProvisionamento, type ResultadoProvisionamento } from '../src/saas/provisionar';
-import { masterSessao, masterUsuario, plataformaAudit } from '../src/saas/schema-plataforma';
-import { ProvisionadorHttp, TEMPO_SAUDE_MS } from '../src/master/provisionador';
+import { criarUsuario, ErroUsuarioPlataforma, reemitirSenha, validarCadastro } from '../src/plataforma/usuario-plataforma';
+import { ErroProvisionamento, type ResultadoProvisionamento } from '../src/plataforma/provisionar';
+import { masterSessao, masterUsuario, plataformaAudit } from '../src/plataforma/schema-plataforma';
+import { ProvisionadorHttp, TEMPO_SAUDE_MS } from '../src/plataforma/provisionador';
 import { comoAppPlataforma, novoBancoPlataforma } from './helpers/plataforma';
 
 let p: Awaited<ReturnType<typeof novoBancoPlataforma>>;

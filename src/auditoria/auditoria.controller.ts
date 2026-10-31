@@ -16,9 +16,10 @@ import { ZodPipe } from '../comum/zod.pipe';
 import { DB, type Db } from '../database/database.module';
 import { paraExportacao } from '../db/cadeia';
 import { areaComum, auditLog, eventoAcesso, eventoAcessoCadeia, pessoa, seloCadeia, unidade, usuarioSistema } from '../db/schema';
-import { AcessoModule, FiltrosCorpo } from '../eventos/acesso.module';
+import { AcessoModule } from '../acesso/acesso.module';
+import { FiltrosCorpo } from '../acesso/acesso.schemas';
 import { EventosService } from '../eventos/eventos.service';
-import { CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
+import { CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
 import { AuditoriaService } from './auditoria.service';
 
 /** Lote da verificação: a cadeia inteira não cabe na memória do container (384 MiB em produção). */
@@ -51,7 +52,7 @@ const AcessosPlataformaDto = PaginacaoDto.extend({
 });
 
 /**
- * Ações que o app do Master grava na trilha do condomínio (SAAS-09 e §5.5; src/master/acesso-plataforma.service.ts):
+ * Ações que o app do Master grava na trilha do condomínio (SAAS-09 e §5.5; src/plataforma/acesso-plataforma.service.ts):
  * leitura, exportação e a gestão de síndicos.
  */
 export const ACOES_PLATAFORMA_TRILHA = [

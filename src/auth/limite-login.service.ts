@@ -18,7 +18,7 @@ import { CONFIG, type Config } from '../config/config';
 import { DB, type Db, type Executor } from '../database/database.module';
 import { loginLimite } from '../db/schema';
 import { atrasoDaFalha } from './login-sem-condominio';
-import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
+import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
 
 export type TipoLimite = 'login' | 'ip' | 'login_ip';
 

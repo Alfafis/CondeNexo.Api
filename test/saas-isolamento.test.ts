@@ -19,9 +19,9 @@ import { Agendador } from '../src/jobs/agendador';
 import { EsperaLogin } from '../src/auth/login-sem-condominio';
 import { SaudeService } from '../src/saude/saude.controller';
 import { PessoasService } from '../src/pessoas/pessoas.service';
-import { estrategiaCondominio } from '../src/saas/contexto';
-import { conferirChavesDoAmbiente, ResolvedorCondominio } from '../src/saas/resolvedor';
-import { SeloService } from '../src/selo/selo.module';
+import { estrategiaCondominio } from '../src/tenancy/contexto';
+import { conferirChavesDoAmbiente, ResolvedorCondominio } from '../src/tenancy/resolvedor';
+import { SeloService } from '../src/selo/selo.service';
 import { semearDadosE2e, USUARIOS_E2E } from './e2e/dados';
 import { type ApiDeTeste, configDeTeste, cookieDe, novaApi, novoIp, SENHA, trilha } from './helpers/app';
 import { CHAVE_HMAC_TESTE, novoBanco, SENHA_FALSA } from './helpers/banco';
@@ -318,11 +318,11 @@ describe('§6.1 item 7: arquitetura', () => {
 
   it('só o DatabaseModule, o módulo da plataforma, o ResolvedorCondominio e o registro de anonimizações citam PLATAFORMA_DB', () => {
     const citam = fontes.filter((x) => /\bPLATAFORMA_DB\b/.test(x.texto)).map((x) => x.f).sort();
-    // App do Master (F5): só arquivos de src/master/, e nenhum deles injeta DB/CONDOMINIO de condomínio.
-    const doMaster = citam.filter((f) => f.startsWith('master/'));
-    expect(citam.filter((f) => !f.startsWith('master/'))).toEqual(['database/database.module.ts', 'saas/plataforma-db.ts', 'saas/registro-anonimizacao.ts', 'saas/resolvedor.ts']);
+    // App do Master (F5): só arquivos de src/plataforma/, e nenhum deles injeta DB/CONDOMINIO de condomínio.
+    const doMaster = citam.filter((f) => f.startsWith('plataforma/'));
+    expect(citam.filter((f) => !f.startsWith('plataforma/'))).toEqual(['database/database.module.ts', 'tenancy/registro-anonimizacao.ts', 'tenancy/resolvedor.ts']);
     expect(doMaster.length).toBeGreaterThan(0);
-    for (const f of fontes.filter((x) => x.f.startsWith('master/'))) {
+    for (const f of fontes.filter((x) => x.f.startsWith('plataforma/'))) {
       expect(/@Inject\((DB|CONDOMINIO|PG_POOL|REGISTRO_BANCOS)\)/.test(f.texto), `${f.f} injeta banco de condomínio`).toBe(false);
     }
   });

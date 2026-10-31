@@ -30,7 +30,7 @@ function corpoDe(e: HttpException): CorpoErro {
 export class FiltroExcecao implements ExceptionFilter {
   constructor(
     // Não injeta DB: este filtro é global e estático (filtro durável global não é suportado pelo Nest). O banco é o do
-    // condomínio que o middleware resolveu para a requisição (saas/contexto.ts).
+    // condomínio que o middleware resolveu para a requisição (tenancy/contexto.ts).
     @Inject(REGISTRO_BANCOS) private readonly bancos: RegistroBancos,
     @Inject(AuditoriaService) private readonly auditoria: AuditoriaService,
   ) {}

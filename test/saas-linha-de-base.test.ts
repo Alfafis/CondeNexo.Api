@@ -11,9 +11,9 @@ import { principal as anexarSelos } from '../scripts/ancoras/anexar-selos.mjs';
 import { diaBrt } from '../src/comum/datas';
 import * as s from '../src/db/schema';
 import { seedPessoasDev } from '../src/db/seed-pessoas-dev';
-import { compararComReferencia, gerarLinhaDeBase, problemasDaLinhaDeBase } from '../src/saas/linha-de-base';
-import { montarTar } from '../src/saas/tar';
-import { SeloService } from '../src/selo/selo.module';
+import { compararComReferencia, gerarLinhaDeBase, problemasDaLinhaDeBase } from '../src/plataforma/linha-de-base';
+import { montarTar } from '../src/plataforma/tar';
+import { SeloService } from '../src/selo/selo.service';
 import { type ApiDeTeste, novaApi } from './helpers/app';
 import { CHAVE_HMAC_TESTE } from './helpers/banco';
 

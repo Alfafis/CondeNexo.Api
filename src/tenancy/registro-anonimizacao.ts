@@ -13,8 +13,8 @@
 // em test/saas-isolamento.test.ts). Só toca a tabela `lgpd_anonimizacao`.
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { type DbPlataforma, PLATAFORMA_DB } from './plataforma-db';
-import { lgpdAnonimizacao } from './schema-plataforma';
+import { type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
+import { lgpdAnonimizacao } from '../plataforma/schema-plataforma';
 
 export interface AnonimizacaoRegistrada { pessoaId: string; motivo: 'pedido' | 'retencao'; anonimizadaEm: Date }
 

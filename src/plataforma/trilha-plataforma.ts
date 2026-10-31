@@ -3,8 +3,8 @@
 // gravado: só o motivo, como na trilha do condomínio). `master_usuario_id` é o ATOR (nulo: CLI ou login inexistente).
 import type { PgDatabase, PgQueryResultHKT, PgTransaction } from 'drizzle-orm/pg-core';
 import type { ExtractTablesWithRelations } from 'drizzle-orm';
-import type * as sp from '../saas/schema-plataforma';
-import { plataformaAudit } from '../saas/schema-plataforma';
+import type * as sp from '../plataforma/schema-plataforma';
+import { plataformaAudit } from '../plataforma/schema-plataforma';
 
 export type ExecPlataforma = PgDatabase<PgQueryResultHKT, typeof sp> | PgTransaction<PgQueryResultHKT, typeof sp, ExtractTablesWithRelations<typeof sp>>;
 

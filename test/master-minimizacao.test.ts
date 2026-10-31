@@ -1,8 +1,8 @@
-// Regras de minimização da leitura do Master (src/master/minimizacao.ts), sem banco. O efeito nas rotas de verdade está
+// Regras de minimização da leitura do Master (src/plataforma/minimizacao.ts), sem banco. O efeito nas rotas de verdade está
 // em test/master-leitura.test.ts. Nomes fictícios (repositório público).
 import { describe, expect, it } from 'vitest';
 import { Pagina } from '../src/comum/pagina';
-import { mascararPlaca, minimizarLeituraPlataforma as minimizar, TEXTO_LIVRE_OCULTO } from '../src/master/minimizacao';
+import { mascararPlaca, minimizarLeituraPlataforma as minimizar, TEXTO_LIVRE_OCULTO } from '../src/plataforma/minimizacao';
 
 describe('minimizarLeituraPlataforma', () => {
   it('nome de pessoa mascarado em qualquer profundidade; nome de usuário fica', () => {

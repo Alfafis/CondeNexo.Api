@@ -7,9 +7,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ErroUso, lerEntrada } from '../src/cli/registrar-piloto';
 import {
   aadChave, carregarChaveMestra, type ChaveMestra, desembrulhar, embrulhar, ErroChave, impressaoDigital,
-} from '../src/saas/chave-mestra';
-import { BANCO_PILOTO, type EntradaPiloto, registrarPiloto } from '../src/saas/registrar-piloto';
-import * as sp from '../src/saas/schema-plataforma';
+} from '../src/plataforma/chave-mestra';
+import { BANCO_PILOTO, type EntradaPiloto, registrarPiloto } from '../src/plataforma/registrar-piloto';
+import * as sp from '../src/plataforma/schema-plataforma';
 import { erroDe, novoBanco } from './helpers/banco';
 import { comoAppPlataforma, novoBancoPlataforma } from './helpers/plataforma';
 

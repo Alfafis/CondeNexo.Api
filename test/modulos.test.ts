@@ -7,11 +7,11 @@ import { MODULOS } from '../src/dominio/modulos';
 import { eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { Agendador } from '../src/jobs/agendador';
-import { nomeCookieMaster } from '../src/master/cookie-master';
-import { criarUsuario } from '../src/master/usuario-plataforma';
-import { MODULO } from '../src/saas/modulo.guard';
-import { RENOVAR_MS, ResolvedorCondominio } from '../src/saas/resolvedor';
-import { condominio, masterUsuario } from '../src/saas/schema-plataforma';
+import { nomeCookieMaster } from '../src/plataforma/cookie-master';
+import { criarUsuario } from '../src/plataforma/usuario-plataforma';
+import { MODULO } from '../src/tenancy/modulo.guard';
+import { RENOVAR_MS, ResolvedorCondominio } from '../src/tenancy/resolvedor';
+import { condominio, masterUsuario } from '../src/plataforma/schema-plataforma';
 import { type ApiDeTeste, novaApi, novoIp, trilha } from './helpers/app';
 
 const V1 = '/api/v1';

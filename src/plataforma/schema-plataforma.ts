@@ -79,7 +79,7 @@ export const condominioContrato = pgTable('condominio_contrato', {
 /**
  * Chaves do condomínio (SAAS-04), cada uma cifrada (AES-256-GCM) pela chave mestra do ambiente, que nunca vem ao banco
  * nem ao backup. `chave_cifrada` = cifrado || tag (16 bytes); AAD `portaria:chave:<condominio_id>:<tipo>:v<versao>`
- * (src/saas/chave-mestra.ts). `versao` da KEK é a mesma gravada em `documento.chave_versao` do banco do condomínio.
+ * (src/plataforma/chave-mestra.ts). `versao` da KEK é a mesma gravada em `documento.chave_versao` do banco do condomínio.
  */
 export const condominioChave = pgTable('condominio_chave', {
   condominioId: uuid('condominio_id').notNull().references(() => condominio.id),

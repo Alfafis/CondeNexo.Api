@@ -20,7 +20,7 @@ import * as s from '../../src/db/schema';
 import { seedEstrutura } from '../../src/db/seed';
 import { cpfComDv, seedPessoasDev } from '../../src/db/seed-pessoas-dev';
 import { seedUsuariosDev } from '../../src/db/seed-usuarios';
-import { configurarApp } from '../../src/plataforma';
+import { configurarApp } from '../../src/configurar-app';
 import { configDeTeste, cookieDe, SENHA } from '../helpers/app';
 import { comSaas, plataformaComPiloto, registroDePool } from '../helpers/saas';
 import { CHAVE_HMAC_TESTE, PASTA_MIGRACOES } from '../helpers/banco';

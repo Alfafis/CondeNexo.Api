@@ -2,7 +2,7 @@ import { Controller, Get, Inject, Injectable, Logger, ServiceUnavailableExceptio
 import { Publico } from '../auth/decorators';
 import { REGISTRO_BANCOS, type RegistroBancos } from '../database/registro-bancos';
 import { eventoAcessoCadeia } from '../db/schema';
-import { ResolvedorCondominio } from '../saas/resolvedor';
+import { ResolvedorCondominio } from '../tenancy/resolvedor';
 
 /** Validade do resultado do /saude: o healthcheck e quem chama de fora não viram uma consulta por banco a cada vez. */
 export const SAUDE_CACHE_MS = 5_000;

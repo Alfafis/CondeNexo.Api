@@ -5,7 +5,7 @@ import type { Contexto } from '../auth/tipos';
 import { erroApi } from '../comum/erros';
 import { uuidParam } from '../comum/zod.pipe';
 import { CofreDocumentos } from '../documentos/cofre';
-import { AcessoModule } from '../eventos/acesso.module';
+import { AcessoModule } from '../acesso/acesso.module';
 import { TravaJobs } from '../jobs/trava';
 import { SeloModule } from '../selo/selo.module';
 import { LgpdService } from './lgpd.service';

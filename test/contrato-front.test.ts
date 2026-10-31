@@ -9,11 +9,11 @@ import * as s from '../src/db/schema';
 import { MATRIZ, ROTAS } from '../src/dominio/rbac';
 import { MAX_PRORROGACOES, MIN_JUSTIFICATIVA, PRAZO_PADRAO_MIN } from '../src/dominio/rules';
 import { seedPessoasDev } from '../src/db/seed-pessoas-dev';
-import { nomeCookieMaster } from '../src/master/cookie-master';
-import { criarUsuario } from '../src/master/usuario-plataforma';
-import { condominio, masterUsuario } from '../src/saas/schema-plataforma';
+import { nomeCookieMaster } from '../src/plataforma/cookie-master';
+import { criarUsuario } from '../src/plataforma/usuario-plataforma';
+import { condominio, masterUsuario } from '../src/plataforma/schema-plataforma';
 import { MODULOS } from '../src/dominio/modulos';
-import { ResolvedorCondominio } from '../src/saas/resolvedor';
+import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
 import { type ApiDeTeste, LOGINS, novaApi, novoIp, type PapelTeste, SENHA } from './helpers/app';
 import { CHAVE_HMAC_TESTE } from './helpers/banco';
 

@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
-import * as sp from '../../src/saas/schema-plataforma';
+import * as sp from '../../src/plataforma/schema-plataforma';
 
 export const PASTA_MIGRACOES_PLATAFORMA = fileURLToPath(new URL('../../drizzle-plataforma', import.meta.url));
 

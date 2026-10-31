@@ -3,8 +3,8 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import type { Config } from './config/config';
 import { logDeRequisicao } from './comum/log';
-import { aplicarEstrategiaCondominio, middlewareCondominio } from './saas/contexto';
-import { ResolvedorCondominio } from './saas/resolvedor';
+import { aplicarEstrategiaCondominio, middlewareCondominio } from './tenancy/contexto';
+import { ResolvedorCondominio } from './tenancy/resolvedor';
 
 /** Prefixo global da API (usado também pelo gerador de OpenAPI, para montar as URLs dos servidores). */
 export const PREFIXO_GLOBAL = 'api/v1';
@@ -26,9 +26,9 @@ export function configurarApp(app: NestExpressApplication, config: Config) {
   app.useBodyParser('json', { limit: '1mb' });
   app.use(logDeRequisicao);
   // SaaS (F2, SAAS-03): o condomínio da requisição é resolvido ANTES do roteamento do Nest, e a estratégia de contexto
-  // o usa para escolher a subárvore de injeção (o banco e as chaves dele). Ver saas/contexto.ts.
+  // o usa para escolher a subárvore de injeção (o banco e as chaves dele). Ver tenancy/contexto.ts.
   aplicarEstrategiaCondominio();
-  // Rotas do Master (/plataforma/*, src/master): SEM condomínio, sempre. Nem cabeçalho X-Condominio nem cookie de
+  // Rotas do Master (/plataforma/*, src/plataforma): SEM condomínio, sempre. Nem cabeçalho X-Condominio nem cookie de
   // condomínio escolhem banco ali: a requisição cai na subárvore "sem condomínio" (DB de condomínio falha fechado) e um
   // 403 da plataforma nunca vai parar na trilha de um condomínio (FiltroExcecao). O Express casa rota sem diferenciar
   // maiúsculas: a comparação também não diferencia.

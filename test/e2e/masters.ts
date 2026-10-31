@@ -1,8 +1,8 @@
 // Usuários da plataforma do modo e2e (app do Master). Fictícios, só deste servidor de teste: a senha é a do e2e. Sem
 // segundo fator desde 2026-10-23 (SAAS-08).
 import { sql } from 'drizzle-orm';
-import type { DbPlataforma } from '../../src/saas/plataforma-db';
-import { masterSessao, masterUsuario } from '../../src/saas/schema-plataforma';
+import type { DbPlataforma } from '../../src/plataforma/plataforma-db';
+import { masterSessao, masterUsuario } from '../../src/plataforma/schema-plataforma';
 
 export const MASTERS_E2E = [
   { id: '0e2e0000-0000-4000-8000-000000000001', email: 'master@exemplo.test', nome: 'Master de Exemplo', papel: 'master', trocaPendente: false },

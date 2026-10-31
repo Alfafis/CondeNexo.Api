@@ -13,7 +13,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../database/database.module';
-import { CONDOMINIO, type CondominioResolvido } from '../saas/condominio';
+import { CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
 
 export type NomeJob = 'retencao' | 'selo';
 

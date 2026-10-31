@@ -1,4 +1,4 @@
-// Linha de base da cadeia (fase F0, docs/05_arquitetura_saas.md; o que entra em cada arquivo: src/saas/linha-de-base.ts).
+// Linha de base da cadeia (fase F0, docs/05_arquitetura_saas.md; o que entra em cada arquivo: src/plataforma/linha-de-base.ts).
 // Quem chama na VPS é scripts/saas/linha-de-base.sh, que cifra a saída com a chave pública age. Só leitura: uma
 // transação REPEATABLE READ READ ONLY como o role da DATABASE_URL (na VPS, app_rw); nada é gravado no banco.
 //
@@ -18,8 +18,8 @@ import { Client } from 'pg';
 import { relogioDoSistema } from '../comum/relogio';
 import type { Db } from '../database/database.module';
 import * as schema from '../db/schema';
-import { compararComReferencia, gerarLinhaDeBase, problemasDaLinhaDeBase, type ResumoLinhaDeBase } from '../saas/linha-de-base';
-import { montarTar } from '../saas/tar';
+import { compararComReferencia, gerarLinhaDeBase, problemasDaLinhaDeBase, type ResumoLinhaDeBase } from '../plataforma/linha-de-base';
+import { montarTar } from '../plataforma/tar';
 
 const USO = 'uso: linha-de-base.js [--conferir <linha-de-base.json>] < selos.jsonl';
 

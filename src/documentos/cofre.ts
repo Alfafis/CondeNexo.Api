@@ -2,7 +2,7 @@
 // aleatórios); o conteúdo é cifrado com AES-256-GCM pela DEK, e a DEK é cifrada (também AES-256-GCM) pela KEK, que
 // vem do ambiente (`PORTARIA_KEK`) e nunca vai ao banco. O banco guarda só a DEK cifrada, o nonce, a versão da KEK, o
 // SHA-256 do conteúdo em claro, o tipo e o tamanho. O disco guarda só o conteúdo cifrado.
-// SaaS (F2): a KEK e a pasta são as do condomínio da subárvore de injeção (saas/condominio.ts), não mais do ambiente.
+// SaaS (F2): a KEK e a pasta são as do condomínio da subárvore de injeção (tenancy/condominio.ts), não mais do ambiente.
 // Cada condomínio tem a sua KEK: a DEK de um anexo de A, aberta com a KEK de B, falha na autenticação do GCM.
 //
 // - AAD amarra o arquivo e a DEK ao id do documento: trocar o arquivo ou a DEK de um registro por outro falha na
@@ -19,7 +19,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { erroApi } from '../comum/erros';
 import { log } from '../comum/log';
 import { CONFIG, type Config } from '../config/config';
-import { CONDOMINIO, type CondominioResolvido, pastaDocumentos } from '../saas/condominio';
+import { CONDOMINIO, type CondominioResolvido, pastaDocumentos } from '../tenancy/condominio';
 
 const NONCE = 12;
 const TAG = 16;
@@ -68,7 +68,7 @@ const aadConteudo = (id: string) => `portaria:documento:${id}`;
 const aadDek = (id: string, versao: number) => `portaria:dek:${id}:v${versao}`;
 
 /**
- * Confere uma KEK contra a DEK cifrada de um documento existente (checagem de boot, saas/resolvedor.ts): true se a DEK
+ * Confere uma KEK contra a DEK cifrada de um documento existente (checagem de boot, tenancy/resolvedor.ts): true se a DEK
  * abre e autentica. Não lê o arquivo nem devolve a DEK (zerada aqui).
  */
 export function kekAbreDek(kek: Buffer, d: { id: string; dekCifrada: Uint8Array; chaveVersao: number }): boolean {

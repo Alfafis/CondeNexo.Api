@@ -14,7 +14,7 @@ import { SessaoService } from './sessao.service';
     // (login-sem-condominio.ts). O global por IP na plataforma é a SAAS-14 (F5).
     LoginSemCondominio,
   ],
-  // EsperaLogin também sai para o app do Master (src/master): um ponto só de espera do atraso crescente.
+  // EsperaLogin também sai para o app do Master (src/plataforma): um ponto só de espera do atraso crescente.
   exports: [SenhaService, SessaoService, LimiteLoginService, EsperaLogin],
 })
 export class AuthModule {}

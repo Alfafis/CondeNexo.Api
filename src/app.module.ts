@@ -15,7 +15,7 @@ import { VinculosModule } from './vinculos/vinculos.controller';
 import { FuncionariosModule } from './funcionarios/funcionarios.module';
 import { ImportacaoModule } from './importacao/importacao.module';
 import { VeiculosModule } from './veiculos/veiculos.module';
-import { AcessoModule } from './eventos/acesso.module';
+import { AcessoModule } from './acesso/acesso.module';
 import { AuditoriaRotasModule } from './auditoria/auditoria.controller';
 import { RelatoriosModule } from './relatorios/relatorios.module';
 import { EncomendasModule } from './encomendas/encomendas.module';
@@ -23,14 +23,14 @@ import { OcorrenciasModule } from './ocorrencias/ocorrencias.module';
 import { SeloModule } from './selo/selo.module';
 import { LgpdModule } from './lgpd/lgpd.module';
 import { JobsModule } from './jobs/agendador';
-import { MasterModule } from './master/master.module';
-import { ModuloGuard } from './saas/modulo.guard';
+import { PlataformaModule } from './plataforma/plataforma.module';
+import { ModuloGuard } from './tenancy/modulo.guard';
 import { ParametrosModule } from './parametros/parametros.controller';
 
 @Module({
   imports: [ConfigModule, DatabaseModule, AuditoriaModule, AuthModule, UsuariosModule, UnidadesModule, PessoasModule, VinculosModule,
     FuncionariosModule, VeiculosModule, ImportacaoModule, AcessoModule, AuditoriaRotasModule, RelatoriosModule, EncomendasModule, OcorrenciasModule,
-    SeloModule, LgpdModule, JobsModule, MasterModule, ParametrosModule],
+    SeloModule, LgpdModule, JobsModule, PlataformaModule, ParametrosModule],
   controllers: [SaudeController],
   providers: [
     SaudeService,

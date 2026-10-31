@@ -14,7 +14,7 @@ import { seedPessoasDev } from '../src/db/seed-pessoas-dev';
 import { CofreDocumentos } from '../src/documentos/cofre';
 import { Agendador } from '../src/jobs/agendador';
 import { EnvioAncoraReal, textoDoEmail } from '../src/selo/ancora';
-import { SeloService } from '../src/selo/selo.module';
+import { SeloService } from '../src/selo/selo.service';
 import { AncoraDeTeste, type ApiDeTeste, configDeTeste, novaApi, type PapelTeste, trilha } from './helpers/app';
 import { CHAVE_HMAC_TESTE, comoAppRw, erroDe } from './helpers/banco';
 

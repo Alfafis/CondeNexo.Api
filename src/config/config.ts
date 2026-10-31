@@ -45,7 +45,7 @@ export interface Config {
   importacao: { prazoLegadoDias: number };
   /**
    * Anexos cifrados (RNF-03, spec §9.2): `dir` é a raiz dos arquivos cifrados (`PORTARIA_DOCUMENTOS_DIR`), fora do banco.
-   * A KEK e a versão dela vêm do condomínio (banco plataforma, SAAS-04), não mais do ambiente (saas/condominio.ts).
+   * A KEK e a versão dela vêm do condomínio (banco plataforma, SAAS-04), não mais do ambiente (tenancy/condominio.ts).
    */
   documentos: { dir: string };
   /**

@@ -6,8 +6,8 @@ import { randomUUID } from 'node:crypto';
 import { SENHA_TEMPORARIA_VALIDADE_MS } from '../dominio/rules';
 import { PAPEIS_PLATAFORMA, type PapelPlataforma } from '../dominio/rbac-plataforma';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import type { DbPlataforma } from '../saas/plataforma-db';
-import { masterSessao, masterUsuario } from '../saas/schema-plataforma';
+import type { DbPlataforma } from '../plataforma/plataforma-db';
+import { masterSessao, masterUsuario } from '../plataforma/schema-plataforma';
 import { registrarPlataforma } from './trilha-plataforma';
 
 export class ErroUsuarioPlataforma extends Error {}

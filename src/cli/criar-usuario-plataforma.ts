@@ -1,5 +1,5 @@
 // Cria um usuário da plataforma, o "Master", ou reemite a senha dele (docs/05_arquitetura_saas.md SAAS-07/08;
-// docs/deploy.md seção 18). Regras em src/master/usuario-plataforma.ts. Na VPS, num TERMINAL COMUM (nunca pelo `!` do
+// docs/deploy.md seção 18). Regras em src/plataforma/usuario-plataforma.ts. Na VPS, num TERMINAL COMUM (nunca pelo `!` do
 // Claude Code nem por ferramenta que guarde a saída: ela traz a senha temporária):
 //
 //   docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e-mail> --nome "<nome>" [--papel master|suporte]
@@ -13,9 +13,9 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { gerarSenhaTemporaria } from '../auth/senha.service';
 import { PADROES_ARGON2 } from '../config/config';
-import { type DbPlataforma, urlPlataforma } from '../saas/plataforma-db';
-import * as sp from '../saas/schema-plataforma';
-import { type Credenciais, criarUsuario, ErroUsuarioPlataforma, reemitirSenha, validarCadastro } from '../master/usuario-plataforma';
+import { type DbPlataforma, urlPlataforma } from '../plataforma/plataforma-db';
+import * as sp from '../plataforma/schema-plataforma';
+import { type Credenciais, criarUsuario, ErroUsuarioPlataforma, reemitirSenha, validarCadastro } from '../plataforma/usuario-plataforma';
 
 const USO = [
   'uso: criar-usuario-plataforma.js --email <e-mail> --nome "<nome>" [--papel master|suporte]',

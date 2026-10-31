@@ -13,9 +13,9 @@ import { createHmac, hkdfSync } from 'node:crypto';
 import { CONFIG, type Config } from '../config/config';
 import { atrasoDaFalha } from '../auth/login-sem-condominio';
 import { normalizarLogin, TETO_FALHAS } from '../auth/limite-login.service';
-import type { ChaveMestra } from '../saas/chave-mestra';
-import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB } from '../saas/plataforma-db';
-import { plataformaLoginLimite } from '../saas/schema-plataforma';
+import type { ChaveMestra } from '../plataforma/chave-mestra';
+import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
+import { plataformaLoginLimite } from '../plataforma/schema-plataforma';
 
 export type TipoLimiteMaster = 'master' | 'master_ip' | 'ip';
 
