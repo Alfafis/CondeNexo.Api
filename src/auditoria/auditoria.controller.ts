@@ -74,7 +74,7 @@ export interface AcessoPlataformaApi {
   rota: string | null;
   metodo: string | null;
   status: number | null;
-  /** Só nas ações sobre síndicos. */
+  /** Nas leituras e nas ações sobre síndicos: o motivo informado pelo Master (nas leituras, "categoria: texto"). */
   motivo: string | null;
   alvo: string | null;
   /** Na troca: `entrou` (o novo síndico) ou `saiu` (o substituído). */
@@ -82,6 +82,13 @@ export interface AcessoPlataformaApi {
 }
 
 const texto = (v: unknown) => (typeof v === 'string' ? v : null);
+
+/** Escrita em síndicos grava o motivo como texto; a leitura do Master grava `{ categoria, texto }` (plataforma/motivo-leitura.ts). */
+const motivoDe = (v: unknown): string | null => {
+  if (typeof v === 'string') return v;
+  const m = (v ?? null) as { categoria?: unknown; texto?: unknown } | null;
+  return m && typeof m.categoria === 'string' && typeof m.texto === 'string' ? `${m.categoria}: ${m.texto}` : null;
+};
 
 @Injectable()
 export class AuditoriaRotasService {
@@ -236,7 +243,7 @@ export class AuditoriaRotasService {
       return {
         id: r.id, em: r.em.getTime(), quem: r.usuarioNome, acao: r.acao, entidade: r.entidade, registroId: r.registroId,
         rota: texto(d.rota), metodo: texto(d.metodo), status: typeof d.status === 'number' ? d.status : null,
-        motivo: texto(d.motivo), alvo: u && texto(u.nome) ? `${texto(u.nome)}${texto(u.login) ? ` (${texto(u.login)})` : ''}` : null,
+        motivo: motivoDe(d.motivo), alvo: u && texto(u.nome) ? `${texto(u.nome)}${texto(u.login) ? ` (${texto(u.login)})` : ''}` : null,
         troca: texto(d.troca),
       };
     }), ls.length > f.limite && ultimo ? codificarCursor({ s: ultimo.seq }) : null);

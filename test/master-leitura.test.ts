@@ -387,7 +387,7 @@ describe('tela "Acessos da plataforma" (GET /auditoria/acessos-plataforma)', () 
     expect(r.body.pagination.hasNextPage).toBe(true);
     const item = r.body.data[0];
     expect(Object.keys(item).sort()).toEqual(['acao', 'alvo', 'em', 'entidade', 'id', 'metodo', 'motivo', 'quem', 'registroId', 'rota', 'status', 'troca']);
-    expect([item.motivo, item.alvo, item.troca]).toEqual([null, null, null]); // só nas ações sobre síndicos
+    expect([item.motivo, item.alvo, item.troca]).toEqual([`suporte: ${MOTIVO_TEXTO}`, null, null]); // alvo e troca só nas ações sobre síndicos
     expect(item.quem).toBe(`plataforma/${EMAIL}`);
     for (const x of r.body.data) expect(x.acao).toMatch(/^plataforma\.(ler|exportar)$/);
     const todas = await linhasPlataforma();
