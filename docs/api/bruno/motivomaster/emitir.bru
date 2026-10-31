@@ -1,0 +1,26 @@
+meta {
+  name: motivomaster / emitir
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/motivo
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+body:json {
+  {
+    "categoria": "suporte",
+    "texto": "exemploxxxxxxxx"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

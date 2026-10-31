@@ -47,6 +47,9 @@
       "name": "lgpd"
     },
     {
+      "name": "motivomaster"
+    },
+    {
       "name": "ocorrencias"
     },
     {
@@ -8004,6 +8007,15 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8090,6 +8102,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8162,6 +8183,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8234,6 +8264,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8431,6 +8470,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8517,6 +8565,15 @@
               "minimum": 0,
               "maximum": 365
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8617,6 +8674,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8814,6 +8880,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8900,6 +8975,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8979,6 +9063,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9070,6 +9163,15 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9156,6 +9258,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9302,6 +9413,106 @@
         }
       }
     },
+    "/plataforma/condominios/{id}/motivo": {
+      "post": {
+        "tags": [
+          "motivomaster"
+        ],
+        "operationId": "motivomaster_emitir",
+        "summary": "POST /plataforma/condominios/{id}/motivo",
+        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "x-permissao": "condominio.ler",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categoria": {
+                    "type": "string",
+                    "enum": [
+                      "suporte",
+                      "incidente",
+                      "obrigacao_legal",
+                      "operacao"
+                    ]
+                  },
+                  "texto": {
+                    "type": "string",
+                    "minLength": 15,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "categoria",
+                  "texto"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MotivoEmitido"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
     "/plataforma/condominios/{id}/ocorrencias": {
       "get": {
         "tags": [
@@ -9376,6 +9587,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9462,6 +9682,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9551,6 +9780,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9623,6 +9861,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9773,6 +10020,15 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9975,6 +10231,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10163,6 +10428,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10283,6 +10557,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10379,6 +10662,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10451,6 +10743,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10523,6 +10824,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11162,6 +11472,15 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11248,6 +11567,15 @@
               "minLength": 1,
               "maxLength": 40
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11379,6 +11707,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11483,6 +11820,15 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11617,6 +11963,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11703,6 +12058,15 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "X-Motivo-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -16271,6 +16635,22 @@
           "interfone",
           "morador_presente"
         ]
+      },
+      "MotivoEmitido": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expiraEm"
+        ],
+        "additionalProperties": false
       },
       "OcorrenciaViewApi": {
         "type": "object",

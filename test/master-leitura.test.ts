@@ -49,7 +49,23 @@ async function novoMaster(email: string, papel: 'master' | 'suporte') {
 
 const linhasPlataforma = (db = api.db) => db.select().from(s.auditLog).where(eq(s.auditLog.usuarioNome, `plataforma/${EMAIL}`)).orderBy(s.auditLog.seq);
 const trilhaP = () => api.plataforma.db.select().from(plataformaAudit).where(eq(plataformaAudit.masterUsuarioId, masterId)).orderBy(plataformaAudit.seq);
-const getM = (caminho: string, cookie = master, cond = api.pilotoId) => api.http().get(`${P}/condominios/${cond}${caminho}`).set('Cookie', cookie);
+/** Motivo da leitura (Fase B): um token por sessão e condomínio, emitido uma vez e reaproveitado (vale 30 min). */
+const MOTIVO_TEXTO = 'Chamado 77: conferir o cadastro a pedido do síndico';
+const motivos = new Map<string, string | undefined>();
+const emitirMotivo = (cond: string, cookie = master, corpo: object = { categoria: 'suporte', texto: MOTIVO_TEXTO }) =>
+  api.http().post(`${P}/condominios/${cond}/motivo`).set('Cookie', cookie).send(corpo);
+async function motivoDe(cookie: string, cond: string) {
+  const k = `${cookie}|${cond}`;
+  if (!motivos.has(k)) { const r = await emitirMotivo(cond, cookie); motivos.set(k, r.status === 200 ? r.body.data.token : undefined); }
+  return motivos.get(k);
+}
+/** A requisição montada (em lista: um Test do supertest devolvido direto por função async já seria executado). */
+const reqM = async (caminho: string, cookie = master, cond = api.pilotoId) => {
+  const t = await motivoDe(cookie, cond);
+  const req = api.http().get(`${P}/condominios/${cond}${caminho}`).set('Cookie', cookie);
+  return [t ? req.set('X-Motivo-Token', t) : req] as const;
+};
+const getM = async (caminho: string, cookie = master, cond = api.pilotoId) => (await reqM(caminho, cookie, cond))[0];
 const getS = (caminho: string, login = 'carlos.andrade') => api.http().get(`${V1}${caminho}`).set('Cookie', sindico[login]!);
 
 beforeAll(async () => {
@@ -123,7 +139,7 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
     const doMaster = Object.entries(openapi.paths).filter(([p]) => p.startsWith(`${prefixo}/`) && p !== `${prefixo}/modulos`)
       .flatMap(([p, ops]) => Object.keys(ops).map((m) => `${m.toUpperCase()} ${p.slice(prefixo.length).replace(/\{[^}]+\}/g, ':x')}`))
       // Escrita sobre síndicos (§5.5): test/master-sindicos.test.ts.
-      .filter((r) => !/^POST \/sindicos/.test(r)).sort();
+      .filter((r) => !/^POST \/(sindicos|motivo)/.test(r)).sort();
     const cobertas = [
       ...PARES().map(([, m]) => `GET ${m.split('?')[0]!.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':x')}`),
       'GET /ocorrencias/:x/anexos/:x', 'GET /relatorios/resumo/csv',
@@ -133,6 +149,7 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
   });
 
   it('corpo = o do síndico passado pela minimização (nada além dela muda) e uma linha plataforma.ler por requisição', async () => {
+    await motivoDe(master, api.pilotoId); // a emissão (condominio.motivo) fica fora da contagem por requisição
     for (const [rotaS, rotaM, entidade, registro] of PARES()) {
       const antes = (await linhasPlataforma()).length;
       const antesP = (await trilhaP()).length;
@@ -146,7 +163,7 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
       const l = novas[0]!;
       expect([l.usuarioId, l.usuarioPapel, l.acao, l.entidade, l.registroId]).toEqual([null, null, 'plataforma.ler', entidade, registro]);
       expect(l.antes).toBeNull();
-      expect(l.depois).toEqual({ rota: expect.any(String), metodo: 'GET', status: 200, master_usuario_id: masterId });
+      expect(l.depois).toEqual({ rota: expect.any(String), metodo: 'GET', status: 200, master_usuario_id: masterId, motivo: { categoria: 'suporte', texto: MOTIVO_TEXTO } });
       const rota = (l.depois as { rota: string }).rota;
       expect(rota.replace(/:[a-zA-Z]+/g, ':x'), rotaM).toBe(rotaM.split('?')[0]!.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':x'));
       // A linha da plataforma não leva dado de morador nem id de registro do condomínio.
@@ -191,7 +208,8 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
   it('anexo, CSV e JSONL: plataforma.exportar; anexo idêntico ao do síndico, com os mesmos cabeçalhos', async () => {
     const binario = (r: import('supertest').Test) => r.buffer(true).parse((res, cb) => { const b: Buffer[] = []; res.on('data', (c: Buffer) => b.push(c)); res.on('end', () => cb(null, Buffer.concat(b))); });
     const rs = await binario(getS(`/ocorrencias/${ids.ocorrencia}/anexos/${ids.documento}`));
-    const rm = await binario(getM(`/ocorrencias/${ids.ocorrencia}/anexos/${ids.documento}`));
+    const [anexoM] = await reqM(`/ocorrencias/${ids.ocorrencia}/anexos/${ids.documento}`);
+    const rm = await binario(anexoM);
     expect(rm.status).toBe(200);
     expect(Buffer.compare(rm.body as Buffer, rs.body as Buffer)).toBe(0);
     for (const h of ['content-type', 'content-disposition', 'content-security-policy']) expect(rm.headers[h], h).toBe(rs.headers[h]);
@@ -309,7 +327,10 @@ describe('quem lê e o que se lê', () => {
   });
 
   it('condomínio desconhecido 404; provisionando 409; encerrado lê (fim de contrato); excluído 404', async () => {
-    expect((await getM('/pessoas', master, '00000000-0000-4000-8000-000000000999')).status).toBe(404);
+    // Desconhecido: a emissão do motivo dá 404 e, sem motivo, a leitura nem resolve o condomínio (403).
+    expect((await emitirMotivo('00000000-0000-4000-8000-000000000999')).status).toBe(404);
+    expect((await getM('/pessoas', master, '00000000-0000-4000-8000-000000000999')).body.code).toBe('MOTIVO_NECESSARIO');
+    await motivoDe(master, api.demo!.id); // emitido com o demo ativo: o estado é conferido de novo a cada leitura
     const resolvedor = api.app.get(ResolvedorCondominio);
     const status = async (st: 'provisionando' | 'ativo' | 'encerrado' | 'excluido') => {
       await api.plataforma.db.update(condominio).set({ status: st, encerradoEm: ['encerrado', 'excluido'].includes(st) ? new Date() : null }).where(eq(condominio.id, api.demo!.id));
@@ -318,10 +339,13 @@ describe('quem lê e o que se lê', () => {
     try {
       await status('provisionando');
       expect((await getM('/pessoas', master, api.demo!.id)).body.code).toBe('CONDOMINIO_PROVISIONANDO');
+      expect((await emitirMotivo(api.demo!.id)).body.code).toBe('CONDOMINIO_PROVISIONANDO');
       await status('encerrado');
       expect((await getM('/pessoas', master, api.demo!.id)).status).toBe(200);
+      expect((await emitirMotivo(api.demo!.id)).status).toBe(200); // fim de contrato: o Master ainda lê (SAAS-19)
       await status('excluido');
       expect((await getM('/pessoas', master, api.demo!.id)).status).toBe(404);
+      expect((await emitirMotivo(api.demo!.id)).status).toBe(404);
     } finally {
       await status('ativo');
     }
@@ -373,8 +397,8 @@ describe('tela "Acessos da plataforma" (GET /auditoria/acessos-plataforma)', () 
     // Período no futuro: nada.
     const amanha = Date.now() + 86_400_000;
     expect((await getS(`/auditoria/acessos-plataforma?de=${amanha}`)).body.data).toEqual([]);
-    // Os filtros e o corpo não estão na trilha (só rota, método, status, master).
-    expect(JSON.stringify(todas.map((l) => l.depois))).not.toMatch(/limite|categoria|Ana Ribeiro/);
+    // Os filtros e o corpo não estão na trilha (só rota, método, status, master e o motivo informado).
+    expect(JSON.stringify(todas.map((l) => { const { motivo: _m, ...d } = (l.depois ?? {}) as Record<string, unknown>; return d; }))).not.toMatch(/limite|categoria|Ana Ribeiro/);
   });
 });
 

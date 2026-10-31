@@ -1,7 +1,7 @@
 // Leitura dos dados de um condomínio pelo app do Master (SAAS-09, F5 entrega 2): "tudo que o síndico vê", só leitura,
 // com as MESMAS views que o síndico recebe (os serviços são os de sempre, na subárvore do condomínio), MINIMIZADAS na
 // saída: nome de terceiro mascarado, texto livre oculto, placa mascarada (minimizacao.ts). Cada rota passa pelo
-// AcessoPlataformaService, que registra a consulta na trilha do condomínio e minimiza antes de devolver o dado.
+// AcessoPlataformaService, que exige o motivo vigente (`X-Motivo-Token`, emitido por POST .../motivo), registra a consulta na trilha do condomínio e minimiza antes de devolver o dado.
 //
 // Fora daqui, de propósito:
 //  - escrita de qualquer tipo (a única exceção é a gestão de síndicos, §5.5, em sindicos-master.controller.ts, com
@@ -34,7 +34,7 @@ import { UsuariosService } from '../usuarios/usuarios.service';
 import { ListarVinculosDto } from '../vinculos/vinculos.controller';
 import { VinculosService } from '../vinculos/vinculos.service';
 import { AcessoPlataformaService, type AlvoLeitura, type Servicos } from './acesso-plataforma.service';
-import { Master, PlataformaAcao } from './decorators';
+import { ExigeMotivoLeitura, Master, PlataformaAcao } from './decorators';
 import type { AuthMaster } from './tipos';
 
 /** O síndico: a visão de partida do Master (SAAS-09, "nada a mais que o síndico"), depois minimizada. */
@@ -45,6 +45,7 @@ const refParam = new ZodPipe(z.string().trim().min(1).max(40));
 
 @Controller('plataforma/condominios/:id')
 @PlataformaAcao('condominio.ler')
+@ExigeMotivoLeitura()
 export class LeituraMasterController {
   constructor(
     @Inject(AcessoPlataformaService) private readonly acesso: AcessoPlataformaService,

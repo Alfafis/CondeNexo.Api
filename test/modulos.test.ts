@@ -133,7 +133,7 @@ describe('arquitetura: todo controller tem @Modulo ou é do núcleo', () => {
     // Parâmetros de regra para a tela (/parametros): núcleo, sem módulo.
     'ParametrosController',
     // Plataforma (/plataforma/*): o Master não é recusado por módulo.
-    'AuthMasterController', 'CondominiosMasterController', 'LeituraMasterController', 'ProvisionadorMasterController', 'SindicosMasterController',
+    'AuthMasterController', 'CondominiosMasterController', 'LeituraMasterController', 'MotivoMasterController', 'ProvisionadorMasterController', 'SindicosMasterController',
     'ParametrosMasterController',
   ];
   const ESPERADOS: Record<string, string> = {

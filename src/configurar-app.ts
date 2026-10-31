@@ -60,7 +60,8 @@ export function configurarApp(app: NestExpressApplication, config: Config) {
       origin: config.corsOrigens,
       credentials: true,
       methods: ['GET', 'POST', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'X-Condominio'],
+      // X-Motivo-Token: o motivo vigente da leitura do Master (plataforma/motivo-leitura.ts).
+      allowedHeaders: ['Content-Type', 'X-Condominio', 'X-Motivo-Token'],
       exposedHeaders: ['Retry-After', 'Content-Disposition'],
       maxAge: 600,
     });

@@ -29,7 +29,7 @@ describe('CORS com CORS_ORIGENS definido', () => {
     expect(r.headers['access-control-allow-origin']).toBe(FRONT);
     expect(r.headers['access-control-allow-credentials']).toBe('true');
     expect(lista(r.headers['access-control-allow-methods'])).toEqual(['get', 'post', 'patch']);
-    expect(lista(r.headers['access-control-allow-headers'])).toEqual(['content-type', 'x-condominio']);
+    expect(lista(r.headers['access-control-allow-headers'])).toEqual(['content-type', 'x-condominio', 'x-motivo-token']);
     expect(r.headers['access-control-max-age']).toBe('600');
     expect(lista(r.headers.vary)).toContain('origin');
   });
