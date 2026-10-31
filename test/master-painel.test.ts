@@ -114,9 +114,9 @@ describe('GET /plataforma/painel', () => {
     } finally { spy.mockRestore(); }
   });
 
-  it('âncora: sem linhas = null/atrasada; ontem em dia; anterior a ontem atrasada (dia BRT)', async () => {
+  it('âncora: sem linhas = null e NÃO atrasada (nada escreve na tabela ainda); ontem em dia; anterior a ontem atrasada (dia BRT)', async () => {
     api.relogio.atual = new Date('2026-10-17T12:00:00.000Z'); // dia BRT 2026-10-17; ontem = 2026-10-16
-    expect((await painel()).body.data.ancora).toEqual({ ultimaData: null, atrasada: true });
+    expect((await painel()).body.data.ancora).toEqual({ ultimaData: null, atrasada: false });
     const raiz = 'a'.repeat(64);
     await api.plataforma.db.insert(ancoraDiaria).values({ data: '2026-10-14', raiz, folhas: [] });
     expect((await painel()).body.data.ancora).toEqual({ ultimaData: '2026-10-14', atrasada: true });

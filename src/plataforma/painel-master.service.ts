@@ -22,7 +22,10 @@ export interface PainelCondominios {
 export interface PainelAncora {
   /** 'AAAA-MM-DD' da última âncora agregada; nulo se ainda não há nenhuma. */
   ultimaData: string | null;
-  /** Sem âncora, ou a última é anterior a ontem (dia BRT, o calendário do restante da API). */
+  /**
+   * A última âncora é anterior a ontem (dia BRT, o calendário do restante da API). Sem nenhuma âncora é `false`, não alarme:
+   * nada em `src` escreve em `ancora_diaria` ainda (a âncora dos selos no git é outro mecanismo), então "nunca rodou" não é atraso.
+   */
   atrasada: boolean;
 }
 export interface PainelPlataforma {
@@ -89,7 +92,7 @@ export class PainelMasterService {
     const [l] = await this.db.select({ d: max(ancoraDiaria.data) }).from(ancoraDiaria);
     const ultimaData = l?.d ?? null;
     const ontem = somarDias(diaBrt(this.relogio.agora()), -1);
-    return { ultimaData, atrasada: ultimaData === null || ultimaData < ontem };
+    return { ultimaData, atrasada: ultimaData !== null && ultimaData < ontem };
   }
 
   async leituras(): Promise<LeiturasMaster> {
