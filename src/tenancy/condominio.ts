@@ -14,9 +14,15 @@ export type StatusAtendido = (typeof STATUS_ATENDIDOS)[number];
 export interface ChavesCondominio {
   /** HMAC do CPF (`documento_busca`) e raiz da subchave do limite de login. */
   hmacCpf: Buffer;
-  /** KEK dos anexos e a versão dela (gravada em `documento.chave_versao` e na AAD da DEK). */
+  /** KEK ATIVA dos anexos e a versão dela (gravada em `documento.chave_versao` e na AAD da DEK de anexo novo). */
   kek: Buffer;
   kekVersao: number;
+  /**
+   * Todas as versões da KEK registradas para o condomínio (a ativa e as anteriores), por versão. O anexo é lido pela
+   * versão gravada nele: durante a rotação (cli/rotacionar-chaves), anexo ainda na versão antiga e anexo já migrado
+   * são legíveis ao mesmo tempo. Anexo novo sempre usa a ativa.
+   */
+  keks: ReadonlyMap<number, Buffer>;
 }
 
 export interface CondominioResolvido {

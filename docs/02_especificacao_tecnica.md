@@ -1249,7 +1249,7 @@ entrada, 0013; decisão 17).
 | Algoritmo | AES-256-GCM, nonce de 96 bits único por arquivo (`documento.nonce`) |
 | Chave | Chave-mestra (KEK) fora do banco: variável de ambiente injetada por cofre do provedor ou arquivo com permissão restrita no servidor; nunca no repositório |
 | Hierarquia | Opção recomendada: chave por arquivo (DEK) cifrada pela KEK, armazenada junto aos metadados, para permitir rotação sem recifrar tudo |
-| Rotação | `chave_versao` identifica a KEK usada; recifrar arquivos sob demanda em rotação (não implementado: documento de outra versão responde 500 `CHAVE_INDISPONIVEL`) |
+| Rotação | `chave_versao` identifica a KEK usada. A API carrega todas as versões registradas da KEK do condomínio e lê cada anexo pela dele; anexo novo usa a ativa. Rotação (`cli/rotacionar-chaves`, `docs/deploy-rotacao-chaves.md`): versão nova ativa, re-embrulho das DEKs em lotes (o arquivo não muda). Versão sem KEK registrada responde 500 `CHAVE_INDISPONIVEL` |
 | Implementação | `src/documentos/cofre.ts`: DEK de 32 bytes por arquivo; `dek_cifrada` = nonce (12) + DEK cifrada pela KEK (32) + tag (16); AAD com o id do documento no conteúdo e na DEK (trocar arquivo entre registros falha); arquivo `<uuid>.bin` no volume `documentos` (`PORTARIA_DOCUMENTOS_DIR`), gravado por arquivo temporário exclusivo + rename |
 | Integridade | O GCM autentica o conteúdo; `sha256_conteudo` permite conferência independente |
 | Em trânsito | TLS 1.2 ou superior; HSTS; cookies `Secure` |

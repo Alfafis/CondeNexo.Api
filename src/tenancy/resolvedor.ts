@@ -16,9 +16,10 @@
 //   2. as chaves de todo condomínio atendido desembrulham com a chave mestra do ambiente;
 //   3. transição: se o ambiente ainda tem PORTARIA_HMAC_CPF_KEY / PORTARIA_KEK(_VERSAO), elas têm de ser byte a byte as
 //      do piloto na plataforma (divergência = alguém trocou uma das duas, e a API leria CPF e anexos com a chave errada);
-//   4. a KEK de cada condomínio abre a DEK de um documento existente dele, se houver (prova que a KEK é a que cifrou).
+//   4. cada versão da KEK de cada condomínio abre a DEK de um documento existente dele naquela versão, se houver (prova
+//      que a KEK é a que cifrou; durante a rotação da KEK há anexo em mais de uma versão).
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { CODIGO_CONDOMINIO as CODIGO } from '../dominio/condominio';
 import { MODULOS, type Modulo } from '../dominio/modulos';
 import { AGRUPAMENTOS, type Agrupamento, ESTRUTURA_PADRAO } from '../dominio/units';
@@ -229,20 +230,24 @@ export class ResolvedorCondominio implements OnModuleInit {
   }
 
   private async desembrulharChaves(l: Linha): Promise<CondominioResolvido> {
-    const linhas = await this.db.select().from(sp.condominioChave)
-      .where(and(eq(sp.condominioChave.condominioId, l.id), eq(sp.condominioChave.ativa, true)));
+    const linhas = await this.db.select().from(sp.condominioChave).where(eq(sp.condominioChave.condominioId, l.id));
+    const abrir = (k: (typeof linhas)[number]) => desembrulhar(this.mestra, { condominioId: l.id, tipo: k.tipo as sp.TipoChave, versao: k.versao }, k);
     const ativa = (tipo: sp.TipoChave) => {
-      const k = linhas.find((x) => x.tipo === tipo);
+      const k = linhas.find((x) => x.tipo === tipo && x.ativa);
       if (!k) throw new ErroChave(`condomínio ${l.codigo} sem chave ativa de ${tipo} na plataforma`);
-      return { claro: desembrulhar(this.mestra, { condominioId: l.id, tipo, versao: k.versao }, k), versao: k.versao };
+      return { claro: abrir(k), versao: k.versao };
     };
     const hmac = ativa('hmac_cpf');
     const kek = ativa('kek_documentos');
-    if (kek.claro.length !== 32) throw new ErroChave(`condomínio ${l.codigo}: KEK com tamanho diferente de 32 bytes`);
+    // Todas as versões da KEK (rotação, cli/rotacionar-chaves): o anexo é lido pela versão gravada nele. Uma versão
+    // anterior que não desembrulha derruba a resolução como a ativa (a rotação da mestra re-embrulha todas as linhas).
+    const keks = new Map<number, Buffer>([[kek.versao, kek.claro]]);
+    for (const k of linhas) if (k.tipo === 'kek_documentos' && !k.ativa) keks.set(k.versao, abrir(k));
+    for (const [v, c] of keks) if (c.length !== 32) throw new ErroChave(`condomínio ${l.codigo}: KEK v${v} com tamanho diferente de 32 bytes`);
     const agrupamento = await this.agrupamentoDo(l);
     return {
       id: l.id, codigo: l.codigo, nome: l.nome, banco: l.banco, piloto: l.banco === BANCO_PILOTO, agrupamento,
-      chaves: { hmacCpf: hmac.claro, kek: kek.claro, kekVersao: kek.versao },
+      chaves: { hmacCpf: hmac.claro, kek: kek.claro, kekVersao: kek.versao, keks },
     };
   }
 
@@ -267,11 +272,13 @@ export class ResolvedorCondominio implements OnModuleInit {
     const conferidas = conferirChavesDoAmbiente(this.config.saas.chavesAmbiente, piloto);
     let deks = 0;
     for (const c of resolvidos) {
-      const [d] = await this.registro.db(c.banco).select({ id: documento.id, dekCifrada: documento.dekCifrada, chaveVersao: documento.chaveVersao })
-        .from(documento).where(eq(documento.chaveVersao, c.chaves.kekVersao)).limit(1);
-      if (!d) continue;
-      if (!kekAbreDek(c.chaves.kek, d)) throw new ErroChave(`a KEK v${c.chaves.kekVersao} do condomínio ${c.codigo} não abre a DEK de um anexo existente: boot recusado`);
-      deks++;
+      for (const [versao, kek] of c.chaves.keks) {
+        const [d] = await this.registro.db(c.banco).select({ id: documento.id, dekCifrada: documento.dekCifrada, chaveVersao: documento.chaveVersao })
+          .from(documento).where(eq(documento.chaveVersao, versao)).limit(1);
+        if (!d) continue;
+        if (!kekAbreDek(kek, d)) throw new ErroChave(`a KEK v${versao} do condomínio ${c.codigo} não abre a DEK de um anexo existente: boot recusado`);
+        deks++;
+      }
     }
     log('info', 'saas.boot', { detalhe: `condominios=${resolvidos.length} piloto=${piloto ? 'sim' : 'nao'} ambiente=${conferidas.join('+') || 'ausente'} deks_conferidas=${deks}` });
   }

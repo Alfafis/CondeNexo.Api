@@ -67,15 +67,29 @@ function decifrar(chave: Buffer, nonce: Buffer, aad: string, cifrado: Buffer): B
 const aadConteudo = (id: string) => `portaria:documento:${id}`;
 const aadDek = (id: string, versao: number) => `portaria:dek:${id}:v${versao}`;
 
+/** `dek_cifrada` = nonce (12) || DEK cifrada pela KEK (32) || tag (16), AAD `portaria:dek:<id>:v<versao>`. */
+export function embrulharDek(kek: Buffer, versao: number, id: string, dek: Buffer): Buffer {
+  const nonceDek = randomBytes(NONCE);
+  return Buffer.concat([nonceDek, cifrar(kek, nonceDek, aadDek(id, versao), dek)]);
+}
+
+/**
+ * Abre a DEK de um documento com a KEK da versão gravada nele. Lança se não autenticar. Devolve a DEK em claro: quem
+ * chama zera (só a leitura e a rotação da KEK, cli/rotacionar-chaves, usam).
+ */
+export function abrirDek(kek: Buffer, d: { id: string; dekCifrada: Uint8Array; chaveVersao: number }): Buffer {
+  const env = Buffer.from(d.dekCifrada);
+  if (env.length !== NONCE + 32 + TAG) throw new Error('DEK cifrada com tamanho inválido');
+  return decifrar(kek, env.subarray(0, NONCE), aadDek(d.id, d.chaveVersao), env.subarray(NONCE));
+}
+
 /**
  * Confere uma KEK contra a DEK cifrada de um documento existente (checagem de boot, tenancy/resolvedor.ts): true se a DEK
  * abre e autentica. Não lê o arquivo nem devolve a DEK (zerada aqui).
  */
 export function kekAbreDek(kek: Buffer, d: { id: string; dekCifrada: Uint8Array; chaveVersao: number }): boolean {
   try {
-    const env = Buffer.from(d.dekCifrada);
-    const dek = decifrar(kek, env.subarray(0, NONCE), aadDek(d.id, d.chaveVersao), env.subarray(NONCE));
-    dek.fill(0);
+    abrirDek(kek, d).fill(0);
     return true;
   } catch {
     return false;
@@ -113,8 +127,7 @@ export class CofreDocumentos {
     const dek = randomBytes(32);
     const nonce = randomBytes(NONCE);
     const cifrado = cifrar(dek, nonce, aadConteudo(id), conteudo);
-    const nonceDek = randomBytes(NONCE);
-    const dekCifrada = Buffer.concat([nonceDek, cifrar(kek, nonceDek, aadDek(id, kekVersao), dek)]);
+    const dekCifrada = embrulharDek(kek, kekVersao, id, dek);
     dek.fill(0);
 
     const nome = `${id}.bin`;
@@ -175,9 +188,10 @@ export class CofreDocumentos {
   /** Lê e decifra. Confere a versão da KEK, a autenticação do GCM e o SHA-256 gravado. */
   async ler(d: DocumentoCifrado): Promise<Buffer> {
     if (d.eliminadoEm) throw erroApi(410, 'DOCUMENTO_ELIMINADO', 'Este anexo foi eliminado (retenção).');
-    const { kek, kekVersao } = this.chaves();
-    // Rotação de KEK (spec §9.2) ainda não existe: documento de outra versão não tem chave disponível.
-    if (d.chaveVersao !== kekVersao) throw erroApi(500, 'CHAVE_INDISPONIVEL', 'A chave deste anexo não está disponível no servidor.');
+    // A KEK da versão gravada no anexo (spec §9.2): a ativa ou uma anterior ainda registrada (rotação em andamento ou
+    // concluída). Versão sem chave registrada no condomínio: indisponível.
+    const kek = this.chaves().keks.get(d.chaveVersao);
+    if (!kek) throw erroApi(500, 'CHAVE_INDISPONIVEL', 'A chave deste anexo não está disponível no servidor.');
     let cifrado: Buffer;
     try { cifrado = await readFile(this.caminho(d.caminhoStorage)); } catch (e) {
       if ((e as { status?: number }).status) throw e;
@@ -185,8 +199,7 @@ export class CofreDocumentos {
       throw erroApi(500, 'DOCUMENTO_INDISPONIVEL', 'O arquivo deste anexo não foi encontrado no servidor.');
     }
     try {
-      const dekEnv = Buffer.from(d.dekCifrada);
-      const dek = decifrar(kek, dekEnv.subarray(0, NONCE), aadDek(d.id, d.chaveVersao), dekEnv.subarray(NONCE));
+      const dek = abrirDek(kek, d);
       const claro = decifrar(dek, Buffer.from(d.nonce), aadConteudo(d.id), cifrado);
       dek.fill(0);
       if (createHash('sha256').update(claro).digest('hex') !== d.sha256Conteudo) throw new Error('sha256');

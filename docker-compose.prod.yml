@@ -107,7 +107,9 @@ services:
   # SaaS (docs/05_arquitetura_saas.md; docs/deploy.md, seções 12 e 13). As migrações do banco `plataforma` entraram no
   # `migrate` acima na F2 (o serviço migrate-plataforma saiu). CLI do operador para o banco plataforma (registro do
   # piloto e importação das chaves), só com --profile plataforma: a imagem da API, sem porta, só na rede interna.
-  # Vazias, a CLI recusa com o nome da variável que falta.
+  # Vazias, a CLI recusa com o nome da variável que falta. As três chaves antigas são `:-` (não `:?`): o compose
+  # interpola o arquivo inteiro, inclusive serviço de perfil desligado, e `:?` aqui faria TODO `docker compose ...`
+  # (até o `up` da API) falhar depois de esvaziá-las no .env (fim da transição; rotação da KEK, docs/deploy-rotacao-chaves.md).
   plataforma-cli:
     profiles: [plataforma]
     image: tcc-portaria-api:${API_TAG:-atual}
@@ -119,9 +121,9 @@ services:
       DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
       PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
       PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
-      PORTARIA_HMAC_CPF_KEY: ${PORTARIA_HMAC_CPF_KEY:?defina PORTARIA_HMAC_CPF_KEY no .env}
-      PORTARIA_KEK: ${PORTARIA_KEK:?defina PORTARIA_KEK no .env}
-      PORTARIA_KEK_VERSAO: ${PORTARIA_KEK_VERSAO:?defina PORTARIA_KEK_VERSAO no .env}
+      PORTARIA_HMAC_CPF_KEY: ${PORTARIA_HMAC_CPF_KEY:-}
+      PORTARIA_KEK: ${PORTARIA_KEK:-}
+      PORTARIA_KEK_VERSAO: ${PORTARIA_KEK_VERSAO:-}
     depends_on:
       db:
         condition: service_healthy
@@ -132,6 +134,37 @@ services:
     mem_limit: 128m
     restart: "no"
     logging: *logging
+
+  # Rotação das chaves (docs/deploy-rotacao-chaves.md), só com --profile rotacao: mestra (re-embrulho de condominio_chave,
+  # como app_migrator, dono da tabela: app_plataforma só tem UPDATE em `ativa`) e KEK dos anexos por condomínio
+  # (app_plataforma na plataforma, app_rw no banco do condomínio). A mestra NOVA vem SÓ do shell da sessão (export), nunca
+  # do .env nem de argumento. Sem log em disco (a saída não leva chave, mas o ambiente do container leva).
+  rotacao-cli:
+    profiles: [rotacao]
+    image: tcc-portaria-api:${API_TAG:-atual}
+    pull_policy: never
+    command: ["node", "dist/cli/rotacionar-chaves.js"]
+    environment:
+      NODE_ENV: production
+      TZ: UTC
+      MIGRATOR_URL_BASE: postgres://app_migrator:${APP_MIGRATOR_PASSWORD}@db:5432
+      DATABASE_URL: postgres://app_rw:${APP_RW_PASSWORD}@db:5432/portaria
+      DATABASE_URL_PLATAFORMA: postgres://app_plataforma:${APP_PLATAFORMA_PASSWORD:-}@db:5432/plataforma
+      PORTARIA_CHAVE_MESTRA: ${PORTARIA_CHAVE_MESTRA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO: ${PORTARIA_CHAVE_MESTRA_VERSAO:-}
+      PORTARIA_CHAVE_MESTRA_NOVA: ${PORTARIA_CHAVE_MESTRA_NOVA:-}
+      PORTARIA_CHAVE_MESTRA_VERSAO_NOVA: ${PORTARIA_CHAVE_MESTRA_VERSAO_NOVA:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [banco]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    restart: "no"
+    logging:
+      driver: none
 
   # Provisionamento de condomínio novo (SAAS-10; docs/deploy.md, seção 16), só com --profile provisionar. Entrada JSON
   # pelo stdin (-T), nunca por argumento. Quatro roles, cada um no seu passo: app_provisionador (CREATE DATABASE, banco

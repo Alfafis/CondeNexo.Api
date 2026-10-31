@@ -794,6 +794,7 @@ entrar de novo (uma vez). O cookie antigo segue válido nos dois sentidos.
 
 **Fim da transição** (fase seguinte, depois de o front mandar o código no login): `SAAS_PILOTO_PADRAO=false` no `.env`
 e esvaziar `PORTARIA_HMAC_CPF_KEY`/`PORTARIA_KEK`/`PORTARIA_KEK_VERSAO` (a cópia do cofre continua sendo a recuperação).
+Rotação da mestra ou da KEK (inclusive por vazamento): `docs/deploy-rotacao-chaves.md` (esvazia `PORTARIA_KEK`/`_VERSAO`).
 Antes de desligar: o workflow `ancora-selo.yml` precisa mandar `X-Condominio: <slug>` (sem ele `/auditoria/selos/publico`
 vira 404 e a coleta de âncoras para), e lembrar que, depois disso, voltar para uma imagem anterior à F2 desloga todos
 os cookies `v2.` (todos entram de novo).
