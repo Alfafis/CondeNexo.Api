@@ -31,7 +31,7 @@ Os testes (`npm test` e `npm run test:scripts`) falham se `openapi.json`, `postm
 
 ## Ambientes
 
-- **`producao`** usa `https://tccgestaoacesso.vercel.app/api/v1`, a mesma origem do front e do cookie. O cookie `__Host-portaria_sessao` (`HttpOnly; SameSite=Strict; Secure`) funciona em cliente HTTP fora do navegador, mas exige https.
+- **`producao`** usa `https://api.condenexo.com.br/api/v1`, o subdomínio da API (mesmo site do front em `www.condenexo.com.br`; ver `docs/deploy-subdominio-api.md`). O cookie `__Host-portaria_sessao` (`HttpOnly; SameSite=Strict; Secure`) funciona em cliente HTTP fora do navegador, mas exige https.
 - **`local`** usa `http://127.0.0.1:3101/api/v1` (modo `dev:pglite`, cookie `portaria_sessao` sem `Secure`).
 
 > **Aviso:** o ambiente `producao` escreve na trilha append-only real. Nada se apaga e não existe "teste": cada criação fica registrada para sempre. Para experimentar, use `local`.

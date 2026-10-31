@@ -58,7 +58,7 @@ export class SaudeService {
 }
 
 // Público: o healthcheck do compose e do proxy chama sem sessão (guard global não pode derrubar o /saude).
-// Não devolve o `ultimo_seq` da cadeia: com o rewrite da Vercel este endpoint fica aberto na internet, e o seq em
+// Não devolve o `ultimo_seq` da cadeia: em https://api.condenexo.com.br este endpoint fica aberto na internet, e o seq em
 // polling mostraria o instante de cada evento da portaria (ver selo/publico.ts). A leitura da cabeça continua aqui
 // como prova de que o app_rw enxerga a tabela da trilha, não só de que o banco responde.
 // SaaS (F2): não injeta DB (não é rota de condomínio); as checagens e o cache estão no SaudeService.

@@ -16,7 +16,7 @@ import { PREFIXO_GLOBAL } from '../configurar-app';
 
 type Json = Record<string, unknown>;
 
-export const SERVIDOR_PRODUCAO = `https://tccgestaoacesso.vercel.app/${PREFIXO_GLOBAL}`;
+export const SERVIDOR_PRODUCAO = `https://api.condenexo.com.br/${PREFIXO_GLOBAL}`;
 /** Porta padrão do modo local `dev:pglite` (test/e2e/iniciar.ts: PORTA_E2E, padrão 3101). */
 export const SERVIDOR_LOCAL = `http://127.0.0.1:3101/${PREFIXO_GLOBAL}`;
 export const COOKIE_PRODUCAO = '__Host-portaria_sessao';
@@ -280,7 +280,7 @@ export function gerarOpenApiComRelatorio(app: INestApplication, opcoes: OpcoesOp
       ].join('\n\n'),
     },
     servers: [
-      { url: SERVIDOR_PRODUCAO, description: 'Produção (Vercel, mesma origem do front e do cookie). Escreve na trilha append-only real.' },
+      { url: SERVIDOR_PRODUCAO, description: 'Produção no subdomínio api. (mesmo site do front em www.condenexo.com.br: o cookie SameSite=Strict é enviado; CORS com credenciais só para a origem exata do front). Escreve na trilha append-only real.' },
       { url: SERVIDOR_LOCAL, description: 'Local: `npm run dev:pglite` (PGlite em memória, dados fictícios).' },
     ],
     tags: [...tagsUsadas].sort().map((name) => ({ name })),

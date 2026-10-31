@@ -1,6 +1,6 @@
 // Pessoas (spec §6.2, RF-02, RF-18, RF-34): busca, busca global, cadastro, correção, listagem, ficha e desativação.
-// Busca por POST com o termo no CORPO: o termo pode ser um CPF, e a URL (query string) fica registrada em proxies e na
-// borda da Vercel, fora do controle do log da API. Pelo mesmo motivo a listagem não aceita filtro de texto.
+// Busca por POST com o termo no CORPO: o termo pode ser um CPF, e a URL (query string) fica registrada em proxies (o nginx
+// da VPS, qualquer borda futura), fora do controle do log da API. Pelo mesmo motivo a listagem não aceita filtro de texto.
 import { Body, Controller, Get, HttpCode, Inject, Module, Param, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { Acao, Ctx } from '../auth/decorators';

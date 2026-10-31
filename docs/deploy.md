@@ -12,9 +12,16 @@ foi feito no servidor.
 |---|---|---|
 | 1 (feita) | Compose de produção, backup, âncora pelo GitHub Actions, `vercel.json`, este runbook | — |
 | 2 | Inventário da VPS (só leitura), escolha do proxy, clone, `.env`, build, migrate, seed, TLS | responsável técnico + Betech |
-| 3 | Rewrite da Vercel ativo em `http`, âncora ligada, backup agendado, checklist | responsável técnico |
+| 3 | (histórico; hoje o front está na Cloudflare) Rewrite da Vercel ativo em `http`, âncora ligada, backup agendado, checklist | responsável técnico |
 
-Topologia alvo:
+> **Topologia atual (2026-10-31).** O front saiu da Vercel: é um SPA estático na Cloudflare em
+> `https://www.condenexo.com.br`, e o navegador chama a API direto em `https://api.condenexo.com.br/api/v1` (registro
+> `A` "DNS only" para a VPS, nginx com TLS pelo certbot, CORS com credenciais, `TRUST_PROXY=1`). Não há proxy de `/api`.
+> A migração, o nginx do `api.`, o checklist e o rollback estão em `docs/deploy-subdominio-api.md`, que vale sobre este
+> documento onde os dois divergirem. O diagrama e os trechos de Vercel/rewrite abaixo são o **histórico** da fase 3, e o
+> `179-197-78-78.sslip.io` fica só como transição até o checklist de `docs/deploy-subdominio-api.md` passar.
+
+Topologia da fase 3 (histórica, com a Vercel):
 
 ```
 navegador ──https──> tccgestaoacesso.vercel.app ──(rewrite /api/*)──https──> 179-197-78-78.sslip.io
@@ -59,7 +66,7 @@ O que a fase 2 precisa responder com isso:
 |---|---|
 | Qual processo ocupa 80/443: nginx/Caddy no host ou um container (Traefik/Caddy/nginx)? | Define o bloco da seção 5. Proxy em container **não alcança** `127.0.0.1:3100` do host (5.4) |
 | Onde fica a config do proxy, e como o Tobe está declarado nela? | O bloco novo entra ao lado do Tobe, sem tocar no dele |
-| Como o proxy trata `X-Forwarded-For` hoje? | `TRUST_PROXY=2` só funciona se o proxy **acrescenta** ao XFF da Vercel (seção 4). Mudar isso pode afetar o Tobe |
+| Como o proxy trata `X-Forwarded-For` hoje? | (Histórico, topologia com Vercel) `TRUST_PROXY=2` só funcionava se o proxy **acrescentasse** ao XFF da Vercel; hoje é `TRUST_PROXY=1` (seção 4). Mudar isso pode afetar o Tobe |
 | ACME: quem emite certificado hoje (certbot, Caddy, Traefik resolver)? | O certificado do `179-197-78-78.sslip.io` sai pelo mesmo mecanismo (seção 5, aviso do limite) |
 | 3100 livre? Memória livre ≥ 1,5 GB? Disco ≥ 5 GB livres? | API 384 MiB + banco 512 MiB + build (pico ~1 GB, temporário) |
 | Firewall da Hostinger sincronizado? | Só 22/80/443 precisam estar abertos. 3100 e 5432 **não** (e o compose nem os expõe fora do loopback) |
@@ -113,7 +120,8 @@ sed -i \
   -e "s|^PORTARIA_HMAC_CPF_KEY=.*|PORTARIA_HMAC_CPF_KEY=$(key)|" \
   -e "s|^PORTARIA_KEK=.*|PORTARIA_KEK=$(key)|" \
   -e "s|^PORTARIA_KEK_VERSAO=.*|PORTARIA_KEK_VERSAO=1|" \
-  -e "s|^TRUST_PROXY=.*|TRUST_PROXY=2|" \
+  -e "s|^TRUST_PROXY=.*|TRUST_PROXY=1|" \
+  -e "s|^CORS_ORIGENS=.*|CORS_ORIGENS=https://www.condenexo.com.br|" \
   -e "s|^API_TAG=.*|API_TAG=$(git rev-parse --short HEAD)|" \
   .env
 grep -c '=$' .env    # quantas ficaram vazias (as opcionais); nunca `cat .env`
@@ -169,15 +177,16 @@ de quem o chamou ao `X-Forwarded-For`.
 
 | Topologia | `TRUST_PROXY` | Observação |
 |---|---|---|
-| navegador → Vercel (rewrite) → proxy da VPS → API | **2** | Esta fase. Exige que o proxy **acrescente** ao XFF que a Vercel mandou |
-| navegador → proxy da VPS → API (domínio próprio `api.`, sem Vercel no caminho) | 1 | Evolução sugerida em spec §14 nº 26 |
-| navegador → Cloudflare → Vercel → proxy → API | 3 | Só se um CDN entrar na frente |
+| navegador → nginx da VPS → API (`api.condenexo.com.br`, DNS only, sem proxy da Cloudflare) | **1** | **Atual (desde 2026-10-31).** O nginx põe o IP da conexão no XFF |
+| navegador → Vercel (rewrite) → proxy da VPS → API | 2 | Antiga (substituída em 2026-10-31). **Não use mais**: sem a Vercel, 2 deixa o IP forjável |
+| navegador → Cloudflare (proxy laranja) → nginx → API | 2 | Só se o proxy da Cloudflare for ligado no `api.`; é outra topologia, e `docs/deploy-subdominio-api.md` não vale |
 | sem proxy (dev, `127.0.0.1:3000` direto) | `false` | Nunca em produção |
 
-Erro para **menos** (ex.: 1 com Vercel): todo mundo aparece com o IP da borda da Vercel, e 30 falhas de qualquer um
-bloqueiam o login de todos por 15 min. Erro para **mais**: o IP vira o valor que o cliente escreveu no XFF.
+Erro para **menos** (ex.: `false`, ou 1 com um proxy a mais na frente): todo mundo aparece com o IP do salto de fora, e 30
+falhas de qualquer um bloqueiam o login de todos por 15 min. Erro para **mais** (ex.: 2 sem a Vercel): o IP vira o valor
+que o cliente escreveu no XFF, e o limite de login por IP é contornado.
 
-**Custo aceito (spec §14 nº 26):** quem chama `https://179-197-78-78.sslip.io` direto, sem passar pela Vercel, escolhe
+**Custo aceito na topologia antiga (spec §14 nº 26, substituída em 2026-10-31; com 1 ele deixa de existir):** quem chamava `https://179-197-78-78.sslip.io` direto, sem passar pela Vercel, escolhia
 o próprio IP pelo XFF, porque a Vercel não publica faixa fixa de IP e o proxy não tem como distinguir. Por isso o limite
 por IP é auxiliar, e o controle que vale é o limite por login. Não "consertar" pondo IP de bridge em allowlist (com
 o `userland-proxy` do Docker, todo cliente aparece com o IP do gateway da bridge, e a allowlist liberaria qualquer um):
@@ -189,7 +198,7 @@ o número de saltos não depende do IP de origem do socket.
 
 Regras comuns aos três:
 
-- só `/api/` vai para a API; o resto do host responde 404 (o front é da Vercel);
+- só `/api/` vai para a API; o resto do host responde 404 (o front é da Cloudflare);
 - `X-Forwarded-For` **acrescentado**, nunca substituído (seção 4);
 - corpo até 6 MB (anexo de ocorrência até 4 MB + multipart);
 - upstream `http://127.0.0.1:3100` (proxy no host). Proxy em container: seção 5.4.
@@ -251,7 +260,8 @@ server {
         proxy_pass http://127.0.0.1:3100;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
-        # ACRESCENTA o IP de quem chamou (a borda da Vercel) ao XFF que a Vercel mandou: TRUST_PROXY=2.
+        # ACRESCENTA o IP da conexão ao XFF. Com TRUST_PROXY=1 a API usa só o último item (o IP da conexão), então o que o
+        # cliente escrever antes não vale (docs/deploy-subdominio-api.md, seção 4).
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 60s;
@@ -262,12 +272,11 @@ server {
 ```
 
 > **Nota sobre os limites do nginx.** A chave é o IP da **conexão** (`$binary_remote_addr`), não o XFF: ninguém a
-> forja. Em compensação, quem passa pela Vercel aparece com o IP da borda da Vercel, então o balde é dividido por
-> todos os usuários que saem pela mesma borda (com uma portaria e poucos operadores, folgado; se um 429 do nginx
-> aparecer para a guarita sem ataque, subir `rate`/`burst` do `tcc_login`). Já o limite da **aplicação** (seção 4,
-> spec §5.1: par login+IP e IP) usa o XFF com `TRUST_PROXY=2`, e quem chama a VPS direto, sem a Vercel, ainda escolhe
-> o IP que a API vê: por isso o nginx limita à parte. Fechar isso com um cabeçalho secreto Vercel -> nginx (o nginx
-> recusa o que vier sem ele) fica para depois.
+> forja. Na topologia antiga, quem passava pela Vercel aparecia com o IP da borda dela e o balde era dividido entre todos
+> os que saíam pela mesma borda; hoje cada cliente chega com o próprio IP (se um 429 do nginx aparecer para a guarita
+> sem ataque, subir `rate`/`burst` do `tcc_login`). O limite da **aplicação** (seção 4, spec §5.1: par login+IP e IP)
+> usa o XFF com `TRUST_PROXY=1`, que confia só no nginx; o nginx limita à parte, como rede de segurança grossa.
+> O cabeçalho secreto Vercel -> nginx que este parágrafo previa deixou de fazer sentido com a saída da Vercel.
 
 Certificado em dois passos, porque o `nginx -t` falha enquanto o bloco 443 aponta para um certificado que ainda não
 existe: (1) `mkdir -p /var/www/certbot`, habilitar só o bloco 80, `nginx -t && systemctl reload nginx`;
@@ -286,8 +295,9 @@ existe: (1) `mkdir -p /var/www/certbot`, habilitar só o bloco 80, `nginx -t && 
 }
 ```
 
-Caddy **descarta** o XFF recebido de quem não está em `trusted_proxies`. Sem ajuste, a API vê só o IP da borda da
-Vercel (o caso "para menos" da seção 4). Duas saídas, a decidir na fase 2:
+Caddy **descarta** o XFF recebido de quem não está em `trusted_proxies`. Com `TRUST_PROXY=1` isso já basta: a API lê o
+IP da conexão que o Caddy viu. A parte abaixo é o texto da época da Vercel (TRUST_PROXY=2), em que o Caddy precisava
+repassar o XFF da Vercel. Duas saídas, a decidir na fase 2:
 
 - **A (escopo global):** `{ servers { trusted_proxies static 0.0.0.0/0 ::/0 } }` no bloco global. Vale para **todos os
   sites desse listener, inclusive o Tobe**: o Tobe passaria a confiar em XFF arbitrário. Só com o aval de quem mantém
@@ -295,7 +305,7 @@ Vercel (o caso "para menos" da seção 4). Duas saídas, a decidir na fase 2:
 - **B (só neste site):** `reverse_proxy 127.0.0.1:3100 { header_up X-Forwarded-For "{http.request.header.X-Forwarded-For}, {http.request.remote.host}" }`.
   **Não testado aqui.** Validar com o item "IP real" da checklist (seção 10) antes de abrir para a portaria. Pedido
   sem XFF (acesso direto) sai com o primeiro item vazio, e a API o vê como IP vazio, um balde compartilhado só por
-  quem burla a Vercel.
+  quem burlava a Vercel.
 
 ACME de staging para o primeiro teste: `{ acme_ca https://acme-staging-v02.api.letsencrypt.org/directory }`.
 
@@ -351,11 +361,18 @@ COMPOSE_FILE=docker-compose.prod.yml:docker-compose.prod.proxy.yml
 ```
 
 O upstream vira `http://tcc-portaria-api-1:3000` (ou o alias do serviço). A publicação em `127.0.0.1:3100` pode ficar,
-para o `curl` de diagnóstico. `TRUST_PROXY` continua 2.
+para o `curl` de diagnóstico. `TRUST_PROXY` continua 1.
 
 ---
 
-## 6. Vercel (front)
+## 6. Front (Cloudflare; a Vercel foi abandonada em 2026-10-31)
+
+> **Atual:** o front (repositório CondeNexo.Front) é um SPA estático servido pela Cloudflare em
+> `https://www.condenexo.com.br`, com `VITE_API_URL=https://api.condenexo.com.br/api/v1` no build e o host da API no
+> `connect-src` do CSP (`public/_headers`). Não existe rewrite nem proxy de `/api`: front e API são o mesmo site e
+> origens diferentes, por isso o CORS com credenciais (`CORS_ORIGENS`) e a verificação de Origin (escritas e leituras autenticadas)
+> (`docs/deploy-subdominio-api.md`). Com `PORTARIA_AMBIENTE=producao`, a API recusa o boot sem `CORS_ORIGENS`.
+> O restante desta seção é o **histórico** da Vercel e não vale mais.
 
 > **Desde 2026-10-31 o front é outro repositório (CondeNexo.Front).** `apps/web` e `apps/plataforma` continuam com esses
 > nomes lá, mas o `vercel.json` foi para a RAIZ dele, e o projeto Vercel passa a usar Root Directory = raiz do repositório
@@ -549,27 +566,29 @@ sudo ss -ltnp | grep -E ':3100|:5432'                 # 3100 SÓ em 127.0.0.1; n
 docker stats --no-stream | grep tcc-portaria          # api < 384M, db < 512M
 curl -s http://127.0.0.1:3100/api/v1/saude            # direto
 curl -sv https://179-197-78-78.sslip.io/api/v1/saude 2>&1 | grep -E 'subject|issuer|expire|"status"'   # TLS real, sem -k
-curl -s https://tccgestaoacesso.vercel.app/api/v1/saude                    # pelo rewrite
-curl -s https://tccgestaoacesso.vercel.app/api/v1/auditoria/selos/publico  # {"data":{"formato":"portaria-parque/selos-diarios",...}}
-curl -sI https://tccgestaoacesso.vercel.app/ | grep -iE 'content-security|x-frame'
+curl -s https://api.condenexo.com.br/api/v1/saude                    # direto no api. (sem rewrite)
+curl -s https://api.condenexo.com.br/api/v1/auditoria/selos/publico  # {"data":{"formato":"portaria-parque/selos-diarios",...}}
+curl -sI https://www.condenexo.com.br/ | grep -iE 'content-security|x-frame'   # cabeçalhos do front (Cloudflare)
 ```
 
 - [ ] **Saúde:** os três `saude` respondem `ok`, e o `/saude` não traz `ultimoSeq`.
-- [ ] **TLS:** certificado de produção (não o de staging), emitido para `179-197-78-78.sslip.io`, com renovação
-      automática configurada.
-- [ ] **Login** pelo site da Vercel em modo `http`, com troca de senha do usuário de seed.
+- [ ] **TLS:** certificado de produção (não o de staging), emitido para `api.condenexo.com.br` (e, na transição, para
+      `179-197-78-78.sslip.io`), com renovação automática configurada.
+- [ ] **Login** pelo site `https://www.condenexo.com.br`, com troca de senha do usuário de seed, sem erro de CORS no
+      console (checklist completo de CORS em `docs/deploy-subdominio-api.md`, seção 6).
 - [ ] **Cookie:** DevTools → Application → Cookies: `__Host-portaria_sessao` com **Secure**, **HttpOnly**,
       `SameSite=Strict`, `Path=/`, sem `Domain`.
 - [ ] **IP real, não o do proxy** (sem provocar 429: nunca testar o bloqueio contra a produção, porque com
-      `TRUST_PROXY` errado ele bloqueia todo mundo). Entre pelo site da Vercel e compare o IP gravado na sessão com o
+      `TRUST_PROXY` errado ele bloqueia todo mundo). Entre pelo site `https://www.condenexo.com.br` e compare o IP gravado na sessão com o
       seu IP público (`curl -s https://api.ipify.org` na sua máquina):
 
       ```bash
       docker compose exec -T db psql -U postgres -d portaria -Atc "select ip, criada_em from sessao order by criada_em desc limit 3"
       ```
 
-      Tem que ser o **seu** IP. `172.x`/`127.0.0.1` indica proxy que não repassa o XFF; um IP da Vercel (AWS) indica
-      proxy que **substitui** o XFF (Caddy/Traefik sem ajuste) ou `TRUST_PROXY` baixo. Repita por um segundo
+      Tem que ser o **seu** IP. `172.x`/`127.0.0.1` indica proxy que não repassa o XFF; um IP de CDN/provedor indica
+      proxy que **substitui** o XFF (Caddy/Traefik sem ajuste) ou `TRUST_PROXY` baixo; o IP que você escolheu no XFF
+      (teste com `X-Forwarded-For` forjado, sem provocar 429) indica `TRUST_PROXY` alto (2 sem a Vercel). Repita por um segundo
       provedor (4G do celular) para ver dois IPs diferentes.
 - [ ] **Âncora:** execução manual do workflow verde e uma linha nova em `selos.jsonl` do branch `ancoras` (no dia
       seguinte ao primeiro selo diário).
@@ -625,7 +644,9 @@ docker compose up -d --wait
 do backup anterior a ela (seção 9). Antes de atualizar com migração nova, rode o backup à mão
 (`sudo systemctl start tcc-portaria-backup.service`).
 
-**Rollback do front:** Instant Rollback na Vercel (seção 6).
+**Rollback do front:** não há mais Instant Rollback da Vercel. O front é um SPA estático na Cloudflare: o rollback é
+reimplantar o build anterior (ou o commit anterior do CondeNexo.Front) na Cloudflare. Um problema de CORS ou de IP é da
+API/nginx, e o rollback dele está em `docs/deploy-subdominio-api.md`, seção 7.
 
 **Retirar tudo** (sem afetar o Tobe): `docker compose down` (mantém volumes) e remover o bloco do proxy e o `reload`.
 `docker compose down -v` **apaga o banco**: só com backup conferido.
@@ -825,7 +846,7 @@ O `db` é recriado (a mudança de capabilities exige): alguns segundos de API se
 Fazer fora do horário de pico da portaria.
 
 **nginx:** atualizar o site conforme a seção 5.1 (zonas `tcc_login`/`tcc_api`, `server_tokens off`, `limit_req` no
-login e em `/api/`), `nginx -t && systemctl reload nginx`. Conferir que um login normal pela Vercel continua 200.
+login e em `/api/`), `nginx -t && systemctl reload nginx`. Conferir que um login normal (pelo front em `www.condenexo.com.br`) continua 200.
 **Não** testar o 429 contra a produção (seção 10).
 
 **Migração 0008:** só alarga o CHECK de `login_limite.tipo` para aceitar `login_ip`. Não destrutiva. Rollback da

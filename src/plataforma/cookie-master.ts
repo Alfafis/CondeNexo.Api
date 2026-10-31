@@ -2,7 +2,7 @@
 //  - nome `__Secure-portaria_plataforma` (com Secure) ou `portaria_plataforma` (http://localhost, dev e e2e);
 //  - Path=/api/v1/plataforma: o navegador nem envia este cookie às rotas de condomínio. O prefixo `__Host-` (que o doc
 //    previa) exige Path=/, então foi trocado por `__Secure-` + Path restrito (decisão registrada no doc, §5.3). Sem
-//    Domain: o cookie é só do host do front da plataforma (o rewrite da Vercel o entrega à API);
+//    Domain: o cookie é host-only do host da API (api.condenexo.com.br em produção), que o front chama com credenciais;
 //  - HttpOnly, Secure, SameSite=Strict, como o de condomínio.
 // A PlataformaGuard só lê ESTE nome, e a SessaoGuard do condomínio só lê o dela: um cookie nunca autentica no outro lado
 // (e os tokens ficam em tabelas de bancos diferentes: `master_sessao` x `sessao`).

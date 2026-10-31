@@ -14,8 +14,8 @@
 //
 // Custo: a resposta fica em cache por CACHE_PUBLICO_MS (invalidada quando nasce um selo diário), então o banco é
 // consultado no máximo uma vez por janela, qualquer que seja o tráfego. O limite por IP abaixo protege CPU e banda;
-// atrás da Vercel o IP pode ser forjado por quem chama a VPS direto (spec §14 nº 26), e é por isso que a proteção do
-// banco é o cache, não o limite.
+// o IP depende do TRUST_PROXY certo (docs/deploy-subdominio-api.md) e um atacante com muitos IPs o contorna, e é por
+// isso que a proteção do banco é o cache, não o limite.
 
 /** Quantos selos diários o endpoint devolve (os mais recentes). Cobre um mês de VPS fora do ar sem perder âncora. */
 export const SELOS_PUBLICOS_MAX = 31;

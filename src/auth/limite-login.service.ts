@@ -5,8 +5,9 @@
 // Sem bloqueio só por login de propósito: os logins do seed são públicos, e um bloqueio por login deixava qualquer um
 // manter o porteiro fora do sistema indefinidamente. O preço: quem tem muitos IPs ganha 10 palpites por IP (limitados
 // também pelos 30 do IP e pelo limite de requisições do nginx); a política de senha é que segura esse caso.
-// O IP é o de `req.ip`, que com TRUST_PROXY=2 vem do X-Forwarded-For montado por Vercel -> nginx (docs/deploy.md): se
-// o TRUST_PROXY estiver errado, ou se alguém chegar direto na VPS forjando o XFF, o par e o IP passam a ser do cliente.
+// O IP é o de `req.ip`, que com TRUST_PROXY=1 é o último item do X-Forwarded-For, posto pelo nginx da VPS a partir do
+// IP da conexão (docs/deploy-subdominio-api.md): se o TRUST_PROXY estiver errado para mais, o par e o IP passam a ser
+// o que o cliente escreveu no XFF.
 //
 // Persistente (tabela login_limite) e não em memória: com duas réplicas, um contador por processo dobraria o limite.
 // A tentativa é RESERVADA (contada) antes de verificar a senha, num UPSERT atômico: N requisições paralelas não

@@ -72,7 +72,7 @@ pergunta 1), com as salvaguardas registradas lá.
 | Endpoint público de selos sem parâmetro, com `totalDoDia` | `src/selo/publico.ts:1-35` |
 | Testes da API rodam no PGlite **como superusuário** (só alguns trechos usam `SET ROLE app_rw`) | `test/helpers/app.ts:77-91`; `test/helpers/banco.ts:84-87` |
 | Backup: um `pg_dump -Fc` do banco `portaria`, cifrado com age | `db/backup/backup-portaria.sh:60-63` |
-| Front na Vercel com rewrite `/api/*` para a VPS (mesma origem para o navegador) | `vercel.json` (no Front) |
+| Front como SPA estático na Cloudflare (`https://www.condenexo.com.br`) chamando a API direto em `https://api.condenexo.com.br/api/v1`, com CORS com credenciais (desde 2026-10-31; antes, Vercel com rewrite `/api/*`, mesma origem) | `docs/deploy-subdominio-api.md`; `CORS_ORIGENS` em `src/config/config.ts` |
 | Matriz RBAC com quatro papéis de condomínio | `src/dominio/rbac.ts:22-67` |
 
 ## 2. Premissas
@@ -84,7 +84,7 @@ pergunta 1), com as salvaguardas registradas lá.
 | P3 | Um único processo de API atende todos os condomínios | Se a API for comprometida, todos os condomínios caem juntos. Isso vale para qualquer um dos três modelos de isolamento; só servidores separados mudam isso |
 | P4 | O condomínio é o controlador e o dono do SaaS é o operador (LGPD, art. 5º, VI e VII, e art. 39), formalizado em contrato | Se o SaaS decidir finalidades (ex.: usar dado agregado para outro produto), vira controlador e precisa de base legal própria |
 | P5 | Todos os condomínios estão no fuso de Brasília na primeira versão | Selo diário e relatórios cortariam o dia na hora errada (SAAS-18) |
-| P6 | Não existe domínio próprio por enquanto (API em `sslip.io`, front em `vercel.app`) | Com domínio, subdomínio por condomínio vira opção de login melhor (SAAS-05) |
+| P6 | ~~Não existe domínio próprio~~ Desde 2026-10-31 há domínio próprio: front em `www.condenexo.com.br` (Cloudflare) e API em `api.condenexo.com.br`; o `sslip.io` fica só como transição (antes: API em `sslip.io`, front em `vercel.app`) | Com domínio, subdomínio por condomínio vira opção de login melhor (SAAS-05) |
 
 ---
 
@@ -219,7 +219,7 @@ leitura em dois bancos correlaciona a pessoa. Com uma KEK só, comprometer um co
 | Opção | Prós | Contras |
 |---|---|---|
 | Login global (e-mail único na plataforma) | Um campo a menos; suporta pessoa em vários condomínios | Porteiro nem sempre tem e-mail; colisão de logins simples (`porteiro1`); precisa de tabela global de identidade, que vira dado pessoal cruzando condomínios |
-| Subdomínio (`<codigo>.dominio`) | Isolamento de cookie por origem; UX boa | Exige domínio próprio, certificado curinga e projeto Vercel com curinga. Hoje não há domínio (P6) |
+| Subdomínio (`<codigo>.dominio`) | Isolamento de cookie por origem; UX boa | Exige domínio próprio, certificado curinga e o front servido em curinga. O domínio próprio existe desde 2026-10-31 (P6) |
 | **Código do condomínio no login** | Funciona com a infraestrutura de hoje; unicidade de login continua por banco (`schema.ts:106` não muda) | Um campo a mais na primeira vez |
 
 **Decisão.** Código do condomínio (slug curto, ex. `parque`) no formulário de login, lembrado no navegador da portaria
@@ -281,6 +281,9 @@ plataforma apontando para usuários em N bancos).
 **Decisão (original).**
 - **Mesma origem, servido em `/admin` (revisado em 2026-10-23, decisão do usuário):** o front do Master deixa de ter
   projeto Vercel próprio e passa a ser servido em `/admin` do mesmo projeto da portaria, com o mesmo rewrite `/api`.
+  *Atualização de 2026-10-31:* a Vercel foi abandonada. O `/admin` é servido pelo mesmo SPA estático da Cloudflare em
+  `www.condenexo.com.br`, e não há mais rewrite: o navegador chama `api.condenexo.com.br` direto (CORS com credenciais).
+  O cookie do Master segue host-only no host da API, com `Path=/api/v1/plataforma`.
   Bundles continuam separados (`apps/plataforma` é seu próprio workspace, sem código de sessão em comum com `apps/web`).
   *Decisão original (descartada):* outro projeto Vercel (`<nome>-plataforma.vercel.app`), para ter pote de cookies
   próprio.
@@ -892,7 +895,9 @@ para existir, sem a tela do Master: SAAS-10 (passos e retomada), `configuracao` 
 - **Cookie** `__Secure-portaria_plataforma` (dev/e2e: `portaria_plataforma`), `HttpOnly`, `Secure`, `SameSite=Strict`,
   **`Path=/api/v1/plataforma`**, sem `Domain`. O doc previa `__Host-`, que exige `Path=/`; o caminho restrito foi
   preferido porque o navegador nem envia o cookie da plataforma às rotas de condomínio. Com o `.vercel.app` na Public
-  Suffix List, nenhum subdomínio vizinho consegue plantar cookie para o host, que é o que o `__Host-` evitaria. A guarda
+  Suffix List (topologia antiga), nenhum subdomínio vizinho conseguia plantar cookie para o host, que é o que o `__Host-`
+  evitaria. Desde 2026-10-31 o host é `api.condenexo.com.br`, em domínio próprio: outros subdomínios do mesmo site
+  entram no risco aceito de `docs/02_especificacao_tecnica.md` §14 nº 26 (mitigado pela verificação de Origin). A guarda
   de cada lado só lê o próprio nome, e os tokens estão em tabelas de bancos diferentes: cookie cruzado = 401 (testado
   nos dois sentidos, inclusive trocando o valor de nome).
 - **Limite de tentativas:** o algoritmo da 0008 do condomínio (par login+IP bloqueia, IP bloqueia, login sozinho só
@@ -1257,9 +1262,9 @@ Desde 2026-10-22 o Master lê dado de condomínio sem aprovação, com registro 
 **Seção 7 (LGPD):**
 - Explicitar a relação controlador (condomínio) / operador (empresa do SaaS), com contrato de operação (art. 39) que
   defina instruções, suboperadores, segurança, incidente e devolução/eliminação.
-- Lista de suboperadores: hospedagem da VPS, Vercel (o rewrite passa o tráfego da API, inclusive dado pessoal),
+- Lista de suboperadores: hospedagem da VPS, Cloudflare (DNS e hospedagem do SPA estático; a API fica em "DNS only", sem passar o tráfego por ela) e, até 2026-10-31, Vercel (o rewrite passava o tráfego da API, inclusive dado pessoal),
   GitHub (só hashes e raízes, sem dado pessoal), provedor de e-mail se ligado.
-- Transferência internacional (art. 33): a Vercel e o GitHub estão fora do Brasil; o país do datacenter da VPS precisa
+- Transferência internacional (art. 33): a Vercel (até 2026-10-31), a Cloudflare e o GitHub estão fora do Brasil; o país do datacenter da VPS precisa
   ser confirmado. Hoje isso já existe para o piloto e não está na seção 7.
 - Dados que a empresa do SaaS trata como **controladora**: cadastro comercial do cliente e contato do responsável pelo
   contrato (execução de contrato, art. 7º, V).

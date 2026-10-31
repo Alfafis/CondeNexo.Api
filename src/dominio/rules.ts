@@ -26,7 +26,7 @@ export function senhaTemporariaVencida(u: { deveTrocarSenha?: boolean; senhaTemp
 
 // ----- Anexos de ocorrência (RF-27, RNF-03, spec §9.2) -------------------------------------------------------------
 // Os mesmos limites na tela (pré-validação) e na API (decisão). 4 MiB: a foto de celular comprimida e o PDF de um
-// boletim cabem, e o corpo passa pelo proxy da Vercel em produção (limite de ~4,5 MB por requisição).
+// boletim cabem, com folga no limite de corpo do proxy da VPS (client_max_body_size 6m, docs/deploy.md §5).
 export const ANEXO_MAX_BYTES = 4 * 1024 * 1024;
 export const ANEXO_MAX_POR_OCORRENCIA = 5;
 /** Tipos aceitos e a extensão do nome de download. O nome original do arquivo não é guardado (pode ter dado pessoal). */

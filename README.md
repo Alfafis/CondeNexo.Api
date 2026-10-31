@@ -241,8 +241,8 @@ loga só SQLSTATE e constraint (a mensagem do `DrizzleQueryError` traz SQL e par
 |---|---|---|
 | `PORTARIA_AMBIENTE` | `dev` \| `producao` | producao recusa `COOKIE_SECURE=false`; o seed em producao cria usuários com troca obrigatória |
 | `COOKIE_SECURE` | `true` \| `false` | só essas grafias; `false` só em http://localhost |
-| `TRUST_PROXY` | `false` \| 1 a 3 | saltos de proxy confiáveis; produção com rewrite da Vercel + Caddy: 2 (spec §14, nº 26) |
-| `CORS_ORIGENS` | origens exatas, vírgula | vazio = CORS desligado (produção, mesma origem) |
+| `TRUST_PROXY` | `false` \| 1 a 3 | saltos de proxy confiáveis; produção, só o nginx da VPS na frente: 1 (2 deixa o IP forjável; spec §14, nº 26; `docs/deploy-subdominio-api.md`) |
+| `CORS_ORIGENS` | origens exatas, vírgula | produção: `https://www.condenexo.com.br` (obrigatório; front e API em origens diferentes, CORS com credenciais); vazio = CORS desligado. Escrita (POST/PATCH/PUT/DELETE) com `Origin` fora da lista é recusada com 403 `ORIGEM_NAO_PERMITIDA` |
 | `SESSAO_PADRAO_INATIVIDADE_MIN`, `SESSAO_PADRAO_ABSOLUTA_MIN` | 240, 840 (até 1440) | minutos; toda sessão sem "Manter conectado" e sempre a do porteiro; vazio = padrão |
 | `SESSAO_LONGA_INATIVIDADE_MIN`, `SESSAO_LONGA_ABSOLUTA_MIN` | 1440, 21600 (até 43200) | minutos; "Manter conectado" (síndico, administração, auditor). Inatividade <= total, longa >= padrão. As antigas `SESSAO_ABSOLUTA_MIN`/`SESSAO_INATIVIDADE_MIN` são ignoradas com aviso no log |
 | `PORTARIA_HMAC_CPF_KEY` | base64, 32+ bytes | também origem (HKDF) da chave do `login_limite` |
@@ -263,7 +263,7 @@ O atraso crescente e os parâmetros do argon2 (`PADROES_ARGON2`) continuam const
 ### Dev do front contra a API
 
 Preferir o proxy do Vite (`API_PROXY_ALVO=http://127.0.0.1:3000` para a API do Docker, ou `:3101` para o modo
-PGlite; sem a variável, o alvo é a API de PRODUÇÃO): mesma origem, igual ao rewrite de produção, sem CORS. Alternativa: `CORS_ORIGENS=http://localhost:5173` (localhost:5173 e :3000 são o mesmo site, então o
+PGlite; sem a variável, o alvo é a API de PRODUÇÃO): mesma origem, sem CORS (produção usa origens diferentes, com CORS: `www.` chama `api.`). Alternativa: `CORS_ORIGENS=http://localhost:5173` (localhost:5173 e :3000 são o mesmo site, então o
 cookie Strict viaja).
 
 ## Decisões de build

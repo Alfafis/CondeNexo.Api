@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "https://tccgestaoacesso.vercel.app/api/v1",
-      "description": "Produção (Vercel, mesma origem do front e do cookie). Escreve na trilha append-only real."
+      "url": "https://api.condenexo.com.br/api/v1",
+      "description": "Produção no subdomínio api. (mesmo site do front em www.condenexo.com.br: o cookie SameSite=Strict é enviado; CORS com credenciais só para a origem exata do front). Escreve na trilha append-only real."
     },
     {
       "url": "http://127.0.0.1:3101/api/v1",

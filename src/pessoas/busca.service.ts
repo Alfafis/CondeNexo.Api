@@ -11,7 +11,7 @@
 //            placa: a busca não vira histórico de placas (a trilha tem o filtro próprio);
 //   ordem    nome exato, começa com, contém, outros critérios; depois alfabética.
 // Anonimizada nunca aparece; desativada (RF-02) só com `incluirDesativadas` (tela Cadastro), nunca na busca do topo. O CPF digitado só existe nesta requisição: vem no CORPO de um POST (não na URL, que
-// proxies e a borda da Vercel registram), não é logado (log em allowlist) e leitura não grava trilha.
+// proxies registram), não é logado (log em allowlist) e leitura não grava trilha.
 import { Inject, Injectable } from '@nestjs/common';
 import { DIGITOS_VISIVEIS_CPF } from '../dominio/cpf';
 import { fmtData, fmtHora } from '../dominio/time';
