@@ -1,5 +1,10 @@
 # CondNexo como SaaS multi-condomínio — Arquitetura
 
+> **Escrito no monorepo; hoje o front está em CondeNexo.Front.** Onde este documento diz `apps/web` ou `apps/plataforma`,
+> leia "código do Front (antigo apps/web)" / "código do Front (antigo apps/plataforma)"; `@portaria/domain` virou `src/dominio/` neste repositório. O
+> workflow `testes-web.yml` citado no histórico não existe aqui (workflows desta API: `testes-api.yml`,
+> `testes-postgres.yml`, `deploy-api.yml`, `ancora-selo.yml`). Texto histórico mantido como foi escrito.
+
 > **Status:** v0.2 (2026-10-22). v0.1 era só proposta; na v0.2 o usuário respondeu às perguntas 1, 2, 3 e 5 da
 > seção 10 (SaaS agora, repositório público, banco por condomínio, VPS compartilhada), e F0/F1 foram implementadas
 > (código e migrações, sem deploy). Nada muda em produção sem os passos manuais de `docs/deploy.md`, seção 12.
@@ -67,7 +72,7 @@ pergunta 1), com as salvaguardas registradas lá.
 | Endpoint público de selos sem parâmetro, com `totalDoDia` | `src/selo/publico.ts:1-35` |
 | Testes da API rodam no PGlite **como superusuário** (só alguns trechos usam `SET ROLE app_rw`) | `test/helpers/app.ts:77-91`; `test/helpers/banco.ts:84-87` |
 | Backup: um `pg_dump -Fc` do banco `portaria`, cifrado com age | `db/backup/backup-portaria.sh:60-63` |
-| Front na Vercel com rewrite `/api/*` para a VPS (mesma origem para o navegador) | `apps/web/vercel.json` |
+| Front na Vercel com rewrite `/api/*` para a VPS (mesma origem para o navegador) | `vercel.json` (no Front) |
 | Matriz RBAC com quatro papéis de condomínio | `src/dominio/rbac.ts:22-67` |
 
 ## 2. Premissas
@@ -381,7 +386,7 @@ controlador (art. 39). A instrução passa a vir do contrato, não de uma aprova
 
 ### SAAS-10 — Onboarding de condomínio (provisionamento)
 
-**Implementado em 2026-10-22** (CLI; a tela do Master é da F5): `src/saas/provisionar.ts` e
+**Implementado em 2026-10-22** (CLI; a tela do Master é da F5): `src/plataforma/provisionar.ts` e
 `src/cli/provisionar-condominio.ts`; passo a passo em `docs/deploy.md`, seção 16; estado em §5.2.
 
 1. Entrada: JSON pelo stdin (código, nome, cidade/UF, plano, estrutura de unidades, áreas comuns, nome e login do
@@ -714,8 +719,8 @@ fase tem rollback por *redeploy* da imagem anterior.
 
 ### 5.1 Estado da F2 (2026-10-22, código; deploy em `docs/deploy.md` §13)
 
-**Entrou:** `ResolvedorCondominio` (`src/saas/resolvedor.ts`, cache da tabela `condominio`, chaves desembrulhadas por
-condomínio, conferências de boot), durable providers (`src/saas/contexto.ts`, `database.module.ts`: `CONDOMINIO`, `DB`,
+**Entrou:** `ResolvedorCondominio` (`src/tenancy/resolvedor.ts`, cache da tabela `condominio`, chaves desembrulhadas por
+condomínio, conferências de boot), durable providers (`src/tenancy/contexto.ts`, `database.module.ts`: `CONDOMINIO`, `DB`,
 `PG_POOL` duráveis; `REGISTRO_BANCOS` com um pool `app_rw` por banco), `PLATAFORMA_DB` não exportado, chaves só da
 plataforma (sem fallback para o ambiente; as do ambiente, se presentes, são conferidas no boot), KEK conferida contra
 uma DEK existente, cookie `v2.<condominio_id>.<token>` com o antigo aceito para o piloto, login com `X-Condominio`
@@ -828,7 +833,7 @@ para existir, sem a tela do Master: SAAS-10 (passos e retomada), `configuracao` 
 >   da `api` nova subir; se o laço falhar depois dela (num banco de condomínio), a API velha fica no ar e só as rotas
 >   `/plataforma` dela quebram (500), as de condomínio não.
 > - `POST /plataforma/auth/login` recebe só `{ email, senha }` (DTO estrito: `codigo` agora é 400). Mensagem única
->   "E-mail ou senha inválidos.". Saíram `src/master/totp.ts`, `segredo-totp.ts`, o anti-replay e
+>   "E-mail ou senha inválidos.". Saíram `src/plataforma/totp.ts`, `segredo-totp.ts`, o anti-replay e
 >   `test/master-totp.test.ts`; o serviço de login não injeta mais a chave mestra (o limite de tentativas ainda usa).
 > - Troca de senha do Master: mínimo 16 (`SENHA_MIN_MASTER`); `problemasDaSenha(..., { minimo })` mantém 12 para o
 >   condomínio.
@@ -845,7 +850,7 @@ para existir, sem a tela do Master: SAAS-10 (passos e retomada), `configuracao` 
   `senha_temporaria_expira_em`, `ultimo_acesso` e CHECKs (formato do e-mail, tamanho do segredo cifrado, temporária só com
   troca pendente); `master_sessao` ganha `motivo_revogacao` e índice por usuário; `plataforma_login_limite` ganha o tipo
   `master_ip`. Sem GRANT novo (os da 0000 são por tabela) e sem DELETE para `app_plataforma`.
-- **API, módulo `src/master/`** (só o pool `app_plataforma` e a chave mestra; teste de arquitetura: nenhum arquivo dali
+- **API, módulo `src/plataforma/`** (só o pool `app_plataforma` e a chave mestra; teste de arquitetura: nenhum arquivo dali
   injeta `DB`/`CONDOMINIO`/`PG_POOL`/`REGISTRO_BANCOS`): `POST /plataforma/auth/login`, `GET /plataforma/auth/me`,
   `POST /plataforma/auth/logout`, `POST /plataforma/auth/trocar-senha`, `GET /plataforma/condominios`,
   `POST /plataforma/condominios`, `PATCH /plataforma/condominios/:id/modulos`. Guarda global estática `PlataformaGuard` +
@@ -868,7 +873,7 @@ para existir, sem a tela do Master: SAAS-10 (passos e retomada), `configuracao` 
   inatividade, troca obrigatória, criação com provisionamento real sobre PGlite, senha uma vez e fora dos logs, módulos,
   papel suporte), `test/master-cli.test.ts` (CLI como `app_plataforma`, serviço provisionador: token, 400/413/422/500,
   um pedido por vez), testes do front e o e2e `apps/plataforma/e2e` (Playwright sobre a API em PGlite). CI:
-  `testes-web.yml` (build, testes e e2e do `apps/plataforma`) e `testes-postgres.yml` (smoke da CLI e do provisionador
+  `testes-web.yml` (no monorepo; build, testes e e2e do `apps/plataforma`, hoje no Front) e `testes-postgres.yml` (smoke da CLI e do provisionador
   com roles reais).
 
 **Decisões onde o doc deixava margem (menor risco):**
@@ -925,7 +930,7 @@ condomínio. Se a trilha crescer a ponto de pesar, vira uma `drizzle/0013` *expa
 acao LIKE 'plataforma.%'`).
 
 **Entrou (API):**
-- **Leitura do Master**, `src/master/leitura-master.controller.ts`, em `GET /api/v1/plataforma/condominios/:id/...`
+- **Leitura do Master**, `src/plataforma/leitura-master.controller.ts`, em `GET /api/v1/plataforma/condominios/:id/...`
   com a ação `condominio.ler` (só papel `master`; o contrato lista nominalmente quem tem esse papel):
   `catalogo`, `unidades`, `unidades/:ref`, `unidades/:unidadeId/autorizadores`, `usuarios`, `pessoas`,
   `pessoas/:pessoaId`, `vinculos`, `vinculos/:vinculoId`, `funcionarios`, `funcionarios/:pessoaId`, `eventos-acesso`,
@@ -936,9 +941,9 @@ acao LIKE 'plataforma.%'`).
   `plataforma.exportar`. O JSONL verificável (`POST auditoria/exportacoes`) saiu do Master em 2026-10-30 (ver abaixo). Os serviços são os do síndico, com a
   **mesma view**, minimizada na saída desde 2026-10-30 (ver "Minimização do dado de terceiros" abaixo; o teste compara,
   rota a rota, o corpo do Master com o do síndico passado pela minimização).
-- **Ponto único**, `AcessoPlataformaService` (`src/master/acesso-plataforma.service.ts`): resolve o condomínio, obtém a
+- **Ponto único**, `AcessoPlataformaService` (`src/plataforma/acesso-plataforma.service.ts`): resolve o condomínio, obtém a
   subárvore durável dele (`contextoDoJob`, como os jobs), chama o serviço, grava a linha no `audit_log` do condomínio e
-  a linha em `plataforma_audit`, e só então devolve. Teste de arquitetura: em `src/master`, só ele cita
+  a linha em `plataforma_audit`, e só então devolve. Teste de arquitetura: em `src/plataforma`, só ele cita
   `contextoDoJob`/`ModuleRef`/`DB`; fora dele, só o agendador monta subárvore sem requisição; e todo handler do controller
   de leitura passa por ele. O pool lido é o `app_rw` daquele banco; o `app_plataforma` continua sem CONNECT nos bancos
   de condomínio.
@@ -952,7 +957,7 @@ acao LIKE 'plataforma.%'`).
 - **Tela do condomínio:** `GET /api/v1/auditoria/acessos-plataforma?de&ate&cursor&limite` (ação nova
   `auditoria.acessos_plataforma`: síndico e auditor; a administração não), `acao LIKE 'plataforma.%'`, mais recentes
   primeiro, devolvendo só quando, quem, tipo, entidade, registro, rota, método e status (o `master_usuario_id` não sai).
-- **`ModuloGuard`** (`src/saas/modulo.guard.ts`): `@Modulo('<nome>')` nos controllers `encomendas`, `ocorrencias`,
+- **`ModuloGuard`** (`src/tenancy/modulo.guard.ts`): `@Modulo('<nome>')` nos controllers `encomendas`, `ocorrencias`,
   `importacoes`, `veiculos`, `funcionarios` e `relatorios`, e nos 6 handlers de autorização prévia do `AcessoController`
   (o resto dele, eventos e restrições, é núcleo). Guarda global durável registrada **depois** da `SessaoGuard` e da
   `PapelGuard`: sem sessão continua 401, sem papel continua o 403 do RBAC. Módulo desligado: **403 `MODULO_DESLIGADO`**,
@@ -1001,7 +1006,7 @@ acao LIKE 'plataforma.%'`).
   ou entrar de novo, mas a API já recusa em até 1 min. O aviso do modal de módulos diz isso.
 
 **Minimização do dado de terceiros (2026-10-30).** O Master é operador (art. 39) e deve ver o mínimo (art. 6º, III). As
-views continuam as do síndico, mas a resposta de toda rota de leitura do Master passa por `src/master/minimizacao.ts`,
+views continuam as do síndico, mas a resposta de toda rota de leitura do Master passa por `src/plataforma/minimizacao.ts`,
 aplicada no ponto único (`AcessoPlataformaService.ler`, antes da trilha: se falhar, a linha leva o status do erro e nada
 sai). A rota do síndico não muda. Regras por nome de campo, iguais em qualquer view:
 - **Nome de pessoa** (morador, visitante, prestador, funcionário, destinatário, quem retirou, quem autorizou ou pediu):
@@ -1059,7 +1064,7 @@ síndico já faz no `usuario_sistema` e na `sessao` com o `app_rw` (INSERT/UPDAT
 continua append-only e a cadeia de `evento_acesso` não é tocada.
 
 **Entrou (API):**
-- Rotas em `src/master/sindicos-master.controller.ts`, ação nova **`condominio.sindicos`** em
+- Rotas em `src/plataforma/sindicos-master.controller.ts`, ação nova **`condominio.sindicos`** em
   `src/dominio/rbac-plataforma` (só `master`; `suporte` recebe 403 `SEM_PERMISSAO`, gravado como `acesso.negado`
   na trilha da plataforma):
   - `POST /api/v1/plataforma/condominios/:id/sindicos` `{ nome, login, motivo, senhaMaster }` → 201
@@ -1103,7 +1108,7 @@ continua append-only e a cadeia de `evento_acesso` não é tocada.
   `USUARIO_ANONIMIZADO`; login repetido (sem diferença de maiúsculas) 409 `LOGIN_EXISTENTE` no campo `login`.
 - **"Acessos da plataforma"** (`GET /auditoria/acessos-plataforma`): o filtro continua `acao LIKE 'plataforma.%'`, então as
   ações novas entram; a resposta ganhou `motivo`, `alvo` ("Nome (login)") e `troca` (nulos nas leituras).
-- Teste de arquitetura atualizado (`test/master-leitura.test.ts`): em `src/master`, só o `AcessoPlataformaService` obtém
+- Teste de arquitetura atualizado (`test/master-leitura.test.ts`): em `src/plataforma`, só o `AcessoPlataformaService` obtém
   subárvore; todo handler do controller de síndicos chama `alterarSindico`; a reautenticação vem antes de resolver o
   condomínio; só o ponto único chama `sindicoPelaPlataforma`.
 

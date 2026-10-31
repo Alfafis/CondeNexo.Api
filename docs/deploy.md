@@ -1,5 +1,10 @@
 # Deploy — CondNexo na VPS da Betech
 
+> **Escrito no monorepo; hoje o front está em CondeNexo.Front.** Referências a `apps/web`, `apps/plataforma` e
+> `@portaria/*` abaixo são históricas: esse código está no repositório CondeNexo.Front (ver seção 6) e o pacote de domínio
+> vive em `src/dominio/` deste repositório. Comandos de front (`npm run dev -w ...`, build do admin, Root Directory) valem
+> no Front, não aqui.
+
 Runbook das fases 2 e 3. A fase 1 (este repositório) entregou só código e configuração, validados localmente. Nada
 foi feito no servidor.
 
@@ -386,8 +391,8 @@ mock não existe mais): o deploy anterior também fala com a API da VPS. Se o pr
 API (§11), não o do front. Um deploy de produção antigo, de antes desta mudança, ainda pode estar em `mock` se a
 variável `VITE_API_MODE` não estava definida naquele build: não promova deploys anteriores à fase 3.
 
-Para desenvolver o front sem tocar em produção: `npm run dev:pglite` e
-`API_PROXY_ALVO=http://127.0.0.1:3101 npm run dev -w apps/web` (ver `apps/web/README.md`).
+Para desenvolver o front sem tocar em produção: `npm run dev:pglite` (neste repositório) e
+`API_PROXY_ALVO=http://127.0.0.1:3101` no ambiente de dev do Front (comando e README: ver CondeNexo.Front).
 
 ---
 
@@ -834,7 +839,7 @@ só o ator; inexistente: `usuario_nome = '(login inexistente)'`). As linhas anti
 ## 16. SaaS: provisionar um condomínio novo (CLI `provisionar-condominio`)
 
 Desenho e regras em `docs/05_arquitetura_saas.md` (SAAS-10, "Provisionamento"); código em
-`src/saas/provisionar.ts` e `src/cli/provisionar-condominio.ts`.
+`src/plataforma/provisionar.ts` e `src/cli/provisionar-condominio.ts`.
 
 ### 16.1 Deploy desta versão (uma vez; MANUAL: o `deploy-vps.sh` sai com código 2)
 
@@ -990,8 +995,8 @@ provisionado depois já nasce com ela.
 > código e do banco pela migração `drizzle-plataforma/0004_master_sem_totp.sql`. Em produção, onde a 0003 já está
 > aplicada e o Master já existe, siga **18.7**. As subseções abaixo já descrevem o fluxo sem TOTP.
 
-Desenho em `docs/05_arquitetura_saas.md` §5.3 (SAAS-07/08). Código: `src/master/` (rotas `/api/v1/plataforma/*`),
-`src/cli/criar-usuario-plataforma.ts`, `src/cli/servidor-provisionador.ts` e o front `apps/plataforma`
+Desenho em `docs/05_arquitetura_saas.md` §5.3 (SAAS-07/08). Código: `src/plataforma/` (rotas `/api/v1/plataforma/*`),
+`src/cli/criar-usuario-plataforma.ts`, `src/cli/servidor-provisionador.ts` e o front `apps/plataforma` (no Front)
 (outro projeto Vercel). Muda compose, Dockerfile e `.env.producao.example`: o `deploy-vps.sh` sai com código 2.
 
 **O que muda em produção:**
@@ -1051,6 +1056,10 @@ docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e-m
   **gerenciador de senhas**, sem reutilizar em nenhum outro lugar.
 
 ### 18.3 App do Master servido em /admin (mesmo projeto Vercel; nada a criar no painel)
+
+> Escrito no monorepo; hoje esse código está em CondeNexo.Front (antigos `apps/web` e `apps/plataforma`; a estrutura interna do Front é
+> dele e pode mudar). Os passos 1 e 2 abaixo (build `build:admin` do `@portaria/plataforma`, Root Directory `apps/web`) não se
+> aplicam a este repositório: ver CondeNexo.Front.
 
 Decisão do usuário (2026-10-23, SAAS-08): **sem projeto Vercel separado**. O app do Master é servido em `/admin` do
 mesmo site e do mesmo projeto do `apps/web` (Root Directory `apps/web`), como bundle separado:

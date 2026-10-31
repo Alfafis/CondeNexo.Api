@@ -47,7 +47,7 @@ docker compose up --build --watch     # ambiente completo com Postgres (ver "Amb
 Documentação OpenAPI, Swagger local e coleções Bruno/Postman: ver [`docs/api/`](docs/api/README.md). Especificação técnica
 e arquitetura SaaS: [`docs/02_especificacao_tecnica.md`](docs/02_especificacao_tecnica.md) e
 [`docs/05_arquitetura_saas.md`](docs/05_arquitetura_saas.md) (escritas no monorepo: `apps/web` e `apps/plataforma` hoje
-são o CondeNexo.Front). Deploy e runbooks: [`docs/deploy.md`](docs/deploy.md).
+estão no CondeNexo.Front, e o pacote `@portaria/domain` virou `src/dominio/` aqui). Deploy e runbooks: [`docs/deploy.md`](docs/deploy.md).
 
 ```
 src/dominio/             regras puras (rules, rbac, rbac-plataforma, modulos, units, hashChain, exportacao, cpf, nome, time, types...)
