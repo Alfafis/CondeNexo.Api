@@ -3237,6 +3237,48 @@
       ]
     },
     {
+      "name": "painelmaster",
+      "item": [
+        {
+          "name": "painelmaster / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/painel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "painel"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.listar`"
+          }
+        },
+        {
+          "name": "painelmaster / leituras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/painel/leituras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "painel",
+                "leituras"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        }
+      ]
+    },
+    {
       "name": "parametros",
       "item": [
         {

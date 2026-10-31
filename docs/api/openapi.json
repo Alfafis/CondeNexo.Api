@@ -53,6 +53,9 @@
       "name": "ocorrencias"
     },
     {
+      "name": "painelmaster"
+    },
+    {
       "name": "parametros"
     },
     {
@@ -12112,6 +12115,120 @@
         }
       }
     },
+    "/plataforma/painel": {
+      "get": {
+        "tags": [
+          "painelmaster"
+        ],
+        "operationId": "painelmaster_obter",
+        "summary": "GET /plataforma/painel",
+        "description": "Plataforma (Master). Permissão: `condominio.listar`",
+        "x-permissao": "condominio.listar",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PainelPlataforma"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/painel/leituras": {
+      "get": {
+        "tags": [
+          "painelmaster"
+        ],
+        "operationId": "painelmaster_leituras",
+        "summary": "GET /plataforma/painel/leituras",
+        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "x-permissao": "condominio.ler",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LeiturasMaster"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
     "/plataforma/parametros": {
       "get": {
         "tags": [
@@ -15847,6 +15964,34 @@
         ],
         "additionalProperties": false
       },
+      "CondominioRecente": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "codigo": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "criadoEm": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "codigo",
+          "status",
+          "criadoEm"
+        ],
+        "additionalProperties": false
+      },
       "EncomendaViewApi": {
         "type": "object",
         "properties": {
@@ -16534,6 +16679,51 @@
         ],
         "additionalProperties": false
       },
+      "LeiturasMaster": {
+        "type": "object",
+        "properties": {
+          "janelaDias": {
+            "type": "number"
+          },
+          "porAcao": {
+            "type": "object",
+            "properties": {
+              "condominio.ler": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              "condominio.exportar": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              "condominio.motivo": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {
+                  "type": "number"
+                }
+              }
+            },
+            "required": [
+              "condominio.ler",
+              "condominio.exportar",
+              "condominio.motivo"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "janelaDias",
+          "porAcao"
+        ],
+        "additionalProperties": false
+      },
       "LimpezaTitular": {
         "type": "object",
         "properties": {
@@ -16802,6 +16992,102 @@
           "nomeArquivo",
           "conteudo",
           "quantidade"
+        ],
+        "additionalProperties": false
+      },
+      "PainelAncora": {
+        "type": "object",
+        "properties": {
+          "ultimaData": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "atrasada": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ultimaData",
+          "atrasada"
+        ],
+        "additionalProperties": false
+      },
+      "PainelCondominios": {
+        "type": "object",
+        "properties": {
+          "porStatus": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "porPlano": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "recentes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CondominioRecente"
+            }
+          }
+        },
+        "required": [
+          "porStatus",
+          "porPlano",
+          "recentes"
+        ],
+        "additionalProperties": false
+      },
+      "PainelPlataforma": {
+        "type": "object",
+        "properties": {
+          "condominios": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PainelCondominios"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "provisionador": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "disponivel": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "disponivel"
+            ],
+            "additionalProperties": false
+          },
+          "ancora": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PainelAncora"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "condominios",
+          "provisionador",
+          "ancora"
         ],
         "additionalProperties": false
       },

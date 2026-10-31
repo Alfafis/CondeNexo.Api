@@ -14,6 +14,8 @@ import { LimiteMasterService } from './limite-master.service';
 import { MotivoLeituraService } from './motivo-leitura';
 import { MotivoMasterController } from './motivo-master.controller';
 import { AuthMasterController, CondominiosMasterController, ParametrosMasterController, ProvisionadorMasterController } from './master.controller';
+import { PainelMasterController } from './painel-master.controller';
+import { PainelMasterService } from './painel-master.service';
 import { PlataformaGuard } from './plataforma.guard';
 import { PROVISIONADOR, provisionadorDoAmbiente } from './provisionador';
 import { SessaoMasterService } from './sessao-master.service';
@@ -21,9 +23,9 @@ import { SindicosMasterController } from './sindicos-master.controller';
 
 @Module({
   imports: [AuthModule],
-  controllers: [AuthMasterController, CondominiosMasterController, ParametrosMasterController, ProvisionadorMasterController, LeituraMasterController, MotivoMasterController, SindicosMasterController],
+  controllers: [AuthMasterController, CondominiosMasterController, ParametrosMasterController, ProvisionadorMasterController, LeituraMasterController, MotivoMasterController, SindicosMasterController, PainelMasterController],
   providers: [
-    AuthMasterService, SessaoMasterService, LimiteMasterService, CondominiosMasterService, AcessoPlataformaService, MotivoLeituraService,
+    AuthMasterService, SessaoMasterService, LimiteMasterService, CondominiosMasterService, AcessoPlataformaService, MotivoLeituraService, PainelMasterService,
     { provide: PROVISIONADOR, useFactory: () => provisionadorDoAmbiente(process.env) },
     // Global e estática: roda antes das guardas duráveis de condomínio e só age em rota `{ tipo: 'plataforma' }`.
     { provide: APP_GUARD, useClass: PlataformaGuard },
