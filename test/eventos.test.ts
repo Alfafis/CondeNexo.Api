@@ -510,7 +510,7 @@ describe('turno (RF-29) e relatórios (RF-30, RF-31)', () => {
     expect(porMeio.totais.entradas).toBe(res.acessosPorMeio.find((m: { meio: string }) => m.meio === 'escala').total);
     expect(porMeio.totais.negados).toBe(0);
     const csv = (await get('administracao', `/relatorios/resumo/csv?de=2026-10-17&ate=${fim}&unidadeId=${ids['D-32']}`)).body.data;
-    expect(csv.nomeArquivo).toMatch(/^relatorio-condnexo-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(csv.nomeArquivo).toMatch(/^relatorio-condenexo-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(csv.conteudo.startsWith('﻿Seção;Item;Total\r\n')).toBe(true);
     expect(csv.conteudo).toContain('Filtro;Unidade;D-32');
   });

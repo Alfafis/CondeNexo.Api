@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "API do CondNexo",
+    "title": "API do CondeNexo",
     "version": "0.1.0",
     "description": "Controle de acesso e gestão de portaria de condomínios (TCC). Gerada dos metadados do Nest e dos schemas Zod: não editar à mão.\n\nSucesso sempre em `{data}` (listas por cursor: `{data, pagination:{cursor, hasNextPage}}`); erro em `Erro`.\n\nAutenticação por cookie de sessão HttpOnly/SameSite=Strict: chame `POST /auth/login` e reaproveite o cookie.\n\nO conteúdo de `data` de cada resposta é o tipo de retorno do handler, extraído pelo compilador TypeScript (test/openapi/respostas.ts): é o contrato de que o CondeNexo.Front gera os tipos dele."
   },

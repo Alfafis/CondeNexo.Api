@@ -268,7 +268,7 @@ export function gerarOpenApiComRelatorio(app: INestApplication, opcoes: OpcoesOp
   const documento: Json = {
     openapi: '3.1.0',
     info: {
-      title: 'API do CondNexo',
+      title: 'API do CondeNexo',
       version: opcoes.versao ?? '0.0.0',
       description: [
         'Controle de acesso e gestão de portaria de condomínios (TCC). Gerada dos metadados do Nest e dos schemas Zod: não editar à mão.',

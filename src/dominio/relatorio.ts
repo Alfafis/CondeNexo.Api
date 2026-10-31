@@ -47,7 +47,7 @@ export function csvRelatorio(
   for (const x of r.excecoesPorPorteiro) linhas.push(['Exceções por responsável', x.operador, x.total]);
   for (const x of r.encomendasPorIdade) linhas.push(['Encomendas pendentes por idade', x.faixa, x.total]);
   return {
-    nomeArquivo: `relatorio-condnexo-${hoje}.csv`,
+    nomeArquivo: `relatorio-condenexo-${hoje}.csv`,
     conteudo: '﻿' + linhas.map((l) => l.map(celula).join(';')).join('\r\n') + '\r\n',
     quantidade: r.totais.entradas,
   };
