@@ -157,6 +157,7 @@ describe('Origin nas leituras autenticadas (GET/HEAD), CORS_ORIGENS definido', (
   let api: ApiDeTeste;
   let cookie: string;
   let master: string;
+  let motivo: string;
   let pessoaId: string;
   const EMAIL = 'master-origem@exemplo.test';
   const SENHA_M = 'senha-do-master-bem-longa-1';
@@ -176,6 +177,11 @@ describe('Origin nas leituras autenticadas (GET/HEAD), CORS_ORIGENS definido', (
     const r = await api.http().post('/api/v1/plataforma/auth/login').set('X-Forwarded-For', novoIp()).send({ email: EMAIL, senha: SENHA_M });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     master = (r.headers['set-cookie'] as unknown as string[]).find((x) => x.startsWith(nomeCookieMaster(true)))!.split(';')[0]!;
+    // Motivo da leitura (POST, com a origem do front: passa pelo middleware de origem como o Front faria).
+    const mo = await api.http().post(`/api/v1/plataforma/condominios/${api.pilotoId}/motivo`).set('Cookie', master).set('Origin', FRONT)
+      .send({ categoria: 'suporte', texto: 'Chamado 123: conferir cadastro' });
+    expect(mo.status, JSON.stringify(mo.body)).toBe(200);
+    motivo = mo.body.data.token;
   });
   afterAll(async () => { await api.app.close(); await api.client.close(); });
 
@@ -185,7 +191,7 @@ describe('Origin nas leituras autenticadas (GET/HEAD), CORS_ORIGENS definido', (
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect((await trilha(api, 'lgpd.exportar')).length).toBe(antes + 1);
     const pAntes = (await linhasPlataforma()).length;
-    const m = await api.http().get(leituraMaster()).set('Cookie', master).set('Origin', FRONT).set('Sec-Fetch-Site', 'same-site');
+    const m = await api.http().get(leituraMaster()).set('Cookie', master).set('X-Motivo-Token', motivo).set('Origin', FRONT).set('Sec-Fetch-Site', 'same-site');
     expect(m.status, JSON.stringify(m.body)).toBe(200);
     expect((await linhasPlataforma()).length).toBe(pAntes + 1);
   });
@@ -200,7 +206,7 @@ describe('Origin nas leituras autenticadas (GET/HEAD), CORS_ORIGENS definido', (
     const pAntes = (await linhasPlataforma()).length;
     esperar403(await api.http().get(exportacao()).set('Cookie', cookie).set(cab));
     expect((await api.http().head(exportacao()).set('Cookie', cookie).set(cab)).status).toBe(403); // HEAD: sem corpo
-    esperar403(await api.http().get(leituraMaster()).set('Cookie', master).set(cab));
+    esperar403(await api.http().get(leituraMaster()).set('Cookie', master).set('X-Motivo-Token', motivo).set(cab));
     expect((await trilha(api)).length).toBe(antes);
     expect((await linhasPlataforma()).length).toBe(pAntes);
   });
@@ -216,7 +222,7 @@ describe('Origin nas leituras autenticadas (GET/HEAD), CORS_ORIGENS definido', (
   ])('GET auditado %s: passa', async (_, cab) => {
     const r = await api.http().get(exportacao()).set('Cookie', cookie).set(cab);
     expect(r.status, JSON.stringify(r.body)).toBe(200);
-    const m = await api.http().get(leituraMaster()).set('Cookie', master).set(cab);
+    const m = await api.http().get(leituraMaster()).set('Cookie', master).set('X-Motivo-Token', motivo).set(cab);
     expect(m.status, JSON.stringify(m.body)).toBe(200);
   });
 

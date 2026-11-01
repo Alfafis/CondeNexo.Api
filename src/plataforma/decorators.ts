@@ -26,6 +26,13 @@ export const PlataformaAutenticada = (o: { permiteTrocaPendente?: boolean } = {}
 /** Ação da MATRIZ_PLATAFORMA (../dominio/rbac-plataforma). */
 export const PlataformaAcao = (acao: AcaoPlataforma) => marcar({ tipo: 'acao', acao });
 
+/**
+ * Marca as rotas que exigem `X-Motivo-Token` (o motivo vigente da leitura, motivo-leitura.ts). Só documenta o cabeçalho no
+ * OpenAPI: quem EXIGE é o AcessoPlataformaService.ler, por onde toda leitura passa (teste de arquitetura).
+ */
+export const MOTIVO_LEITURA = 'portaria:motivo_leitura';
+export const ExigeMotivoLeitura = () => SetMetadata(MOTIVO_LEITURA, true);
+
 /** Sessão do Master validada pela PlataformaGuard; só em rota não pública. */
 export const Master = createParamDecorator((_: unknown, c: ExecutionContext): AuthMaster => {
   const req = c.switchToHttp().getRequest<Request>();

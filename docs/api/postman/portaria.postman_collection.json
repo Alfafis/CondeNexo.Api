@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CondNexo",
-    "description": "API do CondNexo (v0.1.0). Gerada de docs/api/openapi.json (npm run colecoes): não editar à mão. Selecione o ambiente (producao ou local), preencha login e senha e rode \"auth / login\" primeiro: o cookie de sessão fica no cookie jar.",
+    "description": "API do CondeNexo (v0.1.0). Gerada de docs/api/openapi.json (npm run colecoes): não editar à mão. Selecione o ambiente (producao ou local), preencha login e senha e rode \"auth / login\" primeiro: o cookie de sessão fica no cookie jar.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -2920,6 +2920,51 @@
       ]
     },
     {
+      "name": "motivomaster",
+      "item": [
+        {
+          "name": "motivomaster / emitir",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/motivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "motivo"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoria\": \"suporte\",\n  \"texto\": \"exemploxxxxxxxx\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "ocorrencias",
       "item": [
         {
@@ -3187,6 +3232,48 @@
                 }
               }
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "painelmaster",
+      "item": [
+        {
+          "name": "painelmaster / obter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/painel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "painel"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.listar`"
+          }
+        },
+        {
+          "name": "painelmaster / leituras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/painel/leituras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "painel",
+                "leituras"
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
           }
         }
       ]

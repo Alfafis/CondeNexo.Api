@@ -10,7 +10,7 @@ import { ModulesContainer } from '@nestjs/core';
 import { z } from 'zod';
 import { POLITICA, type Politica } from '../auth/decorators';
 import { CAMINHO_COOKIE_MASTER, nomeCookieMaster } from '../plataforma/cookie-master';
-import { POLITICA_MASTER, type PoliticaMaster } from '../plataforma/decorators';
+import { MOTIVO_LEITURA, POLITICA_MASTER, type PoliticaMaster } from '../plataforma/decorators';
 import { ZodPipe } from '../comum/zod.pipe';
 import { PREFIXO_GLOBAL } from '../configurar-app';
 
@@ -186,6 +186,12 @@ export function gerarOpenApiComRelatorio(app: INestApplication, opcoes: OpcoesOp
         // Parâmetros de caminho que o schema não cobriu (ex.: sem pipe): string obrigatória.
         for (const m of caminho.matchAll(/\{([^}]+)\}/g)) {
           if (!jaTemParametro.has(`path:${m[1]}`)) parametros.push({ name: m[1], in: 'path', required: true, schema: { type: 'string' } });
+        }
+        if (Reflect.getMetadata(MOTIVO_LEITURA, handler) ?? Reflect.getMetadata(MOTIVO_LEITURA, ctrl)) {
+          parametros.push({
+            name: 'X-Motivo-Token', in: 'header', required: true, schema: { type: 'string' },
+            description: 'Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`.',
+          });
         }
         parametros.sort((a, c) => (a.in === c.in ? 0 : a.in === 'path' ? -1 : 1) || String(a.name).localeCompare(String(c.name)));
 

@@ -58,8 +58,10 @@ afterAll(async () => { vi.restoreAllMocks(); await api.app.close(); await api.cl
 
 describe('lista dos síndicos (leitura auditada)', () => {
   it('só papel sindico, sem nada de senha, e uma linha plataforma.ler', async () => {
+    const mo = await api.http().post(`${P}/condominios/${api.pilotoId}/motivo`).set('Cookie', master).send({ categoria: 'suporte', texto: 'Chamado 42: conferir os síndicos' });
+    expect(mo.status, JSON.stringify(mo.body)).toBe(200);
     const antes = (await linhasM()).length;
-    const r = await api.http().get(`${P}/condominios/${api.pilotoId}/sindicos`).set('Cookie', master);
+    const r = await api.http().get(`${P}/condominios/${api.pilotoId}/sindicos`).set('Cookie', master).set('X-Motivo-Token', mo.body.data.token);
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect(r.body.data.map((u: { login: string }) => u.login)).toEqual([LOGINS.sindico]);
     expect(r.body.data[0]).toMatchObject({ papel: 'sindico', ativo: true });
