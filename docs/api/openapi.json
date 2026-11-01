@@ -71,6 +71,9 @@
       "name": "relatorios"
     },
     {
+      "name": "revelarmaster"
+    },
+    {
       "name": "saude"
     },
     {
@@ -8463,15 +8466,6 @@
               "minimum": 1,
               "maximum": 100
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8558,15 +8552,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8639,15 +8624,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8720,15 +8696,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -8926,15 +8893,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9021,15 +8979,6 @@
               "minimum": 0,
               "maximum": 365
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9130,15 +9079,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9151,6 +9091,85 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/EncomendaViewApi"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/condominios/{id}/encomendas/{encomendaId}/revelar": {
+      "post": {
+        "tags": [
+          "revelarmaster"
+        ],
+        "operationId": "revelarmaster_encomenda",
+        "summary": "POST /plataforma/condominios/{id}/encomendas/{encomendaId}/revelar",
+        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "x-permissao": "condominio.ler",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "encomendaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EncomendaRevelada"
                     }
                   },
                   "required": [
@@ -9336,15 +9355,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9431,15 +9441,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9519,15 +9520,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9619,15 +9611,6 @@
               "minimum": 1,
               "maximum": 100
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9714,15 +9697,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -9876,13 +9850,14 @@
         ],
         "operationId": "motivomaster_emitir",
         "summary": "POST /plataforma/condominios/{id}/motivo",
-        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "description": "Plataforma (Master). Permissão: `condominio.ler` Obsoleta: desde 2026-11-01 a leitura não pede motivo; a rota só responde ao app anterior e não grava nada. Sai na próxima publicação.",
         "x-permissao": "condominio.ler",
         "security": [
           {
             "sessaoPlataforma": []
           }
         ],
+        "deprecated": true,
         "parameters": [
           {
             "name": "id",
@@ -10043,15 +10018,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10138,15 +10104,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10236,15 +10193,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10317,15 +10265,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10376,6 +10315,85 @@
                         ],
                         "additionalProperties": false
                       }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/condominios/{id}/ocorrencias/{ocorrenciaId}/revelar": {
+      "post": {
+        "tags": [
+          "revelarmaster"
+        ],
+        "operationId": "revelarmaster_ocorrencia",
+        "summary": "POST /plataforma/condominios/{id}/ocorrencias/{ocorrenciaId}/revelar",
+        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "x-permissao": "condominio.ler",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "ocorrenciaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OcorrenciaRevelada"
                     }
                   },
                   "required": [
@@ -10476,15 +10494,6 @@
               "minimum": 1,
               "maximum": 100
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10687,15 +10696,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -10809,6 +10809,85 @@
         }
       }
     },
+    "/plataforma/condominios/{id}/pessoas/{pessoaId}/revelar": {
+      "post": {
+        "tags": [
+          "revelarmaster"
+        ],
+        "operationId": "revelarmaster_pessoa",
+        "summary": "POST /plataforma/condominios/{id}/pessoas/{pessoaId}/revelar",
+        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "x-permissao": "condominio.ler",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "pessoaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PessoaRevelada"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
     "/plataforma/condominios/{id}/relatorios/resumo": {
       "get": {
         "tags": [
@@ -10884,15 +10963,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11013,15 +11083,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11118,15 +11179,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11199,15 +11251,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11280,15 +11323,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -11928,15 +11962,6 @@
               "minimum": 1,
               "maximum": 100
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -12023,15 +12048,6 @@
               "minLength": 1,
               "maxLength": 40
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -12163,15 +12179,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -12276,15 +12283,6 @@
               "minimum": 1,
               "maximum": 100
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -12308,6 +12306,85 @@
                   "required": [
                     "data",
                     "pagination"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/condominios/{id}/veiculos/{veiculoId}/revelar": {
+      "post": {
+        "tags": [
+          "revelarmaster"
+        ],
+        "operationId": "revelarmaster_veiculo",
+        "summary": "POST /plataforma/condominios/{id}/veiculos/{veiculoId}/revelar",
+        "description": "Plataforma (Master). Permissão: `condominio.ler`",
+        "x-permissao": "condominio.ler",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "veiculoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/VeiculoRevelado"
+                    }
+                  },
+                  "required": [
+                    "data"
                   ]
                 }
               }
@@ -12419,15 +12496,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -12514,15 +12582,6 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
-          },
-          {
-            "name": "X-Motivo-Token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Token do motivo vigente, emitido por `POST /plataforma/condominios/{id}/motivo` (30 min, mesma sessão, mesmo condomínio). Ausente, vencido, de outra sessão, de outro condomínio ou adulterado: 403 `MOTIVO_NECESSARIO`."
           }
         ],
         "responses": {
@@ -12625,13 +12684,13 @@
         }
       }
     },
-    "/plataforma/painel/leituras": {
+    "/plataforma/painel/revelacoes": {
       "get": {
         "tags": [
           "painelmaster"
         ],
-        "operationId": "painelmaster_leituras",
-        "summary": "GET /plataforma/painel/leituras",
+        "operationId": "painelmaster_revelacoes",
+        "summary": "GET /plataforma/painel/revelacoes",
         "description": "Plataforma (Master). Permissão: `condominio.ler`",
         "x-permissao": "condominio.ler",
         "security": [
@@ -12648,7 +12707,7 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/LeiturasMaster"
+                      "$ref": "#/components/schemas/RevelacoesMaster"
                     }
                   },
                   "required": [
@@ -16445,6 +16504,29 @@
         ],
         "additionalProperties": false
       },
+      "EncomendaRevelada": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "destinatario": {
+            "type": "string"
+          },
+          "retiradaPorNome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "destinatario",
+          "retiradaPorNome"
+        ],
+        "additionalProperties": false
+      },
       "EncomendaViewApi": {
         "type": "object",
         "properties": {
@@ -17153,51 +17235,6 @@
         ],
         "additionalProperties": false
       },
-      "LeiturasMaster": {
-        "type": "object",
-        "properties": {
-          "janelaDias": {
-            "type": "number"
-          },
-          "porAcao": {
-            "type": "object",
-            "properties": {
-              "condominio.ler": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": {
-                  "type": "number"
-                }
-              },
-              "condominio.exportar": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": {
-                  "type": "number"
-                }
-              },
-              "condominio.motivo": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": {
-                  "type": "number"
-                }
-              }
-            },
-            "required": [
-              "condominio.ler",
-              "condominio.exportar",
-              "condominio.motivo"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "janelaDias",
-          "porAcao"
-        ],
-        "additionalProperties": false
-      },
       "LimpezaTitular": {
         "type": "object",
         "properties": {
@@ -17399,6 +17436,26 @@
         "required": [
           "token",
           "expiraEm"
+        ],
+        "additionalProperties": false
+      },
+      "OcorrenciaRevelada": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "envolvidos": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "descricao",
+          "envolvidos"
         ],
         "additionalProperties": false
       },
@@ -18061,6 +18118,40 @@
           "ultimoAcesso",
           "unidadesVinculadas",
           "unidadesVinculadasCodigos"
+        ],
+        "additionalProperties": false
+      },
+      "PessoaRevelada": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "telefone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "documentoMascarado": {
+            "type": "string"
+          },
+          "desativacaoMotivo": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "telefone",
+          "documentoMascarado",
+          "desativacaoMotivo"
         ],
         "additionalProperties": false
       },
@@ -18761,6 +18852,47 @@
         ],
         "additionalProperties": false
       },
+      "RevelacoesMaster": {
+        "type": "object",
+        "properties": {
+          "janelaDias": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "porEntidade": {
+            "type": "object",
+            "properties": {
+              "veiculo": {
+                "type": "number"
+              },
+              "pessoa": {
+                "type": "number"
+              },
+              "encomenda": {
+                "type": "number"
+              },
+              "ocorrencia": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "veiculo",
+              "pessoa",
+              "encomenda",
+              "ocorrencia"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "janelaDias",
+          "total",
+          "porEntidade"
+        ],
+        "additionalProperties": false
+      },
       "Rota": {
         "type": "string",
         "enum": [
@@ -19192,6 +19324,22 @@
           "placa",
           "modelo",
           "cor"
+        ],
+        "additionalProperties": false
+      },
+      "VeiculoRevelado": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "placa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "placa"
         ],
         "additionalProperties": false
       },

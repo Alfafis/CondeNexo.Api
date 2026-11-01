@@ -3119,7 +3119,7 @@
                 }
               ]
             },
-            "description": "Plataforma (Master). Permissão: `condominio.ler`",
+            "description": "Plataforma (Master). Permissão: `condominio.ler` Obsoleta: desde 2026-11-01 a leitura não pede motivo; a rota só responde ao app anterior e não grava nada. Sai na próxima publicação.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"categoria\": \"suporte\",\n  \"texto\": \"exemploxxxxxxxx\"\n}",
@@ -3427,19 +3427,19 @@
           }
         },
         {
-          "name": "painelmaster / leituras",
+          "name": "painelmaster / revelacoes",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/plataforma/painel/leituras",
+              "raw": "{{baseUrl}}/plataforma/painel/revelacoes",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "plataforma",
                 "painel",
-                "leituras"
+                "revelacoes"
               ]
             },
             "description": "Plataforma (Master). Permissão: `condominio.ler`"
@@ -3905,6 +3905,139 @@
               ]
             },
             "description": "Permissão: `relatorio.ver`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "revelarmaster",
+      "item": [
+        {
+          "name": "revelarmaster / encomenda",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/encomendas/:encomendaId/revelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "encomendas",
+                ":encomendaId",
+                "revelar"
+              ],
+              "variable": [
+                {
+                  "key": "encomendaId",
+                  "value": "{{encomendaId}}"
+                },
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "revelarmaster / ocorrencia",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/ocorrencias/:ocorrenciaId/revelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "ocorrencias",
+                ":ocorrenciaId",
+                "revelar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "ocorrenciaId",
+                  "value": "{{ocorrenciaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "revelarmaster / pessoa",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/pessoas/:pessoaId/revelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "pessoas",
+                ":pessoaId",
+                "revelar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "pessoaId",
+                  "value": "{{pessoaId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
+          }
+        },
+        {
+          "name": "revelarmaster / veiculo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/veiculos/:veiculoId/revelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "veiculos",
+                ":veiculoId",
+                "revelar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "veiculoId",
+                  "value": "{{veiculoId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.ler`"
           }
         }
       ]

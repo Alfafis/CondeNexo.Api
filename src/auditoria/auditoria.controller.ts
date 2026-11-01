@@ -52,8 +52,9 @@ const AcessosPlataformaDto = PaginacaoDto.extend({
 });
 
 /**
- * Ações que o app do Master grava na trilha do condomínio (SAAS-09 e §5.5; src/plataforma/acesso-plataforma.service.ts):
- * leitura, exportação e a gestão de síndicos.
+ * Ações do app do Master na trilha do condomínio (SAAS-09 e §5.5; src/plataforma/acesso-plataforma.service.ts): a gestão
+ * de síndicos e, até 2026-11-01, a leitura e a exportação (`plataforma.ler`/`plataforma.exportar`: a leitura não grava mais
+ * desde a Fase B; as linhas antigas continuam aqui e na tela do síndico).
  */
 export const ACOES_PLATAFORMA_TRILHA = [
   'plataforma.ler', 'plataforma.exportar', 'plataforma.usuario_criar', 'plataforma.usuario_trocar', 'plataforma.usuario_redefinir_senha',
@@ -83,7 +84,7 @@ export interface AcessoPlataformaApi {
 
 const texto = (v: unknown) => (typeof v === 'string' ? v : null);
 
-/** Escrita em síndicos grava o motivo como texto; a leitura do Master grava `{ categoria, texto }` (plataforma/motivo-leitura.ts). */
+/** Escrita em síndicos grava o motivo como texto; as linhas de leitura de antes de 2026-11-01 têm `{ categoria, texto }`. */
 const motivoDe = (v: unknown): string | null => {
   if (typeof v === 'string') return v;
   const m = (v ?? null) as { categoria?: unknown; texto?: unknown } | null;
@@ -167,7 +168,7 @@ export class AuditoriaRotasService {
 
   /**
    * O pacote JSONL, sem gravar trilha: quem chama registra (o usuário do condomínio como `auditoria.exportar`; o app do
-   * Master como `plataforma.exportar`, pelo AcessoPlataformaService). `geradoPor` vai no manifesto.
+   * Master não tem exportação JSONL). `geradoPor` vai no manifesto.
    */
   async gerarExportacao(f: z.infer<typeof FiltrosCorpo>, geradoPor: string) {
     const linhas = await this.eventos.linhas(f, TETO_EXPORTACAO);
@@ -223,8 +224,8 @@ export class AuditoriaRotasService {
 
   /**
    * "Acessos da plataforma" (SAAS-09): as linhas `plataforma.*` da trilha, mais recentes primeiro. Só o que a tela
-   * mostra (o `master_usuario_id` do `depois` é da plataforma e não sai). O filtro por período usa o índice de `em`;
-   * as linhas da plataforma são poucas perto do resto da trilha (uma por consulta do Master).
+   * mostra (o `master_usuario_id` do `depois` é da plataforma e não sai). O filtro por período usa o índice de `em`.
+   * Desde 2026-11-01 só as ações sobre síndicos entram aqui; as consultas anteriores continuam listadas.
    */
   async acessosPlataforma(f: z.infer<typeof AcessosPlataformaDto>): Promise<Pagina<AcessoPlataformaApi>> {
     const w: SQL[] = [like(auditLog.acao, 'plataforma.%')];
@@ -268,7 +269,7 @@ export class AuditoriaController {
   @Acao('auditoria.verificar')
   alteracoes(@Query(new ZodPipe(AlteracoesDto)) q: z.infer<typeof AlteracoesDto>) { return this.servico.alteracoes(q); }
 
-  /** Leituras do app do Master nos dados deste condomínio (SAAS-09). Só leitura: a trilha é append-only. */
+  /** Ações do app do Master neste condomínio e as consultas registradas até 2026-11-01 (SAAS-09). Só leitura: append-only. */
   @Get('acessos-plataforma')
   @Acao('auditoria.acessos_plataforma')
   acessosPlataforma(@Query(new ZodPipe(AcessosPlataformaDto)) q: z.infer<typeof AcessosPlataformaDto>) { return this.servico.acessosPlataforma(q); }

@@ -57,6 +57,13 @@ export class VeiculosService {
     }
   }
 
+  /** Um veículo (ativo ou não), sem trilha: só leitura (o "Revelar" do app do Master, que registra na plataforma). */
+  async obter(id: string) {
+    const [v] = await this.db.select(colunas).from(veiculo).where(eq(veiculo.id, id));
+    if (!v) throw erroApi(404, 'VEICULO_NAO_ENCONTRADO', 'Veículo não encontrado.');
+    return v;
+  }
+
   /** Placa, modelo, cor e ativo. A unidade não muda (cadastre o veículo na unidade certa). Reativar conta como novo uso. */
   async editar(ctx: Contexto, id: string, i: z.infer<typeof EdicaoVeiculoDto>) {
     try {

@@ -17,7 +17,7 @@ decide nada: consome o contrato OpenAPI daqui (`docs/api/openapi.json`) e gera o
 | Auditoria | Trilha append-only com hash chain, selo diário ancorado fora do servidor, verificação de integridade e exportação |
 | LGPD | Exportação, anonimização e retenção por prazo; texto livre mascarado na trilha |
 | Acesso | Papéis do condomínio (síndico, administração, porteiro, auditor) e módulos contratados por condomínio |
-| Plataforma (Master) | Cadastro e provisionamento de condomínios, licenças, síndicos, painel de controle e trilha própria. Ler dados de um condomínio exige **motivo** registrado e vale 30 minutos |
+| Plataforma (Master) | Cadastro e provisionamento de condomínios, licenças, síndicos, painel de controle e trilha própria. Lê os dados de qualquer condomínio sem motivo e sem trilha, mascarados; o valor completo de um registro sai pelo **Revelar**, limitado e registrado só na trilha da plataforma (o síndico não vê) |
 
 ## Como funciona
 
@@ -34,7 +34,7 @@ Mapa de pastas:
 
 ```
 src/dominio/     regras puras (RBAC, vínculo válido, hash chain, exportação, unidades), sem framework
-src/plataforma/  Master: condomínios, licenças, síndicos, painel, motivo de leitura, provisionador
+src/plataforma/  Master: condomínios, licenças, síndicos, painel, leitura e Revelar, provisionador
 src/tenancy/     resolução do condomínio da requisição e guarda de módulo contratado
 src/auth/        login, sessão, troca de senha, guards
 src/<módulo>/    eventos, pessoas, vinculos, encomendas, ocorrencias, unidades, usuarios, relatorios, lgpd...

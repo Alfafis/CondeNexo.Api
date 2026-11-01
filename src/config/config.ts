@@ -86,6 +86,12 @@ export interface Config {
    * NÃO o define (spec §14, decisão em aberto): sem `RETENCAO_ANEXO_OCORRENCIA_ANOS`, nenhum anexo é eliminado por prazo.
    */
   retencao: { anexoOcorrenciaAnos: number | null };
+  /**
+   * App do Master (Fase B, 2026-11-01): `revelarPorMinuto` (`PLATAFORMA_REVELAR_POR_MINUTO`, padrão 60, de 1 a 1000) é o
+   * limite de "Revelar" (valor completo de um registro) por usuário da plataforma numa janela de 60 s. Em memória, por
+   * processo: freio contra raspagem por sessão roubada, não controle forte (src/plataforma/acesso-plataforma.service.ts).
+   */
+  plataforma: { revelarPorMinuto: number };
 }
 
 export type TlsSmtp = 'implicito' | 'starttls' | 'nenhum';
@@ -114,6 +120,8 @@ export const PADROES_LOGIN: Config['login'] = {
 };
 /** Prazo de regularização do legado (RN-09) quando a assembleia não definiu outro. */
 export const PRAZO_LEGADO_PADRAO_DIAS = 90;
+/** Revelações por minuto por usuário da plataforma (Config.plataforma). */
+export const REVELAR_POR_MINUTO_PADRAO = 60;
 export const PADROES_ARGON2: Config['argon2'] = { memoriaKib: 64 * 1024, iteracoes: 3, paralelismo: 1, concorrencia: 2, filaMax: 50 };
 
 export const nomeCookie = (secure: boolean) => (secure ? '__Host-portaria_sessao' : 'portaria_sessao');
@@ -306,5 +314,6 @@ export function carregarConfig(env: NodeJS.ProcessEnv = process.env): Config {
       horaRetencaoBrt: inteiro(env, 'RETENCAO_HORA_BRT', 3, 0, 23),
     },
     retencao: { anexoOcorrenciaAnos: inteiro(env, 'RETENCAO_ANEXO_OCORRENCIA_ANOS', 0, 1, 20) || null },
+    plataforma: { revelarPorMinuto: inteiro(env, 'PLATAFORMA_REVELAR_POR_MINUTO', REVELAR_POR_MINUTO_PADRAO, 1, 1000) },
   };
 }

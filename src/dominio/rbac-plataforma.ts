@@ -17,8 +17,9 @@ export type AcaoPlataforma = (typeof ACOES_PLATAFORMA)[number];
 
 /**
  * `suporte` (funcionário do operador) só consulta o cadastro; criar condomínio e mudar módulo é do `master`.
- * `condominio.ler` (SAAS-09, F5 entrega 2): ler os dados de um condomínio (o que o síndico vê), sempre registrado na
- * trilha DAQUELE condomínio. Só `master`: o contrato com o condomínio lista nominalmente quem tem esse papel.
+ * `condominio.ler` (SAAS-09, revista na Fase B em 2026-11-01): ler os dados de um condomínio (o que o síndico vê,
+ * minimizado), sem motivo e sem trilha, e o "Revelar" de um registro (valor completo, registrado em plataforma_audit).
+ * Só `master`: o contrato com o condomínio lista nominalmente quem tem esse papel.
  * `condominio.sindicos` (§5.5): adicionar, trocar, desativar/reativar síndico e gerar nova senha temporária dele, a ÚNICA
  * escrita do Master em dado de condomínio; sempre com motivo, a senha do Master de novo e a trilha do condomínio. Só `master`.
  */

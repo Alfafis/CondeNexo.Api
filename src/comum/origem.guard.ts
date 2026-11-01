@@ -2,8 +2,8 @@
 // pelo middleware (origem.ts) antes do roteamento; aqui é guarda porque o critério depende da política da rota, que só
 // existe depois do roteamento.
 //
-// Por quê: leitura auditada grava trilha (documento.ler, lgpd.exportar, plataforma.ler/exportar e condominio.ler do
-// Master). Um <img src="https://api.condenexo.com.br/..."> num subdomínio do mesmo site leva o cookie e geraria linha de
+// Por quê: leitura auditada grava trilha (documento.ler, lgpd.exportar; as leituras do Master não gravam mais desde
+// 2026-11-01, mas continuam cobertas: a regra é por política, não por trilha). Um <img src="https://api.condenexo.com.br/..."> num subdomínio do mesmo site leva o cookie e geraria linha de
 // trilha em nome da vítima. Critério: TODA rota que não é @Publico() (inclusive 'plataforma' e rota sem política), não
 // só as que hoje gravam trilha: nenhuma depende de navegação direta pelo navegador (o front chama tudo por axios, que
 // manda Origin), e a rota auditada nova fica coberta sem ninguém lembrar de marcá-la.

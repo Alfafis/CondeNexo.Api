@@ -286,6 +286,19 @@ export class PessoasService {
     };
   }
 
+  /**
+   * O que o "Revelar" do app do Master devolve de UMA pessoa (Fase B, 2026-11-01): nome e telefone completos, o documento
+   * como a ficha mostra (o CPF não é armazenado: só a máscara existe) e o motivo da desativação. Exceção única à regra de
+   * pessoa-view.ts ("telefone completo nunca sai"): só esta função, chamada só pelo AcessoPlataformaService.revelar, que
+   * limita e registra em plataforma_audit. Nenhum papel do condomínio chega aqui.
+   */
+  async paraRevelarNaPlataforma(id: string) {
+    const [p] = await this.db.select(colunasPessoa).from(pessoa).where(eq(pessoa.id, id));
+    if (!p) throw erroApi(404, 'PESSOA_NAO_ENCONTRADA', 'Pessoa não encontrada.');
+    const v = paraPessoaApi(p as LinhaPessoa, { motivoDesativacao: true });
+    return { id: v.id, nome: v.nome, documentoMascarado: v.documentoMascarado, telefone: p.telefone, desativacaoMotivo: v.desativacaoMotivo ?? null };
+  }
+
   // ----- Desativação (RF-02) ---------------------------------------------------------------------------------------
 
   /**

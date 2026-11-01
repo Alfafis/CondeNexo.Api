@@ -1,8 +1,9 @@
-// Leitura auditada dos dados de um condomínio pelo app do Master (docs/05_arquitetura_saas.md SAAS-09, F5 entrega 2):
-// "tudo que o síndico vê", só leitura, com a view do síndico MINIMIZADA (nome de terceiro mascarado, texto livre oculto,
-// placa mascarada: src/plataforma/minimizacao.ts) e a rota do síndico intacta; uma linha `plataforma.*` no audit_log DAQUELE
-// condomínio por requisição, antes de devolver o dado (falhou: 503 e nada sai); uma linha em plataforma_audit; ponto
-// único (AcessoPlataformaService) provado por teste de arquitetura; e a tela "Acessos da plataforma" do condomínio.
+// Leitura dos dados de um condomínio pelo app do Master (docs/05_arquitetura_saas.md SAAS-09, revista na Fase B em
+// 2026-11-01): "tudo que o síndico vê", só leitura, com a view do síndico MINIMIZADA (nome de terceiro mascarado, texto
+// livre oculto, placa mascarada: src/plataforma/minimizacao.ts) e a rota do síndico intacta; SEM motivo e SEM trilha
+// (nenhuma linha no audit_log do condomínio nem em plataforma_audit, e trilha fora do ar não afeta a leitura); ponto
+// único (AcessoPlataformaService) provado por teste de arquitetura; e a tela "Acessos da plataforma" do condomínio, que
+// continua mostrando as linhas antigas. O "Revelar" está em test/master-revelar.test.ts.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,23 +50,12 @@ async function novoMaster(email: string, papel: 'master' | 'suporte') {
 
 const linhasPlataforma = (db = api.db) => db.select().from(s.auditLog).where(eq(s.auditLog.usuarioNome, `plataforma/${EMAIL}`)).orderBy(s.auditLog.seq);
 const trilhaP = () => api.plataforma.db.select().from(plataformaAudit).where(eq(plataformaAudit.masterUsuarioId, masterId)).orderBy(plataformaAudit.seq);
-/** Motivo da leitura (Fase B): um token por sessão e condomínio, emitido uma vez e reaproveitado (vale 30 min). */
+/** Motivo de uma linha HISTÓRICA (antes de 2026-11-01 a leitura gravava `plataforma.ler` com o motivo). */
 const MOTIVO_TEXTO = 'Chamado 77: conferir o cadastro a pedido do síndico';
-const motivos = new Map<string, string | undefined>();
-const emitirMotivo = (cond: string, cookie = master, corpo: object = { categoria: 'suporte', texto: MOTIVO_TEXTO }) =>
-  api.http().post(`${P}/condominios/${cond}/motivo`).set('Cookie', cookie).send(corpo);
-async function motivoDe(cookie: string, cond: string) {
-  const k = `${cookie}|${cond}`;
-  if (!motivos.has(k)) { const r = await emitirMotivo(cond, cookie); motivos.set(k, r.status === 200 ? r.body.data.token : undefined); }
-  return motivos.get(k);
-}
-/** A requisição montada (em lista: um Test do supertest devolvido direto por função async já seria executado). */
-const reqM = async (caminho: string, cookie = master, cond = api.pilotoId) => {
-  const t = await motivoDe(cookie, cond);
-  const req = api.http().get(`${P}/condominios/${cond}${caminho}`).set('Cookie', cookie);
-  return [t ? req.set('X-Motivo-Token', t) : req] as const;
-};
-const getM = async (caminho: string, cookie = master, cond = api.pilotoId) => (await reqM(caminho, cookie, cond))[0];
+const getM = (caminho: string, cookie = master, cond = api.pilotoId) => api.http().get(`${P}/condominios/${cond}${caminho}`).set('Cookie', cookie);
+/** As duas trilhas inteiras (o que a leitura do Master NÃO pode mudar). */
+const contagens = async () => [(await api.db.select().from(s.auditLog)).length, (await api.demo!.db.select().from(s.auditLog)).length,
+  (await api.plataforma.db.select().from(plataformaAudit)).length];
 const getS = (caminho: string, login = 'carlos.andrade') => api.http().get(`${V1}${caminho}`).set('Cookie', sindico[login]!);
 
 beforeAll(async () => {
@@ -132,14 +122,14 @@ const PARES = (): [string, string, string, string | null][] => [
   ['/relatorios/resumo', '/relatorios/resumo', 'relatorio', null],
 ];
 
-describe('leitura do Master: a view do síndico minimizada, uma linha na trilha do condomínio por requisição', () => {
-  it('cada rota GET de leitura do openapi.json tem par aqui (rota nova sem teste de trilha falha)', () => {
+describe('leitura do Master: a view do síndico minimizada, sem motivo e sem trilha', () => {
+  it('cada rota GET de leitura do openapi.json tem par aqui (rota nova sem teste de minimização falha)', () => {
     const openapi = JSON.parse(readFileSync(fileURLToPath(new URL('../docs/api/openapi.json', import.meta.url)), 'utf8')) as { paths: Record<string, Record<string, unknown>> };
     const prefixo = '/plataforma/condominios/{id}';
     const doMaster = Object.entries(openapi.paths).filter(([p]) => p.startsWith(`${prefixo}/`) && p !== `${prefixo}/modulos`)
       .flatMap(([p, ops]) => Object.keys(ops).map((m) => `${m.toUpperCase()} ${p.slice(prefixo.length).replace(/\{[^}]+\}/g, ':x')}`))
-      // Escrita sobre síndicos (§5.5): test/master-sindicos.test.ts.
-      .filter((r) => !/^POST \/(sindicos|motivo)/.test(r)).sort();
+      // Escrita sobre síndicos (§5.5): test/master-sindicos.test.ts. Revelar e o stub do motivo: test/master-revelar.test.ts.
+      .filter((r) => !/^POST \/(sindicos|motivo|[a-z]+\/:x\/revelar)/.test(r)).sort();
     const cobertas = [
       ...PARES().map(([, m]) => `GET ${m.split('?')[0]!.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':x')}`),
       'GET /ocorrencias/:x/anexos/:x', 'GET /relatorios/resumo/csv',
@@ -148,40 +138,24 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
     expect(doMaster).toEqual([...new Set(cobertas)].sort());
   });
 
-  it('corpo = o do síndico passado pela minimização (nada além dela muda) e uma linha plataforma.ler por requisição', async () => {
-    await motivoDe(master, api.pilotoId); // a emissão (condominio.motivo) fica fora da contagem por requisição
-    for (const [rotaS, rotaM, entidade, registro] of PARES()) {
-      const antes = (await linhasPlataforma()).length;
-      const antesP = (await trilhaP()).length;
+  it('corpo = o do síndico passado pela minimização (nada além dela muda); nenhuma linha em nenhuma trilha, sem cabeçalho de motivo', async () => {
+    const antes = await contagens();
+    for (const [rotaS, rotaM] of PARES()) {
       const rs = await getS(rotaS);
       const rm = await getM(rotaM);
       expect(rs.status, `${rotaS} ${JSON.stringify(rs.body)}`).toBe(200);
       expect(rm.status, `${rotaM} ${JSON.stringify(rm.body)}`).toBe(200);
       expect(rm.body, rotaM).toEqual(minimizarLeituraPlataforma(rs.body));
-      const novas = (await linhasPlataforma()).slice(antes);
-      expect(novas.length, rotaM).toBe(1);
-      const l = novas[0]!;
-      expect([l.usuarioId, l.usuarioPapel, l.acao, l.entidade, l.registroId]).toEqual([null, null, 'plataforma.ler', entidade, registro]);
-      expect(l.antes).toBeNull();
-      expect(l.depois).toEqual({ rota: expect.any(String), metodo: 'GET', status: 200, master_usuario_id: masterId, motivo: { categoria: 'suporte', texto: MOTIVO_TEXTO } });
-      const rota = (l.depois as { rota: string }).rota;
-      expect(rota.replace(/:[a-zA-Z]+/g, ':x'), rotaM).toBe(rotaM.split('?')[0]!.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':x'));
-      // A linha da plataforma não leva dado de morador nem id de registro do condomínio.
-      const novasP = (await trilhaP()).slice(antesP);
-      expect(novasP.map((x) => [x.acao, x.condominioId])).toEqual([['condominio.ler', api.pilotoId]]);
-      expect(JSON.stringify(novasP[0]!.detalhes)).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
     }
-    // O demo não recebeu nenhuma linha (cada condomínio só tem a trilha das leituras dele).
-    expect(await linhasPlataforma(api.demo!.db as never)).toEqual([]);
+    // As leituras do síndico gravam o que sempre gravaram (nada, nestas rotas); as do Master, nada.
+    expect(await contagens()).toEqual(antes);
+    expect(await linhasPlataforma()).toEqual([]);
+    expect((await trilhaP()).map((l) => l.acao)).toEqual(['auth.login']); // só o login do Master
   });
 
-  it('a rota gravada é o padrão, sem o prefixo e sem query string', async () => {
-    await getM(`/pessoas/${ids.pessoa}?x=1`); // query desconhecida: o ZodPipe não olha a ficha; a rota é o padrão
-    const [l] = (await linhasPlataforma()).slice(-1);
-    expect((l!.depois as { rota: string }).rota).toBe('/pessoas/:pessoaId');
-    await getM('/pessoas?limite=2&categoria=morador');
-    const [l2] = (await linhasPlataforma()).slice(-1);
-    expect((l2!.depois as { rota: string }).rota).toBe('/pessoas');
+  it('um X-Motivo-Token qualquer (Front anterior à Fase B) é ignorado', async () => {
+    const r = await getM('/unidades').set('X-Motivo-Token', 'dispensado');
+    expect(r.status).toBe(200);
   });
 
   it('usuários: nada de senha nem hash na resposta do Master', async () => {
@@ -190,43 +164,30 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
     expect(JSON.stringify(r.body)).not.toMatch(/senhaHash|senha_hash|"senha"|\$argon2|tokenHash/i);
   });
 
-  it('lista paginada é UMA linha por requisição, não uma por item', async () => {
-    const antes = (await linhasPlataforma()).length;
-    const r = await getM('/pessoas?limite=100');
-    expect(r.body.data.length).toBeGreaterThan(5);
-    expect((await linhasPlataforma()).length).toBe(antes + 1);
-  });
-
-  it('registro inexistente: 404 e a tentativa fica na trilha com o status', async () => {
-    const outro = '00000000-0000-4000-8000-000000000123';
-    const r = await getM(`/pessoas/${outro}`);
+  it('registro inexistente: 404 e nada gravado', async () => {
+    const antes = await contagens();
+    const r = await getM('/pessoas/00000000-0000-4000-8000-000000000123');
     expect([r.status, r.body.code]).toEqual([404, 'PESSOA_NAO_ENCONTRADA']);
-    const [l] = (await linhasPlataforma()).slice(-1);
-    expect([l!.registroId, (l!.depois as { status: number }).status]).toEqual([outro, 404]);
+    expect(await contagens()).toEqual(antes);
   });
 
-  it('anexo, CSV e JSONL: plataforma.exportar; anexo idêntico ao do síndico, com os mesmos cabeçalhos', async () => {
+  it('anexo e CSV sem trilha; anexo idêntico ao do síndico, com os mesmos cabeçalhos; sem JSONL', async () => {
     const binario = (r: import('supertest').Test) => r.buffer(true).parse((res, cb) => { const b: Buffer[] = []; res.on('data', (c: Buffer) => b.push(c)); res.on('end', () => cb(null, Buffer.concat(b))); });
     const rs = await binario(getS(`/ocorrencias/${ids.ocorrencia}/anexos/${ids.documento}`));
-    const [anexoM] = await reqM(`/ocorrencias/${ids.ocorrencia}/anexos/${ids.documento}`);
-    const rm = await binario(anexoM);
+    const antes = await contagens();
+    const rm = await binario(getM(`/ocorrencias/${ids.ocorrencia}/anexos/${ids.documento}`));
     expect(rm.status).toBe(200);
     expect(Buffer.compare(rm.body as Buffer, rs.body as Buffer)).toBe(0);
     for (const h of ['content-type', 'content-disposition', 'content-security-policy']) expect(rm.headers[h], h).toBe(rs.headers[h]);
-    let [l] = (await linhasPlataforma()).slice(-1);
-    expect([l!.acao, l!.entidade, l!.registroId]).toEqual(['plataforma.exportar', 'documento', ids.documento]);
 
     const csv = await getM('/relatorios/resumo/csv');
     expect(csv.status).toBe(200);
     expect(csv.body.data.conteudo).toEqual((await getS('/relatorios/resumo/csv')).body.data.conteudo);
-    [l] = (await linhasPlataforma()).slice(-1);
-    expect([l!.acao, l!.entidade]).toEqual(['plataforma.exportar', 'relatorio']);
 
     // Sem JSONL verificável para o Master: o registro com hash não pode ser minimizado (texto livre e placa)
-    const antesJ = (await linhasPlataforma()).length;
     const j = await api.http().post(`${P}/condominios/${api.pilotoId}/auditoria/exportacoes`).set('Cookie', master).send({});
     expect(j.status).toBe(404);
-    expect((await linhasPlataforma()).length).toBe(antesJ);
+    expect(await contagens()).toEqual(antes);
   });
 
   it('o leitor do Master é o pool do condomínio lido: o demo responde com o dado do demo', async () => {
@@ -234,7 +195,7 @@ describe('leitura do Master: a view do síndico minimizada, uma linha na trilha 
     expect(r.status).toBe(200);
     const doDemo = await api.demo!.db.select({ id: s.pessoa.id }).from(s.pessoa);
     expect(new Set(r.body.data.map((p: { id: string }) => p.id))).toEqual(new Set(doDemo.map((p) => p.id)));
-    expect((await linhasPlataforma(api.demo!.db as never)).length).toBe(1);
+    expect(await linhasPlataforma(api.demo!.db as never)).toEqual([]);
   });
 });
 
@@ -294,25 +255,17 @@ describe('minimização do dado de terceiros (LGPD: o Master é operador)', () =
 
 });
 
-describe('a trilha vem antes do dado: falhou a gravação, 503 e nada sai', () => {
-  it('falha no audit_log do condomínio', async () => {
-    const svc = api.app.get(AuditoriaService);
-    const espiao = vi.spyOn(svc, 'registrarPlataforma').mockRejectedValueOnce(Object.assign(new Error('x'), { code: '53100' }));
-    const r = await getM(`/pessoas/${ids.pessoa}`);
-    espiao.mockRestore();
-    expect([r.status, r.body.code]).toEqual([503, 'TRILHA_INDISPONIVEL']);
-    expect(JSON.stringify(r.body)).not.toContain('Ana');
-    expect(r.body.data).toBeUndefined();
-  });
-
-  it('falha no plataforma_audit (a linha do condomínio já entrou: o síndico vê a tentativa)', async () => {
-    const antes = (await linhasPlataforma()).length;
-    const espiao = vi.spyOn(api.plataforma.db, 'insert').mockImplementationOnce(() => { throw new Error('plataforma fora'); });
-    const r = await getM('/pessoas?limite=3');
-    espiao.mockRestore();
-    expect([r.status, r.body.code]).toEqual([503, 'TRILHA_INDISPONIVEL']);
-    expect(r.body.data).toBeUndefined();
-    expect((await linhasPlataforma()).length).toBe(antes + 1);
+describe('trilha fora do ar não afeta a leitura (a leitura não grava mais; antes era 503)', () => {
+  it('audit_log do condomínio e plataforma_audit falhando: 200 com o dado minimizado', async () => {
+    const svc = vi.spyOn(api.app.get(AuditoriaService), 'registrarPlataforma').mockRejectedValue(Object.assign(new Error('x'), { code: '53100' }));
+    const ins = vi.spyOn(api.plataforma.db, 'insert').mockImplementation(() => { throw new Error('plataforma fora'); });
+    try {
+      const r = await getM(`/pessoas/${ids.pessoa}`);
+      expect(r.status, JSON.stringify(r.body)).toBe(200);
+      expect(r.body.data.pessoa.nome).toBe('Ana R******');
+      expect(svc).not.toHaveBeenCalled();
+      expect(ins).not.toHaveBeenCalled();
+    } finally { svc.mockRestore(); ins.mockRestore(); }
   });
 });
 
@@ -326,26 +279,24 @@ describe('quem lê e o que se lê', () => {
     expect((neg!.detalhes as { acao: string }).acao).toBe('condominio.ler');
   });
 
-  it('condomínio desconhecido 404; provisionando 409; encerrado lê (fim de contrato); excluído 404', async () => {
-    // Desconhecido: a emissão do motivo dá 404 e, sem motivo, a leitura nem resolve o condomínio (403).
-    expect((await emitirMotivo('00000000-0000-4000-8000-000000000999')).status).toBe(404);
-    expect((await getM('/pessoas', master, '00000000-0000-4000-8000-000000000999')).body.code).toBe('MOTIVO_NECESSARIO');
-    await motivoDe(master, api.demo!.id); // emitido com o demo ativo: o estado é conferido de novo a cada leitura
+  it('condomínio desconhecido 404; provisionando 409; suspenso e encerrado leem (fim de contrato); excluído 404', async () => {
+    const desconhecido = await getM('/pessoas', master, '00000000-0000-4000-8000-000000000999');
+    expect([desconhecido.status, desconhecido.body.code]).toEqual([404, 'NAO_ENCONTRADO']);
     const resolvedor = api.app.get(ResolvedorCondominio);
-    const status = async (st: 'provisionando' | 'ativo' | 'encerrado' | 'excluido') => {
+    const status = async (st: 'provisionando' | 'ativo' | 'suspenso' | 'encerrado' | 'excluido') => {
       await api.plataforma.db.update(condominio).set({ status: st, encerradoEm: ['encerrado', 'excluido'].includes(st) ? new Date() : null }).where(eq(condominio.id, api.demo!.id));
       resolvedor.invalidar();
     };
     try {
       await status('provisionando');
-      expect((await getM('/pessoas', master, api.demo!.id)).body.code).toBe('CONDOMINIO_PROVISIONANDO');
-      expect((await emitirMotivo(api.demo!.id)).body.code).toBe('CONDOMINIO_PROVISIONANDO');
-      await status('encerrado');
+      const prov = await getM('/pessoas', master, api.demo!.id);
+      expect([prov.status, prov.body.code]).toEqual([409, 'CONDOMINIO_PROVISIONANDO']);
+      await status('suspenso');
       expect((await getM('/pessoas', master, api.demo!.id)).status).toBe(200);
-      expect((await emitirMotivo(api.demo!.id)).status).toBe(200); // fim de contrato: o Master ainda lê (SAAS-19)
+      await status('encerrado');
+      expect((await getM('/pessoas', master, api.demo!.id)).status).toBe(200); // fim de contrato: o Master ainda lê (SAAS-19)
       await status('excluido');
       expect((await getM('/pessoas', master, api.demo!.id)).status).toBe(404);
-      expect((await emitirMotivo(api.demo!.id)).status).toBe(404);
     } finally {
       await status('ativo');
     }
@@ -373,7 +324,18 @@ describe('quem lê e o que se lê', () => {
   });
 });
 
-describe('tela "Acessos da plataforma" (GET /auditoria/acessos-plataforma)', () => {
+describe('tela "Acessos da plataforma" (GET /auditoria/acessos-plataforma): as linhas antigas continuam visíveis', () => {
+  // Linhas como a leitura gravava antes de 2026-11-01 (nada é apagado; o síndico continua vendo o histórico).
+  beforeAll(async () => {
+    const aud = api.app.get(AuditoriaService);
+    for (const [rota, entidade, registroId] of [['/pessoas', 'pessoa', null], [`/pessoas/:pessoaId`, 'pessoa', ids.pessoa!], ['/unidades', 'unidade', null], ['/encomendas', 'encomenda', null], ['/catalogo', 'unidade', null]] as const) {
+      await aud.registrarPlataforma(api.db, {
+        email: EMAIL, acao: 'plataforma.ler', entidade, registroId, ip: null,
+        depois: { rota, metodo: 'GET', status: 200, masterUsuarioId: masterId, motivo: { categoria: 'suporte', texto: MOTIVO_TEXTO } },
+      });
+    }
+  });
+
   it('síndico e auditor veem; administração e porteiro não', async () => {
     for (const [login, esperado] of [['carlos.andrade', 200], ['luiza.campos', 200], ['paula.nogueira', 403], ['joao.lima', 403]] as const) {
       expect((await getS('/auditoria/acessos-plataforma', login)).status, login).toBe(esperado);
@@ -397,8 +359,6 @@ describe('tela "Acessos da plataforma" (GET /auditoria/acessos-plataforma)', () 
     // Período no futuro: nada.
     const amanha = Date.now() + 86_400_000;
     expect((await getS(`/auditoria/acessos-plataforma?de=${amanha}`)).body.data).toEqual([]);
-    // Os filtros e o corpo não estão na trilha (só rota, método, status, master e o motivo informado).
-    expect(JSON.stringify(todas.map((l) => { const { motivo: _m, ...d } = (l.depois ?? {}) as Record<string, unknown>; return d; }))).not.toMatch(/limite|categoria|Ana Ribeiro/);
   });
 });
 
@@ -435,11 +395,33 @@ describe('arquitetura: ponto único', () => {
       .toEqual(['plataforma/acesso-plataforma.service.ts', 'usuarios/usuarios.service.ts']);
   });
 
-  it('toda rota do controller de leitura passa pelo ponto único', () => {
+  it('toda rota do controller de leitura passa pelo ponto único (e nenhuma escreve)', () => {
     const texto = fontes.find((x) => x.f === 'plataforma/leitura-master.controller.ts')!.texto;
-    const handlers = [...texto.matchAll(/@(Get|Post)\('[^']*'\)/g)].length;
-    const chamadas = [...texto.matchAll(/this\.ler\(m, req, id,/g)].length;
+    const handlers = [...texto.matchAll(/@(Get|Post|Patch|Put|Delete)\('[^']*'\)/g)].length;
+    const chamadas = [...texto.matchAll(/this\.ler\(id, /g)].length;
     expect(handlers).toBeGreaterThan(20);
+    expect([...texto.matchAll(/@Get\('/g)].length).toBe(handlers);
     expect(chamadas).toBe(handlers);
+    const servico = fontes.find((x) => x.f === 'plataforma/acesso-plataforma.service.ts')!.texto;
+    const ler = servico.slice(servico.indexOf('async ler<T>('), servico.indexOf('async revelar<T>('));
+    // A leitura minimiza sempre e não grava em trilha nenhuma.
+    expect(ler).toContain('minimizarLeituraPlataforma(');
+    expect(ler).not.toMatch(/registrarPlataforma|auditoria\./);
+  });
+
+  it('toda rota do Revelar passa pelo ponto único, com o limite antes de resolver o condomínio e a trilha antes da resposta', () => {
+    const texto = fontes.find((x) => x.f === 'plataforma/revelar-master.controller.ts')!.texto;
+    const handlers = [...texto.matchAll(/@(Get|Post|Patch|Put|Delete)\('[^']*'\)/g)].length;
+    expect(handlers).toBe(4);
+    expect([...texto.matchAll(/this\.acesso\.revelar\(m, req, id, \{ entidade: '/g)].length).toBe(handlers);
+    const servico = fontes.find((x) => x.f === 'plataforma/acesso-plataforma.service.ts')!.texto;
+    const corpo = servico.slice(servico.indexOf('async revelar<T>('), servico.indexOf('async alterarSindico('));
+    expect(corpo.indexOf('this.limiteRevelar.consumir(')).toBeGreaterThan(0);
+    expect(corpo.indexOf('this.limiteRevelar.consumir(')).toBeLessThan(corpo.indexOf('this.paraLeitura('));
+    expect(corpo.indexOf('registrarPlataforma(')).toBeLessThan(corpo.indexOf('return resultado.valor'));
+    expect(corpo).not.toMatch(/minimizarLeituraPlataforma|this\.auditoria\./); // nada no audit_log do condomínio
+    // Só o ponto único chama a leitura sem máscara de pessoa.
+    expect(fontes.filter((x) => x.texto.includes('paraRevelarNaPlataforma(')).map((x) => x.f).sort())
+      .toEqual(['pessoas/pessoas.service.ts', 'plataforma/revelar-master.controller.ts']);
   });
 });

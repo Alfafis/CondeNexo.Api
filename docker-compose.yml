@@ -172,6 +172,7 @@ services:
       LOGIN_MAX_FALHAS_IP: ${LOGIN_MAX_FALHAS_IP:-}
       LOGIN_JANELA_MIN: ${LOGIN_JANELA_MIN:-}
       LOGIN_BLOQUEIO_MIN: ${LOGIN_BLOQUEIO_MIN:-}
+      PLATAFORMA_REVELAR_POR_MINUTO: ${PLATAFORMA_REVELAR_POR_MINUTO:-}
       # Prazo de regularização do legado (RN-09, definido em assembleia). Vazio = 90 dias.
       IMPORTACAO_PRAZO_LEGADO_DIAS: ${IMPORTACAO_PRAZO_LEGADO_DIAS:-}
       # Opcionais desde a F2: só conferidas no boot contra as do piloto na plataforma.

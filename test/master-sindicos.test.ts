@@ -56,18 +56,15 @@ beforeAll(async () => {
 
 afterAll(async () => { vi.restoreAllMocks(); await api.app.close(); await api.client.close(); });
 
-describe('lista dos síndicos (leitura auditada)', () => {
-  it('só papel sindico, sem nada de senha, e uma linha plataforma.ler', async () => {
-    const mo = await api.http().post(`${P}/condominios/${api.pilotoId}/motivo`).set('Cookie', master).send({ categoria: 'suporte', texto: 'Chamado 42: conferir os síndicos' });
-    expect(mo.status, JSON.stringify(mo.body)).toBe(200);
-    const antes = (await linhasM()).length;
-    const r = await api.http().get(`${P}/condominios/${api.pilotoId}/sindicos`).set('Cookie', master).set('X-Motivo-Token', mo.body.data.token);
+describe('lista dos síndicos (leitura sem motivo e sem trilha desde 2026-11-01)', () => {
+  it('só papel sindico, sem nada de senha, e nenhuma linha nas trilhas', async () => {
+    const antes = [(await linhasM()).length, (await trilhaP()).length];
+    const r = await api.http().get(`${P}/condominios/${api.pilotoId}/sindicos`).set('Cookie', master);
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect(r.body.data.map((u: { login: string }) => u.login)).toEqual([LOGINS.sindico]);
     expect(r.body.data[0]).toMatchObject({ papel: 'sindico', ativo: true });
     semSegredo(r.body);
-    const [l] = (await linhasM()).slice(antes);
-    expect([l!.acao, l!.entidade, (l!.depois as { rota: string }).rota]).toEqual(['plataforma.ler', 'usuario_sistema', '/sindicos']);
+    expect([(await linhasM()).length, (await trilhaP()).length]).toEqual(antes);
   });
 });
 

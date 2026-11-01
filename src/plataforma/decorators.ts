@@ -27,11 +27,11 @@ export const PlataformaAutenticada = (o: { permiteTrocaPendente?: boolean } = {}
 export const PlataformaAcao = (acao: AcaoPlataforma) => marcar({ tipo: 'acao', acao });
 
 /**
- * Marca as rotas que exigem `X-Motivo-Token` (o motivo vigente da leitura, motivo-leitura.ts). Só documenta o cabeçalho no
- * OpenAPI: quem EXIGE é o AcessoPlataformaService.ler, por onde toda leitura passa (teste de arquitetura).
+ * Rota mantida só por compatibilidade, com a data de saída: o OpenAPI a marca `deprecated` com este texto. Primeiro uso:
+ * POST .../motivo (Fase B, 2026-11-01), que o Front antigo ainda chama até o Front novo sair.
  */
-export const MOTIVO_LEITURA = 'portaria:motivo_leitura';
-export const ExigeMotivoLeitura = () => SetMetadata(MOTIVO_LEITURA, true);
+export const OBSOLETA = 'portaria:rota_obsoleta';
+export const Obsoleta = (porque: string) => SetMetadata(OBSOLETA, porque);
 
 /** Sessão do Master validada pela PlataformaGuard; só em rota não pública. */
 export const Master = createParamDecorator((_: unknown, c: ExecutionContext): AuthMaster => {

@@ -24,6 +24,9 @@
 > **v0.6 (2026-10-24): F5, entrega 2 implementada** (código, sem deploy): leitura auditada dos dados do condomínio pelo
 > Master (SAAS-09), tela "Acessos da plataforma" do síndico e do auditor, e `ModuloGuard` (SAAS-19). Sem migração. O que
 > entrou e as decisões tomadas onde o doc deixava margem: §5.4. Deploy: `docs/deploy.md`, seção 20.
+> **v0.7 (2026-11-01): leitura do Master sem motivo e sem trilha** (Fase B de "Master com autonomia total", decisão do
+> dono do produto, risco aceito): a leitura dos dados do condomínio não pede motivo e não grava linha em trilha nenhuma;
+> o valor completo de um registro sai pelo "Revelar", registrado só em `plataforma_audit`. Revisão em SAAS-09 (abaixo).
 > Complementa `01_requisitos.md` (v0.3) e `02_especificacao_tecnica.md` (v0.1); não os altera.
 > O condomínio real do estudo de caso é chamado aqui de **condomínio-piloto**.
 
@@ -310,6 +313,26 @@ portaria. Hoje o cookie é isolado por `Path`, mas a origem é a mesma (ver risc
 
 ### SAAS-09 — Master e LGPD: acesso direto e auditado ("Master vê tudo")
 
+> **Revisado em 2026-11-01 (Fase B, decisão do dono do produto, contra a recomendação; risco aceito).** Regra nova:
+> - **Leitura sem motivo e sem trilha.** O Master lê os dados de qualquer condomínio (ativo, suspenso ou encerrado) sem
+>   informar motivo e **sem nenhuma linha** no `audit_log` do condomínio nem em `plataforma_audit`. Listas, fichas,
+>   anexos e o CSV continuam **minimizados** (nome de terceiro, placa, texto livre; CPF e telefone já mascarados na view).
+>   Trilha fora do ar não bloqueia mais a leitura (acabou o 503). Ponto único e teste de arquitetura mantidos.
+> - **"Revelar" por registro.** `POST /plataforma/condominios/:id/{pessoas|veiculos|ocorrencias|encomendas}/:id/revelar`
+>   devolve, de UM registro, o que a leitura esconde (nome e telefone completos da pessoa, placa, descrição e envolvidos
+>   da ocorrência, destinatário e quem retirou a encomenda). O CPF não é armazenado: o Revelar devolve a máscara.
+>   Cada revelação grava UMA linha `condominio.revelar` em `plataforma_audit` (entidade, id do registro, rota, status, IP;
+>   nunca o valor) e nada no `audit_log` do condomínio. Falhou a gravação: 503 e o valor não sai. Limite por usuário:
+>   `PLATAFORMA_REVELAR_POR_MINUTO` (padrão 60), em memória, 429 com `Retry-After`. Só `master`; `suporte` não muda.
+> - **O síndico não vê nada disso.** A tela "Acessos da plataforma" continua mostrando as ações do Master sobre os
+>   síndicos (§5.5) e as consultas registradas **até 01/11/2026**; nenhuma linha antiga foi apagada.
+> - **Risco aceito:** a RM Digital, como operadora, deixa de ter registro de quem leu o quê nas listas e fichas; não há
+>   como responder a um titular ou síndico "quem viu e por quê", exceto pelas revelações (trilha interna). Os itens 1, 2 e
+>   4 da mitigação abaixo e a cláusula de contrato "todo acesso fica registrado e visível ao síndico" **deixaram de valer**,
+>   e o contrato e os textos de venda precisam ser revistos. Agravante: sem 2º fator obrigatório (SAAS-08), uma senha ou
+>   sessão roubada do Master lê tudo, mascarado, e revela até 60 registros por minuto.
+> - Spec: `projetos/rm-digital/CondeNexo.Api/specs/2026-11-01-fase-b-leitura-sem-motivo-design.md` (vault).
+
 > **Implementado em 2026-10-24 (F5, entrega 2; §5.4).** Rotas, ponto único, trilha e tela do síndico como abaixo;
 > decisões onde o texto deixava margem (status gravado, ordem das gravações, encerrado/excluído, o que fica de fora) na §5.4.
 >
@@ -334,7 +357,7 @@ controlador (art. 39). A instrução passa a vir do contrato, não de uma aprova
   reautenticação e a linha `plataforma.usuario_*` na trilha do condomínio. A nova senha do síndico deixa de ser só pela
   CLI: a CLI (`redefinir-senha`, `provisionar-condominio --nova-senha-sindico`) continua para o operador da VPS, e a tela
   passa a ser o caminho normal.
-- **Mitigação adotada:**
+- **Mitigação adotada (itens 1, 2 e 4 substituídos em 2026-11-01, ver a revisão no topo):**
   1. Todo acesso do Master a dado pessoal de um condomínio grava uma linha no `audit_log` **daquele condomínio** (a
      trilha é do controlador): `usuario_id` e `usuario_papel` nulos (o Master não é usuário do condomínio, SAAS-07),
      `usuario_nome = 'plataforma/<master>'` (o e-mail do `master_usuario`), `acao = 'plataforma.ler'` (ou
@@ -358,7 +381,8 @@ controlador (art. 39). A instrução passa a vir do contrato, não de uma aprova
   fica registrado na trilha do condomínio e visível ao síndico, quem na empresa tem papel `master` (lista nominal), e o
   prazo de guarda desses registros (o da trilha). Sem essa cláusula, o acesso não tem instrução do controlador.
 - Necessidade (art. 6º, III): poder ver não autoriza olhar sem motivo. Regra interna: acesso só com chamado ou
-  incidente; acesso sem chamado é tratado como incidente interno. A trilha visível ao síndico é o controle externo.
+  incidente; acesso sem chamado é tratado como incidente interno. ~~A trilha visível ao síndico é o controle externo.~~
+  (Desde 2026-11-01 não há trilha de leitura: a regra interna depende só do Master; o Revelar fica em `plataforma_audit`.)
 - Conta do Master comprometida passa a alcançar o dado pessoal de **todos** os condomínios (R7): sem 2FA desde
   2026-10-23 (SAAS-08: senha de 16+, limite de tentativas, sessão curta, trilha com IP),
   app em /admin com cookie de caminho restrito (mesma origem, risco aceito em SAAS-08), poucos usuários `master`, revisão dos acessos por condomínio (relatório na F5).
@@ -1331,7 +1355,7 @@ Nada disso exige mudança agora, exceto não criar unicidade ou trigger que impe
 | R4 | Esgotamento de conexões com muitos condomínios | Pool pequeno com timeout; teto global; revisitar SAAS-01 acima de ~100 |
 | R5 | Perda da chave mestra = perda de todos os anexos e da busca por CPF de todos os condomínios | Cópia da chave mestra fora da VPS, em cofre, com procedimento de recuperação testado (pergunta 6) |
 | R6 | Vazamento da chave mestra + dump = força bruta de CPF | Mestra fora do backup; acesso restrito; rotação da mestra é barata |
-| R7 | Master comprometido: desde 2026-10-22 alcança o dado pessoal de **todos** os condomínios (SAAS-09); **agravado em 2026-10-26 (§5.5): pode criar síndico (ou trocar, ou gerar nova senha) em qualquer condomínio e entrar como ele** | Origem separada, ~~TOTP~~ (sem 2FA desde 2026-10-23: senha 16+, limite de tentativas, sessão curta, trilha com IP, gerenciador de senhas; SAAS-08), poucos usuários `master`, ponto único que grava a trilha de cada condomínio antes de responder, tela do síndico, revisão de acessos. A aprovação do síndico saiu. Na gestão de síndicos: reautenticação no próprio pedido (sessão roubada não basta), motivo obrigatório, trilha do condomínio na mesma transação e visível ao síndico em "Acessos da plataforma"; o síndico substituído perde o acesso na hora e percebe |
+| R7 | Master comprometido: desde 2026-10-22 alcança o dado pessoal de **todos** os condomínios (SAAS-09); **agravado em 2026-10-26 (§5.5): pode criar síndico (ou trocar, ou gerar nova senha) em qualquer condomínio e entrar como ele** | Origem separada, ~~TOTP~~ (sem 2FA desde 2026-10-23: senha 16+, limite de tentativas, sessão curta, trilha com IP, gerenciador de senhas; SAAS-08), poucos usuários `master`, ponto único que grava a trilha de cada condomínio antes de responder, tela do síndico, revisão de acessos (**desde 2026-11-01 a leitura não grava mais trilha**: sobram o mascaramento, o Revelar registrado e limitado e o bloco "Revelações" do painel). A aprovação do síndico saiu. Na gestão de síndicos: reautenticação no próprio pedido (sessão roubada não basta), motivo obrigatório, trilha do condomínio na mesma transação e visível ao síndico em "Acessos da plataforma"; o síndico substituído perde o acesso na hora e percebe |
 | R8 | API comprometida = todos os condomínios | Inerente a um processo (P3). Reduz o alcance: `app_rw` sem DELETE, trilha append-only, âncora fora do servidor |
 | R9 | VPS compartilhada com sistema de terceiros, mantida com vários clientes (decisão de 2026-10-22) | Mitigações M1 a M9 (seção 10); gatilhos de saída para VPS dedicada (M9) |
 | R10 | Âncora controlada pelo operador não protege o cliente contra o operador | E-mail ao síndico obrigatório; raiz pública em repositório com proteção de branch |

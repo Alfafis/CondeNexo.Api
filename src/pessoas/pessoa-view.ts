@@ -2,6 +2,8 @@
 // - documento_busca (HMAC do CPF) NUNCA sai da API;
 // - telefone completo NUNCA sai da API (decisão de 2026-10-24): nem na ficha, nem nas respostas de escrita, para
 //   nenhum papel. Só `telefoneMascarado`; a correção do cadastro envia o número novo sem precisar ler o atual.
+//   Exceção desde 2026-11-01 (Fase B, decisão do dono do produto): o "Revelar" do app do Master, um registro por vez,
+//   com limite e linha em plataforma_audit (PessoasService.paraRevelarNaPlataforma). Nenhum papel do condomínio.
 import { pode } from '../dominio/rbac';
 import type { Papel } from '../dominio/types';
 import { mascararTelefone } from '../auditoria/snapshot';

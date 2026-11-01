@@ -1,7 +1,7 @@
 // Gestão de síndicos pelo app do Master (docs/05_arquitetura_saas.md §5.5): a ÚNICA escrita do Master em dado de
 // condomínio, e só sobre usuários de papel `sindico`. Toda rota passa pelo ponto único (AcessoPlataformaService
 // .alterarSindico), que reautentica o Master, confere a situação do condomínio e grava a trilha do condomínio e a da
-// plataforma junto com a mudança. A lista dos síndicos é uma leitura auditada (`plataforma.ler`) no controller de leitura.
+// plataforma junto com a mudança. A lista dos síndicos é uma leitura (sem trilha desde 2026-11-01) no controller de leitura.
 //
 // O corpo leva `motivo` (15+ caracteres, o critério JUST do schema) e `senhaMaster` (verificada, nunca gravada). A senha
 // do síndico é SEMPRE gerada pela API e temporária (72 h, troca obrigatória): não há campo para o Master defini-la.

@@ -6,7 +6,7 @@ import { desc, max, sql } from 'drizzle-orm';
 import { diaBrt, somarDias } from '../comum/datas';
 import { log } from '../comum/log';
 import { RELOGIO, type Relogio } from '../comum/relogio';
-import { CATEGORIAS_MOTIVO } from './motivo-leitura';
+import { ENTIDADES_REVELAR, type EntidadeRevelar } from './acesso-plataforma.service';
 import { CondominiosMasterService } from './condominios-master.service';
 import { type DbPlataforma, PLATAFORMA_DB } from './plataforma-db';
 import { TEMPO_SAUDE_MS } from './provisionador';
@@ -34,14 +34,18 @@ export interface PainelPlataforma {
   ancora: PainelAncora | null;
 }
 
-export const ACOES_LEITURA_PAINEL = ['condominio.ler', 'condominio.exportar', 'condominio.motivo'] as const;
-export const CATEGORIA_SEM_MOTIVO = 'sem_motivo';
-export const JANELA_LEITURAS_DIAS = 7;
+export const JANELA_REVELACOES_DIAS = 7;
 
-export interface LeiturasMaster {
+/**
+ * "Revelações nos últimos 7 dias" (Fase B, 2026-11-01): as linhas `condominio.revelar` da plataforma_audit, por entidade.
+ * Substitui o bloco "Leituras do Master", que perdeu a fonte (a leitura não grava mais trilha). Serve ao próprio Master
+ * para notar revelação que não fez (sessão roubada). Só contagens; nunca id, rota, IP ou condomínio.
+ */
+export interface RevelacoesMaster {
   janelaDias: number;
-  /** Contagem por categoria do motivo, por ação. Toda ação aparece (vazia = `{}`); leitura antiga, sem motivo, é `sem_motivo`. */
-  porAcao: Record<(typeof ACOES_LEITURA_PAINEL)[number], Record<string, number>>;
+  total: number;
+  /** Toda entidade aparece (zero inclusive). */
+  porEntidade: Record<EntidadeRevelar, number>;
 }
 
 @Injectable()
@@ -95,19 +99,19 @@ export class PainelMasterService {
     return { ultimaData, atrasada: ultimaData !== null && ultimaData < ontem };
   }
 
-  async leituras(): Promise<LeiturasMaster> {
-    const desde = new Date(this.relogio.agora().getTime() - JANELA_LEITURAS_DIAS * 86_400_000);
-    const categoria = sql<string | null>`${plataformaAudit.detalhes}->>'categoria'`;
-    const linhas = await this.db.select({ acao: plataformaAudit.acao, categoria, n: sql<number>`count(*)::int` }).from(plataformaAudit)
-      .where(sql`${plataformaAudit.acao} in (${sql.join(ACOES_LEITURA_PAINEL.map((x) => sql`${x}`), sql`, `)}) and ${plataformaAudit.em} >= ${desde}`)
-      .groupBy(plataformaAudit.acao, categoria);
-    const porAcao: LeiturasMaster['porAcao'] = { 'condominio.ler': {}, 'condominio.exportar': {}, 'condominio.motivo': {} };
+  async revelacoes(): Promise<RevelacoesMaster> {
+    const desde = new Date(this.relogio.agora().getTime() - JANELA_REVELACOES_DIAS * 86_400_000);
+    const entidade = sql<string | null>`${plataformaAudit.detalhes}->>'entidade'`;
+    const linhas = await this.db.select({ entidade, n: sql<number>`count(*)::int` }).from(plataformaAudit)
+      .where(sql`${plataformaAudit.acao} = 'condominio.revelar' and ${plataformaAudit.em} >= ${desde}`)
+      .groupBy(entidade);
+    const porEntidade = Object.fromEntries(ENTIDADES_REVELAR.map((e) => [e, 0])) as Record<EntidadeRevelar, number>;
+    let total = 0;
     for (const l of linhas) {
-      // Só categorias conhecidas saem; qualquer outro valor (ou nenhum) vira sem_motivo: a resposta nunca ecoa texto da trilha.
-      const cat = (CATEGORIAS_MOTIVO as readonly string[]).includes(l.categoria ?? '') ? l.categoria! : CATEGORIA_SEM_MOTIVO;
-      const alvo = porAcao[l.acao as keyof LeiturasMaster['porAcao']];
-      alvo[cat] = (alvo[cat] ?? 0) + l.n;
+      total += l.n;
+      // Só entidades conhecidas viram chave: a resposta nunca ecoa texto da trilha.
+      if ((ENTIDADES_REVELAR as readonly string[]).includes(l.entidade ?? '')) porEntidade[l.entidade as EntidadeRevelar] += l.n;
     }
-    return { janelaDias: JANELA_LEITURAS_DIAS, porAcao };
+    return { janelaDias: JANELA_REVELACOES_DIAS, total, porEntidade };
   }
 }

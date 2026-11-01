@@ -302,6 +302,7 @@ services:
       LOGIN_MAX_FALHAS_IP: ${LOGIN_MAX_FALHAS_IP:-}
       LOGIN_JANELA_MIN: ${LOGIN_JANELA_MIN:-}
       LOGIN_BLOQUEIO_MIN: ${LOGIN_BLOQUEIO_MIN:-}
+      PLATAFORMA_REVELAR_POR_MINUTO: ${PLATAFORMA_REVELAR_POR_MINUTO:-}
       IMPORTACAO_PRAZO_LEGADO_DIAS: ${IMPORTACAO_PRAZO_LEGADO_DIAS:-}
       # As chaves do piloto vêm da plataforma desde a F2. Estas três ficam OPCIONAIS, só para a conferência no boot: se
       # estiverem no .env e diferirem das da plataforma, a API recusa subir. Esvaziar quando a transição acabar.

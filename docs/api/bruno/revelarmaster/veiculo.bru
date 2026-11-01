@@ -1,0 +1,20 @@
+meta {
+  name: revelarmaster / veiculo
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/veiculos/:veiculoId/revelar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  veiculoId: {{veiculoId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

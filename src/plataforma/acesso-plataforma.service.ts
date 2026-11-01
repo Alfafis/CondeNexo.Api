@@ -1,23 +1,22 @@
-// Leitura dos dados de um condomínio pelo app do Master (docs/05_arquitetura_saas.md SAAS-09, F5 entrega 2). PONTO ÚNICO:
-// é o único lugar de src/plataforma que obtém a subárvore de injeção de um condomínio (teste de arquitetura em
-// test/master-leitura.test.ts). Para cada requisição de /plataforma/condominios/:id/...:
+// Acesso do app do Master aos dados de um condomínio (docs/05_arquitetura_saas.md SAAS-09, revisada na Fase B em
+// 2026-11-01). PONTO ÚNICO: é o único lugar de src/plataforma que obtém a subárvore de injeção de um condomínio (teste de
+// arquitetura em test/master-leitura.test.ts). Três caminhos:
 //
-//   0. exige o motivo vigente (`X-Motivo-Token`, motivo-leitura.ts) ANTES de qualquer outra coisa: sem ele, 403
-//      `MOTIVO_NECESSARIO` e nada é resolvido nem lido;
+// LEITURA (`ler`, GET /plataforma/condominios/:id/...), desde 2026-11-01 SEM motivo e SEM trilha (decisão do dono do
+// produto, risco aceito: a plataforma não registra mais quem leu listas e fichas):
 //   1. resolve o condomínio (ativo, suspenso ou encerrado; `provisionando` 409; `excluido` ou desconhecido 404);
 //   2. obtém a subárvore durável dele, a MESMA das requisições do condomínio e dos jobs (`contextoDoJob`): os serviços
 //      leem pelo pool `app_rw` daquele banco. O `app_plataforma` continua sem CONNECT nos bancos de condomínio;
-//   3. chama o serviço existente (as mesmas views e máscaras que o síndico recebe) e minimiza a resposta: nome de
-//      terceiro mascarado, texto livre oculto, placa mascarada (minimizacao.ts; o caminho do síndico não muda);
-//   4. grava UMA linha no `audit_log` DAQUELE condomínio (`plataforma.ler` ou `plataforma.exportar`, quem =
-//      `plataforma/<e-mail>`, `depois = { rota, metodo, status, master_usuario_id, motivo: { categoria, texto } }`, sem corpo nem filtros) e uma
-//      em `plataforma_audit` (sem dado de morador nem id de registro do condomínio; do motivo, só a `categoria`);
-//   5. só então devolve o dado. Falhou qualquer das duas gravações: 503 e o dado não sai.
+//   3. chama o serviço existente (as mesmas views do síndico) e minimiza a resposta (minimizacao.ts: nome de terceiro
+//      mascarado, texto livre oculto, placa mascarada). Nada é gravado em `audit_log` nem em `plataforma_audit`.
+//   As linhas `plataforma.ler`/`plataforma.exportar` e `condominio.ler`/`condominio.exportar`/`condominio.motivo` de
+//   antes continuam onde estão (append-only): nada é apagado.
 //
-// A linha é gravada DEPOIS da leitura e ANTES da resposta, para levar o status de verdade (200, 404...). As duas
-// gravações estão em bancos diferentes, sem transação comum: se a do condomínio entra e a da plataforma falha, fica a do
-// condomínio (o controle externo, visto pelo síndico) e o Master recebe 503. Leitura que falha (404 de um id
-// inexistente) também é registrada, com o status.
+// REVELAR (`revelar`, POST .../<entidade>/:registroId/revelar): o valor completo dos campos que a leitura esconde, UM
+// registro por vez. Na ordem: limite por usuário (`PLATAFORMA_REVELAR_POR_MINUTO`, em memória; estourou, 429 com
+// Retry-After e nada lido nem gravado), situação do condomínio, leitura pelo serviço, UMA linha `condominio.revelar` em
+// `plataforma_audit` (entidade, id do registro, rota, método, status e IP; nunca o valor) e só então a resposta. Falhou a
+// gravação: 503 e o valor não sai. Nada vai para o `audit_log` do condomínio (o síndico não vê, decisão fechada).
 //
 // O ModuloGuard não se aplica aqui (rota da plataforma): o dado de um módulo desligado continua existindo e o Master o lê
 // para suporte e exportação de fim de contrato (SAAS-19).
@@ -38,30 +37,28 @@ import { type EfeitoSindico, type OperacaoSindico, type ResultadoSindico, Usuari
 import { AuthMasterService } from './auth-master.service';
 import { codigoPg, erroApi } from '../comum/erros';
 import { log } from '../comum/log';
-import { DB, type Db } from '../database/database.module';
+import { RELOGIO, type Relogio } from '../comum/relogio';
+import { CONFIG, type Config } from '../config/config';
+import type { CondominioResolvido } from '../tenancy/condominio';
 import { contextoDoJob } from '../tenancy/contexto';
 import { type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
 import { ResolvedorCondominio } from '../tenancy/resolvedor';
+import { LimiteTaxaPublico } from '../selo/publico';
 import { minimizarLeituraPlataforma } from './minimizacao';
-import { CABECALHO_MOTIVO, type MotivoLeitura, MotivoLeituraService } from './motivo-leitura';
 import type { AuthMaster } from './tipos';
 import { registrarPlataforma } from './trilha-plataforma';
-
-/** O que foi lido: a entidade (nome da tabela) e, quando a rota é de um registro, o id dele. */
-export interface AlvoLeitura {
-  entidade: string;
-  registroId?: string | null;
-  /** Download, CSV, JSONL ou anexo: `plataforma.exportar` em vez de `plataforma.ler`. */
-  exportar?: boolean;
-}
 
 /** Serviço resolvido na subárvore do condomínio lido. */
 export type Servicos = <T>(token: Type<T>) => Promise<T>;
 
-export const MENSAGEM_TRILHA_INDISPONIVEL = 'Não foi possível registrar a consulta na trilha do condomínio. Nada foi mostrado; tente de novo.';
-export const MENSAGEM_TRILHA_MOTIVO = 'Não foi possível registrar o motivo na trilha da plataforma. Tente de novo.';
-/** Uma mensagem só, qualquer que seja a causa (sem token, vencido, de outra sessão, de outro condomínio, adulterado). */
-export const MENSAGEM_MOTIVO_NECESSARIO = 'Informe o motivo da consulta a este condomínio para continuar.';
+/** Entidades com "Revelar" (uma rota por entidade, revelar-master.controller.ts). */
+export const ENTIDADES_REVELAR = ['pessoa', 'veiculo', 'ocorrencia', 'encomenda'] as const;
+export type EntidadeRevelar = (typeof ENTIDADES_REVELAR)[number];
+
+/** Janela do limite do Revelar (o máximo vem de Config.plataforma.revelarPorMinuto). */
+export const JANELA_REVELAR_MS = 60_000;
+
+export const MENSAGEM_TRILHA_REVELAR = 'Não foi possível registrar a revelação na trilha da plataforma. Nada foi mostrado; tente de novo.';
 export const MENSAGEM_TRILHA_ESCRITA = 'Não foi possível registrar a ação na trilha do condomínio. Nada foi alterado; tente de novo.';
 
 /** O que acompanha toda escrita do Master: motivo (vai para a trilha) e a senha dele (só verificada, nunca gravada). */
@@ -71,8 +68,6 @@ export interface ProtecaoEscrita { motivo: string; senhaMaster: string }
 class FalhaTrilha extends Error {
   constructor(readonly causa: unknown) { super('falha na trilha'); }
 }
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Rota sem o prefixo comum (`/api/v1/plataforma/condominios/:id`): o padrão, nunca a URL (sem query string). */
 export function rotaDaLeitura(req: Request): string | null {
@@ -84,14 +79,20 @@ const statusDe = (e: unknown) => (e instanceof HttpException ? e.getStatus() : 5
 
 @Injectable()
 export class AcessoPlataformaService {
+  /** Por usuário da plataforma; poucos usuários, então o teto de chaves é folgado. */
+  private readonly limiteRevelar: LimiteTaxaPublico;
+
   constructor(
     @Inject(ModuleRef) private readonly moduleRef: ModuleRef,
     @Inject(ResolvedorCondominio) private readonly resolvedor: ResolvedorCondominio,
     @Inject(AuditoriaService) private readonly auditoria: AuditoriaService,
     @Inject(PLATAFORMA_DB) private readonly db: DbPlataforma,
     @Inject(AuthMasterService) private readonly auth: AuthMasterService,
-    @Inject(MotivoLeituraService) private readonly motivos: MotivoLeituraService,
-  ) {}
+    @Inject(CONFIG) config: Config,
+    @Inject(RELOGIO) private readonly relogio: Relogio,
+  ) {
+    this.limiteRevelar = new LimiteTaxaPublico(config.plataforma.revelarPorMinuto, JANELA_REVELAR_MS, 1000);
+  }
 
   /** Mesmas regras de estado da leitura: ativo, suspenso e encerrado leem; `provisionando` 409; `excluido`/desconhecido 404. */
   private async paraLeitura(condominioId: string) {
@@ -101,60 +102,45 @@ export class AcessoPlataformaService {
     return r.condominio;
   }
 
-  /**
-   * POST /plataforma/condominios/:id/motivo: emite o token do motivo (30 min, esta sessão, este condomínio). A linha
-   * `condominio.motivo` da plataforma_audit leva só a categoria; o texto vai no token e, a cada leitura, para o audit_log
-   * do condomínio. Falhou a trilha: 503 e o token não sai.
-   */
-  async emitirMotivo(m: AuthMaster, req: Request, condominioId: string, motivo: MotivoLeitura): Promise<{ token: string; expiraEm: Date }> {
-    const c = await this.paraLeitura(condominioId);
-    const emitido = this.motivos.emitir(m.sessaoId, c.id, motivo);
-    try {
-      await registrarPlataforma(this.db, {
-        masterUsuarioId: m.usuario.id, acao: 'condominio.motivo', condominioId: c.id,
-        detalhes: { categoria: motivo.categoria, rota: rotaDaLeitura(req), metodo: req.method, ip: m.ip },
-      });
-    } catch (e) {
-      log('error', 'plataforma.falha_trilha_motivo', { request_id: req.requestId, condominio_id: c.id, codigo_pg: codigoPg(e), erro: e instanceof Error ? e.name : 'erro' });
-      throw erroApi(503, 'TRILHA_INDISPONIVEL', MENSAGEM_TRILHA_MOTIVO);
-    }
-    return emitido;
+  private servicosDe(c: CondominioResolvido): Servicos {
+    const arvore = contextoDoJob(this.moduleRef, c);
+    return (t) => this.moduleRef.resolve(t, arvore, { strict: false });
   }
 
-  async ler<T>(m: AuthMaster, req: Request, condominioId: string, alvo: AlvoLeitura, fn: (s: Servicos) => Promise<T>): Promise<T> {
-    // 0. Motivo vigente antes de tudo (só criptografia, nenhum banco). A causa da recusa não sai na resposta.
-    const motivo = this.motivos.validar(req.headers[CABECALHO_MOTIVO], m.sessaoId, condominioId);
-    if (!motivo) throw erroApi(403, 'MOTIVO_NECESSARIO', MENSAGEM_MOTIVO_NECESSARIO);
+  /** Leitura do Master: sem motivo, sem trilha, minimizada. Ver o cabeçalho deste arquivo. */
+  async ler<T>(condominioId: string, fn: (s: Servicos) => Promise<T>): Promise<T> {
     const c = await this.paraLeitura(condominioId);
-    const arvore = contextoDoJob(this.moduleRef, c);
-    const servico: Servicos = (t) => this.moduleRef.resolve(t, arvore, { strict: false });
+    return minimizarLeituraPlataforma(await fn(this.servicosDe(c)));
+  }
 
+  /** "Revelar" um registro: valor completo, com limite e uma linha em plataforma_audit. Ver o cabeçalho deste arquivo. */
+  async revelar<T>(m: AuthMaster, req: Request, condominioId: string, alvo: { entidade: EntidadeRevelar; registroId: string },
+    fn: (s: Servicos) => Promise<T>): Promise<T> {
+    // 1. Limite antes de tudo (só memória): estourou, nada é lido nem gravado.
+    const vez = this.limiteRevelar.consumir(m.usuario.id, this.relogio.agora().getTime());
+    if (!vez.ok) {
+      // O filtro de erro preserva os cabeçalhos já gravados (como no 429 dos selos públicos).
+      req.res?.setHeader('Retry-After', String(vez.retryAfterSeg));
+      throw erroApi(429, 'REVELACOES_EXCEDIDAS', 'Muitas revelações em pouco tempo. Aguarde e tente de novo.');
+    }
+    // 2. Situação do condomínio.
+    const c = await this.paraLeitura(condominioId);
+    // 3. A leitura, sem minimizar (é o ponto do Revelar).
     let resultado: { ok: true; valor: T } | { ok: false; erro: unknown };
     try {
-      // Minimiza aqui, antes da trilha: se falhar, a linha leva o status do erro e nada sai.
-      resultado = { ok: true, valor: minimizarLeituraPlataforma(await fn(servico)) };
+      resultado = { ok: true, valor: await fn(this.servicosDe(c)) };
     } catch (erro) {
       resultado = { ok: false, erro };
     }
-
-    const exportar = !!alvo.exportar;
-    const rota = rotaDaLeitura(req);
-    const status = resultado.ok ? 200 : statusDe(resultado.erro);
-    const registroId = alvo.registroId && UUID.test(alvo.registroId) ? alvo.registroId : null;
+    // 4. A linha da plataforma, com o status de verdade (404 também), antes de qualquer valor sair.
     try {
-      const dbCondominio = await servico<Db>(DB as unknown as Type<Db>);
-      await this.auditoria.registrarPlataforma(dbCondominio, {
-        email: m.usuario.email, acao: exportar ? 'plataforma.exportar' : 'plataforma.ler', entidade: alvo.entidade, registroId,
-        ip: m.ip, depois: { rota, metodo: req.method, status, masterUsuarioId: m.usuario.id, motivo: { categoria: motivo.categoria, texto: motivo.texto } },
-      });
       await registrarPlataforma(this.db, {
-        masterUsuarioId: m.usuario.id, acao: exportar ? 'condominio.exportar' : 'condominio.ler', condominioId: c.id,
-        // Só a categoria do motivo: o texto livre pode citar morador (a plataforma não tem redação LGPD).
-        detalhes: { entidade: alvo.entidade, rota, metodo: req.method, status, ip: m.ip, categoria: motivo.categoria },
+        masterUsuarioId: m.usuario.id, acao: 'condominio.revelar', condominioId: c.id,
+        detalhes: { entidade: alvo.entidade, registro_id: alvo.registroId, rota: rotaDaLeitura(req), metodo: req.method, status: resultado.ok ? 200 : statusDe(resultado.erro), ip: m.ip },
       });
     } catch (e) {
-      log('error', 'plataforma.falha_trilha_leitura', { request_id: req.requestId, condominio_id: c.id, codigo_pg: codigoPg(e), erro: e instanceof Error ? e.name : 'erro' });
-      throw erroApi(503, 'TRILHA_INDISPONIVEL', MENSAGEM_TRILHA_INDISPONIVEL);
+      log('error', 'plataforma.falha_trilha_revelar', { request_id: req.requestId, condominio_id: c.id, codigo_pg: codigoPg(e), erro: e instanceof Error ? e.name : 'erro' });
+      throw erroApi(503, 'TRILHA_INDISPONIVEL', MENSAGEM_TRILHA_REVELAR);
     }
     if (!resultado.ok) throw resultado.erro;
     return resultado.valor;
@@ -173,8 +159,7 @@ export class AcessoPlataformaService {
       throw erroApi(409, 'CONDOMINIO_ENCERRADO', 'Contrato encerrado: os dados do condomínio são só para leitura.');
     }
     const c = r.condominio;
-    const arvore = contextoDoJob(this.moduleRef, c);
-    const usuarios = await this.moduleRef.resolve(UsuariosService, arvore, { strict: false });
+    const usuarios = await this.servicosDe(c)(UsuariosService);
     const rota = rotaDaLeitura(req);
     const motivo = p.motivo.trim();
 

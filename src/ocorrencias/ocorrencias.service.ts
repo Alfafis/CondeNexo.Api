@@ -265,7 +265,7 @@ export class OcorrenciasService {
 
   /**
    * Conteúdo decifrado de um anexo DESTA ocorrência (o vínculo é conferido: id de documento de outra não serve), sem
-   * trilha: quem chama registra (`conteudo` acima; o app do Master como `plataforma.exportar`).
+   * trilha: quem chama registra (`conteudo` acima; o app do Master não registra o download desde 2026-11-01).
    */
   async lerAnexo(ocorrenciaId: string, documentoId: string) {
     const [d] = await this.db.select({ doc: documento }).from(ocorrenciaAnexo).innerJoin(documento, eq(documento.id, ocorrenciaAnexo.documentoId))

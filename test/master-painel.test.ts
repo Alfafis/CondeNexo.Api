@@ -1,5 +1,6 @@
-// Painel da plataforma (Fase A, spec 2026-10-31): GET /plataforma/painel (master e suporte) e /plataforma/painel/leituras (só
-// master, pela guarda existente). Contagens, blocos isolados (falha vira null sem derrubar o resto) e janela de 7 dias.
+// Painel da plataforma (Fase A, spec 2026-10-31): GET /plataforma/painel (master e suporte) e /plataforma/painel/revelacoes
+// (só master, pela guarda existente; substituiu /painel/leituras na Fase B, 2026-11-01). Contagens, blocos isolados (falha
+// vira null sem derrubar o resto) e janela de 7 dias.
 import { hash } from '@node-rs/argon2';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -33,9 +34,9 @@ async function novoMaster(email: string, papel: 'master' | 'suporte') {
 }
 
 const painel = (cookie = master) => api.http().get(`${P}/painel`).set('Cookie', cookie);
-const leituras = (cookie = master) => api.http().get(`${P}/painel/leituras`).set('Cookie', cookie);
-const audit = (acao: string, categoria: string | null, em: Date, extra: Record<string, unknown> = {}) =>
-  api.plataforma.db.insert(plataformaAudit).values({ masterUsuarioId: masterId, acao, em, detalhes: categoria === null ? { rota: '/x', ...extra } : { categoria, ...extra } });
+const revelacoes = (cookie = master) => api.http().get(`${P}/painel/revelacoes`).set('Cookie', cookie);
+const audit = (acao: string, detalhes: Record<string, unknown> | null, em: Date) =>
+  api.plataforma.db.insert(plataformaAudit).values({ masterUsuarioId: masterId, acao, em, detalhes });
 
 beforeAll(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -125,43 +126,33 @@ describe('GET /plataforma/painel', () => {
   });
 });
 
-describe('GET /plataforma/painel/leituras', () => {
-  it('sem sessão 401; suporte 403 (guarda); master 200 com no-store', async () => {
-    expect((await api.http().get(`${P}/painel/leituras`)).status).toBe(401);
-    const s = await leituras(suporte);
+describe('GET /plataforma/painel/revelacoes', () => {
+  it('sem sessão 401; suporte 403 (guarda); master 200 com no-store e tudo zerado; /painel/leituras não existe mais', async () => {
+    expect((await api.http().get(`${P}/painel/revelacoes`)).status).toBe(401);
+    const s = await revelacoes(suporte);
     expect([s.status, s.body.code]).toEqual([403, 'SEM_PERMISSAO']);
-    const r = await leituras();
+    const r = await revelacoes();
     expect(r.status).toBe(200);
     expect(r.headers['cache-control']).toBe('no-store');
-    expect(r.body.data).toEqual({ janelaDias: 7, porAcao: { 'condominio.ler': {}, 'condominio.exportar': {}, 'condominio.motivo': {} } });
+    expect(r.body.data).toEqual({ janelaDias: 7, total: 0, porEntidade: { pessoa: 0, veiculo: 0, ocorrencia: 0, encomenda: 0 } });
+    expect((await api.http().get(`${P}/painel/leituras`).set('Cookie', master)).status).toBe(404);
   });
 
-  it('agrega por categoria (sem_motivo incluso), exclui fora da janela e não vaza texto, e-mail nem id', async () => {
+  it('conta condominio.revelar por entidade na janela; ignora leituras antigas e outras ações; não vaza id, rota nem IP', async () => {
     const agora = api.relogio.agora();
     const dentro = new Date(agora.getTime() - 3 * DIA);
     const fora = new Date(agora.getTime() - 8 * DIA);
-    const segredo = 'Chamado 77 texto-livre-do-motivo ana@exemplo.test';
-    await audit('condominio.ler', 'suporte', dentro, { texto: segredo, email: 'ana@exemplo.test' });
-    await audit('condominio.ler', 'suporte', dentro);
-    await audit('condominio.ler', 'incidente', dentro);
-    await audit('condominio.ler', null, dentro); // leitura antiga, anterior ao motivo
-    await audit('condominio.ler', 'categoria-inventada-com-texto-livre', dentro);
-    await audit('condominio.ler', 'suporte', fora);
-    await audit('condominio.exportar', 'operacao', dentro);
-    await audit('condominio.exportar', null, fora);
-    await audit('condominio.motivo', 'suporte', dentro);
-    await audit('condominio.motivo', 'obrigacao_legal', dentro);
-    await audit('condominio.modulos', 'suporte', dentro); // outra ação: fora do painel
-    const r = await leituras();
-    expect(r.body.data).toEqual({
-      janelaDias: 7,
-      porAcao: {
-        'condominio.ler': { suporte: 2, incidente: 1, sem_motivo: 2 },
-        'condominio.exportar': { operacao: 1 },
-        'condominio.motivo': { suporte: 1, obrigacao_legal: 1 },
-      },
-    });
+    const reg = '11111111-1111-4111-8111-111111111111';
+    await audit('condominio.revelar', { entidade: 'pessoa', registro_id: reg, rota: '/pessoas/:pessoaId/revelar', ip: '10.0.0.9' }, dentro);
+    await audit('condominio.revelar', { entidade: 'pessoa', registro_id: reg }, dentro);
+    await audit('condominio.revelar', { entidade: 'veiculo' }, dentro);
+    await audit('condominio.revelar', { entidade: 'entidade-inventada-texto-livre' }, dentro); // conta no total, não vira chave
+    await audit('condominio.revelar', { entidade: 'encomenda' }, fora);
+    await audit('condominio.ler', { categoria: 'suporte' }, dentro); // leitura antiga (antes da Fase B): fora do bloco
+    await audit('condominio.motivo', { categoria: 'suporte' }, dentro);
+    const r = await revelacoes();
+    expect(r.body.data).toEqual({ janelaDias: 7, total: 4, porEntidade: { pessoa: 2, veiculo: 1, ocorrencia: 0, encomenda: 0 } });
     const json = JSON.stringify(r.body);
-    for (const proibido of ['texto-livre', 'ana@', 'exemplo.test', 'Chamado', masterId, api.pilotoId]) expect(json).not.toContain(proibido);
+    for (const proibido of [reg, '10.0.0.9', 'revelar', 'inventada', masterId]) expect(json).not.toContain(proibido);
   });
 });

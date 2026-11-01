@@ -11,7 +11,7 @@ import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import request from 'supertest';
 import { AppModule } from '../../src/app.module';
-import { type Config, CONFIG, nomeCookie, PADROES_LOGIN, PADROES_SESSAO } from '../../src/config/config';
+import { type Config, CONFIG, nomeCookie, PADROES_LOGIN, PADROES_SESSAO, REVELAR_POR_MINUTO_PADRAO } from '../../src/config/config';
 import { RELOGIO } from '../../src/comum/relogio';
 import type { Db } from '../../src/database/database.module';
 import * as s from '../../src/db/schema';
@@ -57,6 +57,7 @@ export function configDeTeste(extra: Partial<Config> = {}): Config {
     ancora: { github: false, emails: [], remetente: 'portaria@localhost', smtp: null, arquivo: null },
     jobs: { agendador: false, intervaloMin: 10, horaRetencaoBrt: 3 },
     retencao: { anexoOcorrenciaAnos: null },
+    plataforma: { revelarPorMinuto: REVELAR_POR_MINUTO_PADRAO },
     ...extra,
   };
 }

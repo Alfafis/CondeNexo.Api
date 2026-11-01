@@ -1,0 +1,20 @@
+meta {
+  name: revelarmaster / pessoa
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/pessoas/:pessoaId/revelar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  pessoaId: {{pessoaId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}

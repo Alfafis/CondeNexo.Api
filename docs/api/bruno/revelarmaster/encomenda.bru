@@ -1,0 +1,20 @@
+meta {
+  name: revelarmaster / encomenda
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/encomendas/:encomendaId/revelar
+  body: none
+  auth: none
+}
+
+params:path {
+  encomendaId: {{encomendaId}}
+  id: {{condominioId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.ler`
+}
