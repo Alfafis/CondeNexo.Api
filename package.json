@@ -5,6 +5,7 @@
   "type": "module",
   "description": "API do CondeNexo (NestJS + Drizzle + PostgreSQL): dona das regras de negócio, do RBAC, da trilha com hash chain e selo, da LGPD e do contrato OpenAPI consumido pelo CondeNexo.Front.",
   "scripts": {
+    "prepare": "node scripts/instalar-hooks.mjs",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && node -e \"require('fs').writeFileSync('dist/package.json','{ \\\"type\\\": \\\"commonjs\\\" }\\n')\"",
     "start": "node dist/main.js",
     "prestart:dev": "npm run build",
