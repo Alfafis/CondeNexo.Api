@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { lerArgsUsuario, textoCredenciais } from '../src/cli/criar-usuario-plataforma';
 import { autorizado, criarServidor, tokenDoAmbiente } from '../src/cli/servidor-provisionador';
-import { criarUsuario, ErroUsuarioPlataforma, reemitirSenha, validarCadastro } from '../src/plataforma/usuario-plataforma';
+import { criarUsuario, ErroUsuarioPlataforma, normalizarEmail, normalizarNome, reemitirSenha, validarCadastro } from '../src/plataforma/usuario-plataforma';
 import { ErroProvisionamento, type ResultadoProvisionamento } from '../src/plataforma/provisionar';
 import { masterSessao, masterUsuario, plataformaAudit } from '../src/plataforma/schema-plataforma';
 import { ProvisionadorHttp, TEMPO_SAUDE_MS } from '../src/plataforma/provisionador';
@@ -29,6 +29,24 @@ describe('argumentos', () => {
     expect(() => lerArgsUsuario(['--email', 'a@b.c', '--senha', 'x'])).toThrow(/uso/);
     expect(() => validarCadastro({ email: 'sem-arroba', nome: 'Fulano' })).toThrow(/--email/);
     expect(() => validarCadastro({ email: 'a@b.c', nome: 'Fulano', papel: 'sindico' })).toThrow(/--papel/);
+  });
+
+  it('regras de e-mail e nome (as mesmas do PATCH /plataforma/auth/me): mensagens da CLI inalteradas', () => {
+    expect(validarCadastro({ email: '  Fulano@Exemplo.TEST ', nome: '  Fulano  ' })).toEqual({ email: 'fulano@exemplo.test', nome: 'Fulano', papel: 'master' });
+    expect(() => validarCadastro({ nome: 'Fulano' })).toThrow('--email inválido');
+    expect(() => validarCadastro({ email: `${'a'.repeat(245)}@exemplo.test`, nome: 'Fulano' })).toThrow('--email inválido');
+    expect(() => validarCadastro({ email: 'a@b.c', nome: '  ab  ' })).toThrow('--nome precisa de 3 a 120 caracteres');
+    expect(() => validarCadastro({ email: 'a@b.c', nome: 'x'.repeat(121) })).toThrow('--nome precisa de 3 a 120 caracteres');
+    expect(normalizarEmail(`${'a'.repeat(241)}@exemplo.test`)).toHaveLength(254);
+    expect(normalizarEmail(`${'a'.repeat(242)}@exemplo.test`)).toBeNull();
+    for (const e of ['sem-arroba', 'a@b', 'a b@c.d', 'a@@b.c', '']) expect(normalizarEmail(e), e).toBeNull();
+    expect(normalizarNome('x'.repeat(120))).toHaveLength(120);
+    expect(normalizarNome('  abc ')).toBe('abc');
+    expect(normalizarNome('ab')).toBeNull();
+    // Texto enorme: recusado pelo tamanho antes da regex (com '.' repetido e '@' no fim, ela retrocede em tempo quadrático).
+    const inicio = Date.now();
+    expect(normalizarEmail(`a@${'.'.repeat(100_000)}@`)).toBeNull();
+    expect(Date.now() - inicio).toBeLessThan(200);
   });
 });
 

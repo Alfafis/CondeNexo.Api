@@ -13,6 +13,24 @@ import { registrarPlataforma } from './trilha-plataforma';
 export class ErroUsuarioPlataforma extends Error {}
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+export const EMAIL_MAX = 254;
+export const NOME_MIN = 3;
+export const NOME_MAX = 120;
+
+/**
+ * Regras de e-mail e nome do usuário da plataforma, as MESMAS na CLI (validarCadastro) e em PATCH /plataforma/auth/me.
+ * Devolvem o valor normalizado ou null se inválido. O tamanho é conferido ANTES da regex: ela retrocede em tempo
+ * quadrático em texto longo (ex.: muitos pontos seguidos de '@'), e na API o texto vem de fora.
+ */
+export function normalizarEmail(bruto: string): string | null {
+  const email = bruto.trim().toLowerCase();
+  return email.length <= EMAIL_MAX && EMAIL.test(email) ? email : null;
+}
+
+export function normalizarNome(bruto: string): string | null {
+  const nome = bruto.trim();
+  return nome.length >= NOME_MIN && nome.length <= NOME_MAX ? nome : null;
+}
 
 export interface Ferramentas {
   hashSenha(senha: string): Promise<string>;
@@ -29,11 +47,11 @@ export interface Credenciais {
 }
 
 export function validarCadastro(o: { email?: string; nome?: string; papel?: string }): { email: string; nome: string; papel: PapelPlataforma } {
-  const email = (o.email ?? '').trim().toLowerCase();
-  const nome = (o.nome ?? '').trim();
+  const email = normalizarEmail(o.email ?? '');
+  const nome = normalizarNome(o.nome ?? '');
   const papel = (o.papel ?? 'master').trim();
-  if (!EMAIL.test(email) || email.length > 254) throw new ErroUsuarioPlataforma('--email inválido');
-  if (nome.length < 3 || nome.length > 120) throw new ErroUsuarioPlataforma('--nome precisa de 3 a 120 caracteres');
+  if (email === null) throw new ErroUsuarioPlataforma('--email inválido');
+  if (nome === null) throw new ErroUsuarioPlataforma(`--nome precisa de ${NOME_MIN} a ${NOME_MAX} caracteres`);
   if (!(PAPEIS_PLATAFORMA as readonly string[]).includes(papel)) throw new ErroUsuarioPlataforma(`--papel deve ser ${PAPEIS_PLATAFORMA.join(' ou ')}`);
   return { email, nome, papel: papel as PapelPlataforma };
 }
