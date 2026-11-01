@@ -276,6 +276,12 @@ plataforma apontando para usuários em N bancos).
 > - O Master que já existia em produção continua com a **mesma senha** (a migração só apaga o segredo TOTP).
 > - Voltar a ter 2FA (TOTP ou WebAuthn) é uma migração *expand* nova com bootstrap pela CLI; nada desta revisão impede.
 >
+> **Conta do usuário ("Minha conta", 2026-11-01):** `PATCH /plataforma/auth/me` edita o **próprio** nome e e-mail
+> (master e suporte; sem ação na `MATRIZ_PLATAFORMA`; com troca de senha pendente, 403). Trocar o e-mail exige a senha
+> atual sob o limite do par e-mail+IP (o mesmo do login e do trocar-senha), e só depois dela a unicidade (409
+> `EMAIL_EM_USO`). Trilha `auth.alterar_perfil(_falha)` com os campos e o IP, nunca os valores. Sessões não são
+> revogadas. Sem 2FA (voltar a tê-lo é o item acima) e **sem migração**. Criar usuário e reemitir senha continuam só na CLI.
+>
 > O texto abaixo é a decisão original; os itens de TOTP e códigos de recuperação estão substituídos por esta revisão.
 
 **Decisão (original).**

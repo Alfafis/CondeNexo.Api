@@ -7572,6 +7572,123 @@
             "$ref": "#/components/responses/Erro429"
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "authmaster"
+        ],
+        "operationId": "authmaster_atualizarPerfil",
+        "summary": "PATCH /plataforma/auth/me",
+        "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 120
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254
+                  },
+                  "senhaAtual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "usuario": {
+                          "$ref": "#/components/schemas/UsuarioPlataforma"
+                        },
+                        "permissoes": {
+                          "type": "object",
+                          "properties": {
+                            "acoes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "condominio.criar",
+                                  "condominio.ler",
+                                  "condominio.listar",
+                                  "condominio.modulos",
+                                  "condominio.sindicos"
+                                ]
+                              }
+                            },
+                            "senhaMin": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "acoes",
+                            "senhaMin"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "usuario",
+                        "permissoes"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
       }
     },
     "/plataforma/auth/trocar-senha": {

@@ -1,0 +1,23 @@
+meta {
+  name: authmaster / atualizarPerfil
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/plataforma/auth/me
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nome": "Fulano de Tal",
+    "email": "pessoa.exemplo@exemplo.org",
+    "senhaAtual": "{{senhaAtual}}"
+  }
+}
+
+docs {
+  Plataforma (Master): qualquer usuário da plataforma logado.
+}

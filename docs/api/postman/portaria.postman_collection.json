@@ -1097,6 +1097,39 @@
           }
         },
         {
+          "name": "authmaster / atualizarPerfil",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"email\": \"pessoa.exemplo@exemplo.org\",\n  \"senhaAtual\": \"{{senhaAtual}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "authmaster / trocarSenha",
           "request": {
             "method": "POST",
