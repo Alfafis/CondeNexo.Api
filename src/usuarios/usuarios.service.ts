@@ -1,11 +1,12 @@
 // Gestão de usuários do sistema (spec §5.2, RNF-04): usuario.gerenciar (SI, AD); alvo ou papel "síndico" exige
 // também usuario.gerenciar_sindico (só SI). Ninguém desativa, rebaixa ou redefine a si mesmo por aqui.
 // Toda resposta daqui leva senhaTemporariaExpiraEm (colunasGestao): todas as rotas exigem usuario.gerenciar.
+import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { pode, type Acao } from '../dominio/rbac';
 import { SENHA_TEMPORARIA_VALIDADE_MS } from '../dominio/rules';
 import type { Papel } from '../dominio/types';
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { colunasGestao, paraGestao, type UsuarioGerenciado } from '../auth/auth.service';
@@ -51,6 +52,20 @@ export interface ResultadoSindico {
 
 const ehSindico = (u: { papel: Papel }) => u.papel === 'sindico';
 
+/**
+ * Usuário técnico da plataforma (Fase C1, D2 do spec 2026-11-01-fase-c-escrita-master-design): UM por banco de condomínio,
+ * criado sob demanda pelo ponto único da plataforma (AcessoPlataformaService.escrever) na primeira escrita do Master. É o
+ * id que vai nas colunas FK NOT NULL de autoria (`*_por_id`) quando o Master escreve, sem migração. Papel
+ * `administracao` (nunca `sindico`: não entra em `sindicos()` nem na regra do último síndico ativo), ativo, senha
+ * aleatória descartada na hora. INVISÍVEL ao condomínio: fora de `listar`, 404 em toda ação sobre ele, login recusado
+ * como inexistente (auth.service.ts) e as linhas dele fora da trilha do síndico (auditoria.controller.ts). O `@` não passa
+ * em nenhum formato de login de usuário real (LOGIN_SINDICO e o DTO de usuários): não há colisão.
+ */
+export const LOGIN_TECNICO_PLATAFORMA = '@plataforma';
+export const NOME_TECNICO_PLATAFORMA = 'Suporte da plataforma';
+const ehTecnico = (u: { login: string }) => u.login.toLowerCase() === LOGIN_TECNICO_PLATAFORMA;
+const tecnicoSql = sql`lower(${usuarioSistema.login}) = ${LOGIN_TECNICO_PLATAFORMA}`;
+
 /** Chave do cursor = chave de ordenação (nome, id) do último item: estável mesmo com inserção concorrente. */
 const CursorUsuarios = z.strictObject({ n: z.string(), i: z.uuid() });
 
@@ -79,7 +94,8 @@ export class UsuariosService {
 
   private async travarAlvo(tx: Tx, id: string) {
     const [x] = await tx.select(colunasGestao).from(usuarioSistema).where(eq(usuarioSistema.id, id)).for('update');
-    if (!x) throw erroApi(404, 'USUARIO_NAO_ENCONTRADO', 'Usuário não encontrado.');
+    // O técnico da plataforma não existe para quem gerencia usuários (nem síndico nem Master pelas rotas de usuários).
+    if (!x || ehTecnico(x)) throw erroApi(404, 'USUARIO_NAO_ENCONTRADO', 'Usuário não encontrado.');
     return x;
   }
 
@@ -97,7 +113,7 @@ export class UsuariosService {
   async listar(p: Paginacao): Promise<Pagina<UsuarioGerenciado>> {
     const depois = p.cursor ? decodificarCursor(p.cursor, CursorUsuarios) : null;
     const linhas = await this.db.select(colunasGestao).from(usuarioSistema)
-      .where(depois ? sql`(${usuarioSistema.nome}, ${usuarioSistema.id}) > (${depois.n}, ${depois.i}::uuid)` : undefined)
+      .where(and(sql`NOT (${tecnicoSql})`, depois ? sql`(${usuarioSistema.nome}, ${usuarioSistema.id}) > (${depois.n}, ${depois.i}::uuid)` : undefined))
       .orderBy(asc(usuarioSistema.nome), asc(usuarioSistema.id))
       .limit(p.limite + 1); // um a mais: diz se há próxima página sem COUNT
     const pagina = linhas.slice(0, p.limite);
@@ -203,6 +219,36 @@ export class UsuariosService {
     return { usuario, senhaTemporaria };
   }
 
+  /**
+   * Id do usuário técnico da plataforma neste condomínio, criando-o na primeira vez (ver LOGIN_TECNICO_PLATAFORMA). Só o
+   * ponto único da plataforma chama (teste de arquitetura). `INSERT ... ON CONFLICT DO NOTHING` sobre o índice de login:
+   * duas criações concorrentes deixam UMA linha (a segunda espera o COMMIT da primeira e relê). Criou: uma linha
+   * `plataforma.tecnico_criar` no audit_log (sem usuário, como as outras da plataforma; fora da trilha do síndico).
+   */
+  async garantirTecnicoPlataforma(email: string, ip: string | null): Promise<string> {
+    const achar = async (exec: Db | Tx) => (await exec.select({ id: usuarioSistema.id }).from(usuarioSistema).where(tecnicoSql).limit(1))[0]?.id;
+    const existente = await achar(this.db);
+    if (existente) return existente;
+    // Ninguém conhece esta senha: 32 bytes aleatórios, só o hash fica (o CHECK exige argon2id).
+    const senhaHash = await this.senhas.gerarHash(randomBytes(32).toString('base64url'));
+    const agora = this.relogio.agora();
+    return this.db.transaction(async (tx) => {
+      const [novo] = await tx.insert(usuarioSistema).values({
+        nome: NOME_TECNICO_PLATAFORMA, login: LOGIN_TECNICO_PLATAFORMA, papel: 'administracao', senhaHash, ativo: true,
+        deveTrocarSenha: false, senhaTemporariaExpiraEm: null, criadoEm: agora, atualizadoEm: agora,
+      }).onConflictDoNothing().returning({ id: usuarioSistema.id });
+      if (!novo) {
+        const id = await achar(tx);
+        if (!id) throw new Error('usuário técnico da plataforma: conflito sem linha');
+        return id;
+      }
+      await this.auditoria.registrarPlataforma(tx, {
+        email, acao: 'plataforma.tecnico_criar', entidade: 'usuario_sistema', registroId: novo.id, ip, depois: { papel: 'administracao' },
+      });
+      return novo.id;
+    });
+  }
+
   /** Síndicos do condomínio (ativos e desativados), para a aba "Síndicos" do app do Master. Sem nada de senha. */
   async sindicos(): Promise<UsuarioGerenciado[]> {
     const l = await this.db.select(colunasGestao).from(usuarioSistema).where(eq(usuarioSistema.papel, 'sindico'))
@@ -233,8 +279,8 @@ export class UsuariosService {
           alvo = sindicos.find((x) => x.id === op.id);
           if (!alvo) {
             // Não é síndico (ou não existe): o Master só age sobre síndicos.
-            const [x] = await tx.select({ papel: usuarioSistema.papel }).from(usuarioSistema).where(eq(usuarioSistema.id, op.id));
-            if (!x) throw erroApi(404, 'USUARIO_NAO_ENCONTRADO', 'Usuário não encontrado.');
+            const [x] = await tx.select({ papel: usuarioSistema.papel, login: usuarioSistema.login }).from(usuarioSistema).where(eq(usuarioSistema.id, op.id));
+            if (!x || ehTecnico(x)) throw erroApi(404, 'USUARIO_NAO_ENCONTRADO', 'Usuário não encontrado.');
             throw erroApi(422, 'USUARIO_NAO_SINDICO', 'A plataforma só age sobre usuários com o papel de síndico.');
           }
         }

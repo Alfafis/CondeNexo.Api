@@ -12,7 +12,7 @@ export type PapelPlataforma = (typeof PAPEIS_PLATAFORMA)[number];
  */
 export const SENHA_MIN_MASTER = 16;
 
-export const ACOES_PLATAFORMA = ['condominio.listar', 'condominio.criar', 'condominio.modulos', 'condominio.ler', 'condominio.sindicos'] as const;
+export const ACOES_PLATAFORMA = ['condominio.listar', 'condominio.criar', 'condominio.modulos', 'condominio.ler', 'condominio.sindicos', 'condominio.unidades'] as const;
 export type AcaoPlataforma = (typeof ACOES_PLATAFORMA)[number];
 
 /**
@@ -21,7 +21,9 @@ export type AcaoPlataforma = (typeof ACOES_PLATAFORMA)[number];
  * minimizado), sem motivo e sem trilha, e o "Revelar" de um registro (valor completo, registrado em plataforma_audit).
  * Só `master`: o contrato com o condomínio lista nominalmente quem tem esse papel.
  * `condominio.sindicos` (§5.5): adicionar, trocar, desativar/reativar síndico e gerar nova senha temporária dele, a ÚNICA
- * escrita do Master em dado de condomínio; sempre com motivo, a senha do Master de novo e a trilha do condomínio. Só `master`.
+ * escrita do Master que EMITE credencial em dado de condomínio; continua com motivo e a senha do Master de novo. Só `master`.
+ * `condominio.unidades` (Fase C1, 2026-11-01): criar, editar, desativar e reativar unidade pelos MESMOS serviços do
+ * síndico, sem senha nem motivo, pelo ponto único (AcessoPlataformaService.escrever). Só `master`; `suporte` não escreve.
  */
 export const MATRIZ_PLATAFORMA: Record<AcaoPlataforma, readonly PapelPlataforma[]> = {
   'condominio.listar': ['master', 'suporte'],
@@ -29,6 +31,7 @@ export const MATRIZ_PLATAFORMA: Record<AcaoPlataforma, readonly PapelPlataforma[
   'condominio.modulos': ['master'],
   'condominio.ler': ['master'],
   'condominio.sindicos': ['master'],
+  'condominio.unidades': ['master'],
 };
 
 export const podePlataforma = (papel: string, acao: AcaoPlataforma): boolean =>

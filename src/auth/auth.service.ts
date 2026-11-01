@@ -97,8 +97,11 @@ export class AuthService {
     const rPar = await this.limite.reservar(chPar, agora);
     const rIp = chIp ? await this.limite.reservar(chIp, agora) : null;
 
-    const [u] = await this.db.select({ ...colunasGestao, senhaHash: usuarioSistema.senhaHash }).from(usuarioSistema)
-      .where(sql`lower(${usuarioSistema.login}) = ${normalizarLogin(loginDigitado)}`).limit(1);
+    // Login começando por `@` (o usuário técnico da plataforma, usuarios.service.ts LOGIN_TECNICO_PLATAFORMA): nem é
+    // buscado. Segue o caminho de login inexistente (mesma resposta, mesmo custo, mesma trilha): ninguém entra com ele.
+    const loginNormalizado = normalizarLogin(loginDigitado);
+    const [u] = loginNormalizado.startsWith('@') ? [] : await this.db.select({ ...colunasGestao, senhaHash: usuarioSistema.senhaHash }).from(usuarioSistema)
+      .where(sql`lower(${usuarioSistema.login}) = ${loginNormalizado}`).limit(1);
     const ator: Ator | null = u ? { id: u.id, nome: u.nome, papel: u.papel } : null;
     // O texto digitado NUNCA vai para a trilha (append-only, guardada para sempre): quem erra o campo e digita a senha
     // no lugar do login a deixaria legível, e qualquer anônimo gravaria texto arbitrário. Login existente: o ator

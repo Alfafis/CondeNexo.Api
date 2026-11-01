@@ -242,6 +242,8 @@ loga só SQLSTATE e constraint (a mensagem do `DrizzleQueryError` traz SQL e par
 | `LOGIN_MAX_FALHAS_LOGIN`, `LOGIN_MAX_FALHAS_IP` | 10 (3 a 50), 30 (3 a 500) | falhas na janela que bloqueiam o par login+IP e o IP (o login sozinho só atrasa); vazio = padrão (spec §14, nº 27) |
 | `LOGIN_JANELA_MIN`, `LOGIN_BLOQUEIO_MIN` | 15, 15 | minutos; vazio = padrão |
 | `PLATAFORMA_REVELAR_POR_MINUTO` | 60 | "Revelar" do app do Master por usuário, janela de 60 s, em memória (1 a 1000); vazio = padrão |
+| `PLATAFORMA_ESCRITAS_POR_MINUTO` | 30 | escritas do app do Master por usuário, janela de 60 s, em memória (1 a 1000), contando as que dão erro; vazio = padrão. Não precisa estar no `.env` |
+| `PLATAFORMA_DESTRUTIVAS_POR_DIA`, `PLATAFORMA_CREDENCIAIS_POR_DIA` | 0, 10 | por usuário do Master em 24 h, duráveis (contados em `plataforma_audit`), de 0 a 200; 0 desliga a classe (destrutivas desligadas por padrão até o 2º fator). Não precisam estar no `.env` |
 | `IMPORTACAO_PRAZO_LEGADO_DIAS` | 90 (1 a 730) | prazo para regularizar o legado da planilha (RN-09), definido em assembleia; vazio = padrão (spec §14, nº 30) |
 | `ANCORA_DESTINOS` | `github`, `email` (vírgula) | destinos externos da âncora (spec §4.6). `github` liga `GET /auditoria/selos/publico` para o GitHub Actions. Vazio = `email` se `ANCORA_EMAILS` estiver preenchida. Produção exige ao menos um (o compose de produção usa `github`) |
 | `ANCORA_EMAILS`, `ANCORA_REMETENTE` | e-mails, vírgula | destinatários da âncora por e-mail (opcional; exige `email` em `ANCORA_DESTINOS` quando a lista é explícita). Dev: os fictícios do compose |

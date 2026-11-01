@@ -295,15 +295,31 @@ describe('a trilha vem junto: falhou, nada muda', () => {
   });
 });
 
-describe('tela "Acessos da plataforma": a ação aparece com motivo e usuário afetado', () => {
-  it('síndico vê plataforma.usuario_* com motivo e alvo; master_usuario_id não sai', async () => {
+describe('trilha do síndico desde a Fase C1: as ações do Master sobre síndicos não aparecem (o dado continua gravado)', () => {
+  // O síndico original foi trocado nos testes acima: confere com o auditor (o síndico é conferido em master-escrita.test.ts).
+  it('auditor: nem em "Acessos da plataforma" nem no histórico de alterações; o audit_log guarda as linhas', async () => {
+    expect((await linhasM()).some((l) => l.acao === 'plataforma.usuario_criar')).toBe(true);
+    for (const papel of ['auditor'] as const) {
+      const sess = await api.como(papel);
+      for (const rota of ['/auditoria/acessos-plataforma?limite=100', '/auditoria/alteracoes?limite=100']) {
+        const r = await api.http().get(`${V1}${rota}`).set('Cookie', sess.cookie);
+        expect(r.status, `${papel} ${rota}`).toBe(200);
+        expect(JSON.stringify(r.body), `${papel} ${rota}`).not.toContain(`plataforma/${EMAIL}`);
+      }
+    }
+  });
+
+  it('linha histórica (antes do corte): síndico vê com motivo e usuário afetado; master_usuario_id não sai', async () => {
+    await api.db.insert(s.auditLog).values({
+      em: new Date('2026-10-25T12:00:00Z'), usuarioId: null, usuarioPapel: null, usuarioNome: 'plataforma/historico@exemplo.test',
+      acao: 'plataforma.usuario_trocar', entidade: 'usuario_sistema', registroId: null, ip: null,
+      depois: { motivo: MOTIVO, rota: '/sindicos/:usuarioId/trocar', metodo: 'POST', masterUsuarioId: masterId, troca: 'entrou', usuario: { nome: 'Marina Duarte', login: 'marina.duarte', papel: 'sindico' } },
+    });
     const sind = await api.como('auditor');
     const r = await api.http().get(`${V1}/auditoria/acessos-plataforma?limite=100`).set('Cookie', sind.cookie);
     expect(r.status).toBe(200);
-    const criar = r.body.data.find((x: { acao: string }) => x.acao === 'plataforma.usuario_criar');
-    expect(criar).toMatchObject({ quem: `plataforma/${EMAIL}`, motivo: MOTIVO, alvo: 'Marina Duarte (marina.duarte)', entidade: 'usuario_sistema', rota: '/sindicos', metodo: 'POST' });
-    const trocas = r.body.data.filter((x: { acao: string }) => x.acao === 'plataforma.usuario_trocar').map((x: { troca: string }) => x.troca).sort();
-    expect(trocas).toEqual(['entrou', 'saiu']);
+    expect(r.body.data).toHaveLength(1);
+    expect(r.body.data[0]).toMatchObject({ quem: 'plataforma/historico@exemplo.test', motivo: MOTIVO, alvo: 'Marina Duarte (marina.duarte)', troca: 'entrou', entidade: 'usuario_sistema', metodo: 'POST' });
     expect(JSON.stringify(r.body)).not.toContain(masterId);
     semSegredo(r.body);
   });

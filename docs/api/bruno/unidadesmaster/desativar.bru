@@ -1,0 +1,20 @@
+meta {
+  name: unidadesmaster / desativar
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/unidades/:unidadeId/desativar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  unidadeId: {{unidadeId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.unidades`
+}

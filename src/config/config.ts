@@ -90,8 +90,15 @@ export interface Config {
    * App do Master (Fase B, 2026-11-01): `revelarPorMinuto` (`PLATAFORMA_REVELAR_POR_MINUTO`, padrão 60, de 1 a 1000) é o
    * limite de "Revelar" (valor completo de um registro) por usuário da plataforma numa janela de 60 s. Em memória, por
    * processo: freio contra raspagem por sessão roubada, não controle forte (src/plataforma/acesso-plataforma.service.ts).
+   *
+   * Escrita do Master (Fase C1, 2026-11-01), lidas direto do ambiente com o padrão de produção no código (nenhuma precisa
+   * estar no .env): `escritasPorMinuto` (`PLATAFORMA_ESCRITAS_POR_MINUTO`, padrão 30, de 1 a 1000; em memória, por
+   * processo, conta também as tentativas que dão erro de regra); `destrutivasPorDia` (`PLATAFORMA_DESTRUTIVAS_POR_DIA`,
+   * padrão 0 = DESLIGADAS até haver 2º fator obrigatório, de 0 a 200) e `credenciaisPorDia`
+   * (`PLATAFORMA_CREDENCIAIS_POR_DIA`, padrão 10, de 0 a 200; 0 desliga): por usuário, em 24 h, DURÁVEIS (contados nas
+   * linhas `condominio.destrutiva`/`condominio.credencial` de plataforma_audit; sobrevivem a reinício).
    */
-  plataforma: { revelarPorMinuto: number };
+  plataforma: { revelarPorMinuto: number; escritasPorMinuto: number; destrutivasPorDia: number; credenciaisPorDia: number };
 }
 
 export type TlsSmtp = 'implicito' | 'starttls' | 'nenhum';
@@ -122,6 +129,8 @@ export const PADROES_LOGIN: Config['login'] = {
 export const PRAZO_LEGADO_PADRAO_DIAS = 90;
 /** Revelações por minuto por usuário da plataforma (Config.plataforma). */
 export const REVELAR_POR_MINUTO_PADRAO = 60;
+/** Escrita do Master (Config.plataforma): o padrão é o valor de produção. Destrutivas desligadas (0) até o 2º fator. */
+export const PADROES_ESCRITA_PLATAFORMA = { escritasPorMinuto: 30, destrutivasPorDia: 0, credenciaisPorDia: 10 } as const;
 export const PADROES_ARGON2: Config['argon2'] = { memoriaKib: 64 * 1024, iteracoes: 3, paralelismo: 1, concorrencia: 2, filaMax: 50 };
 
 export const nomeCookie = (secure: boolean) => (secure ? '__Host-portaria_sessao' : 'portaria_sessao');
@@ -314,6 +323,11 @@ export function carregarConfig(env: NodeJS.ProcessEnv = process.env): Config {
       horaRetencaoBrt: inteiro(env, 'RETENCAO_HORA_BRT', 3, 0, 23),
     },
     retencao: { anexoOcorrenciaAnos: inteiro(env, 'RETENCAO_ANEXO_OCORRENCIA_ANOS', 0, 1, 20) || null },
-    plataforma: { revelarPorMinuto: inteiro(env, 'PLATAFORMA_REVELAR_POR_MINUTO', REVELAR_POR_MINUTO_PADRAO, 1, 1000) },
+    plataforma: {
+      revelarPorMinuto: inteiro(env, 'PLATAFORMA_REVELAR_POR_MINUTO', REVELAR_POR_MINUTO_PADRAO, 1, 1000),
+      escritasPorMinuto: inteiro(env, 'PLATAFORMA_ESCRITAS_POR_MINUTO', PADROES_ESCRITA_PLATAFORMA.escritasPorMinuto, 1, 1000),
+      destrutivasPorDia: inteiro(env, 'PLATAFORMA_DESTRUTIVAS_POR_DIA', PADROES_ESCRITA_PLATAFORMA.destrutivasPorDia, 0, 200),
+      credenciaisPorDia: inteiro(env, 'PLATAFORMA_CREDENCIAIS_POR_DIA', PADROES_ESCRITA_PLATAFORMA.credenciaisPorDia, 0, 200),
+    },
   };
 }

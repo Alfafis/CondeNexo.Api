@@ -2,7 +2,7 @@
 // o valor completo dos campos que a leitura minimiza, UM registro por vez. Uma linha `condominio.revelar` em
 // plataforma_audit (sem valor), NADA no audit_log do condomínio, 503 sem valor se a trilha falha, 429 com Retry-After
 // acima do limite (sem ler nem gravar), só `master`, mesma regra de situação da leitura. E o stub de compatibilidade de
-// POST .../motivo (não grava nada). Varredura: nenhum valor revelado nas trilhas nem nos logs.
+// POST .../motivo (removido na Fase C1: 404). Varredura: nenhum valor revelado nas trilhas nem nos logs.
 import { hash } from '@node-rs/argon2';
 import { and, eq, ne } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,7 +13,7 @@ import { criarUsuario } from '../src/plataforma/usuario-plataforma';
 import { condominio, masterUsuario, plataformaAudit } from '../src/plataforma/schema-plataforma';
 import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
 import { semearDadosE2e, USUARIOS_E2E } from './e2e/dados';
-import { type ApiDeTeste, novaApi, novoIp } from './helpers/app';
+import { type ApiDeTeste, configDeTeste, novaApi, novoIp } from './helpers/app';
 import { CHAVE_HMAC_TESTE, SENHA_FALSA } from './helpers/banco';
 import { DEMO } from './helpers/saas';
 
@@ -50,7 +50,7 @@ const novaJanela = () => api.relogio.avancarMin(2);
 
 beforeAll(async () => {
   for (const f of ['log', 'error', 'warn'] as const) vi.spyOn(console, f).mockImplementation((...a: unknown[]) => { saida.push(a.map(String).join(' ')); });
-  api = await novaApi({ plataforma: { revelarPorMinuto: LIMITE } }, { demo: true });
+  api = await novaApi({ plataforma: { ...configDeTeste().plataforma, revelarPorMinuto: LIMITE } }, { demo: true });
   api.relogio.atual = new Date();
   await seedPessoasDev(api.db, { chaveHmac: CHAVE_HMAC_TESTE, agora: api.relogio.agora() });
   await seedPessoasDev(api.demo!.db, { chaveHmac: DEMO.hmac, agora: api.relogio.agora() });
@@ -205,23 +205,12 @@ describe('quem revela e onde', () => {
   });
 });
 
-describe('stub de compatibilidade de POST .../motivo (Front anterior à Fase B; sai na Fase C)', () => {
-  it('200 com token sem valor e no-store; corpo inválido 400; nada gravado em trilha nenhuma; suporte 403', async () => {
+describe('POST .../motivo (stub da Fase B) saiu na Fase C1', () => {
+  it('404 para master e nada gravado no audit_log do condomínio', async () => {
     const antesC = await contagemCondominio();
-    const antesP = (await api.plataforma.db.select().from(plataformaAudit)).length;
-    const texto = 'Chamado 9182: síndico pediu conferência';
-    const r = await api.http().post(`${P}/condominios/${api.pilotoId}/motivo`).set('Cookie', master).send({ categoria: 'suporte', texto });
-    expect(r.status, JSON.stringify(r.body)).toBe(200);
-    expect(r.headers['cache-control']).toBe('no-store');
-    expect(r.body.data.token).toBe('dispensado');
-    expect(new Date(r.body.data.expiraEm).getTime()).toBe(api.relogio.agora().getTime() + 30 * 60_000);
-    expect((await api.http().post(`${P}/condominios/${api.pilotoId}/motivo`).set('Cookie', master).send({ categoria: 'x', texto })).status).toBe(400);
-    expect((await api.http().post(`${P}/condominios/${api.pilotoId}/motivo`).set('Cookie', suporte).send({ categoria: 'suporte', texto })).status).toBe(403);
+    const r = await api.http().post(`${P}/condominios/${api.pilotoId}/motivo`).set('Cookie', master).send({ categoria: 'suporte', texto: 'Chamado 9182: síndico pediu conferência' });
+    expect(r.status).toBe(404);
     expect(await contagemCondominio()).toEqual(antesC);
-    const todas = await api.plataforma.db.select().from(plataformaAudit);
-    // A recusa do suporte grava `acesso.negado` (como toda recusa da guarda); nada além disso.
-    expect(todas.slice(antesP).map((l) => l.acao)).toEqual(['acesso.negado']);
-    expect(JSON.stringify(todas)).not.toContain('9182');
   });
 });
 

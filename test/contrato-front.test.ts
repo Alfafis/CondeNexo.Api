@@ -189,7 +189,7 @@ describe('plataforma: permissões, parâmetros e análise da lista de unidades',
   it('master tem todas as ações; suporte só lista; ambos recebem o mínimo da senha', async () => {
     const m = await entrarMaster('contrato.master@exemplo.test', 'master');
     expect(m.corpo.permissoes).toEqual({
-      acoes: ['condominio.listar', 'condominio.criar', 'condominio.modulos', 'condominio.ler', 'condominio.sindicos'], senhaMin: 16,
+      acoes: ['condominio.listar', 'condominio.criar', 'condominio.modulos', 'condominio.ler', 'condominio.sindicos', 'condominio.unidades'], senhaMin: 16,
     });
     const sup = await entrarMaster('contrato.suporte@exemplo.test', 'suporte');
     expect(sup.corpo.permissoes.acoes).toEqual(['condominio.listar']);

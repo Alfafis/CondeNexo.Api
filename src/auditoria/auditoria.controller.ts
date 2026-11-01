@@ -5,7 +5,7 @@ import { Body, Controller, Get, HttpCode, Inject, Injectable, Module, Post, Quer
 import { montarExportacaoJsonl } from '../dominio/exportacao';
 import { hashGenese, verificarCadeia, type Ancora, type ResultadoVerificacao } from '../dominio/hashChain';
 import { codigoUnidade } from '../dominio/units';
-import { and, asc, desc, eq, gt, gte, inArray, like, lt, lte, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, like, lt, lte, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { Acao, Ctx } from '../auth/decorators';
 import type { Contexto } from '../auth/tipos';
@@ -20,6 +20,7 @@ import { AcessoModule } from '../acesso/acesso.module';
 import { FiltrosCorpo } from '../acesso/acesso.schemas';
 import { EventosService } from '../eventos/eventos.service';
 import { CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
+import { LOGIN_TECNICO_PLATAFORMA } from '../usuarios/usuarios.service';
 import { AuditoriaService } from './auditoria.service';
 
 /** Lote da verificação: a cadeia inteira não cabe na memória do container (384 MiB em produção). */
@@ -60,6 +61,24 @@ export const ACOES_PLATAFORMA_TRILHA = [
   'plataforma.ler', 'plataforma.exportar', 'plataforma.usuario_criar', 'plataforma.usuario_trocar', 'plataforma.usuario_redefinir_senha',
   'plataforma.usuario_desativar', 'plataforma.usuario_reativar',
 ] as const;
+
+/**
+ * Desde a Fase C1 (decisão fechada do dono do produto: "o síndico não vê o que o Master faz"), as ações da plataforma
+ * ficam FORA das duas telas do condomínio que mostram a trilha (`/auditoria/alteracoes` e `/auditoria/acessos-plataforma`).
+ * O dado continua gravado (append-only); só a consulta filtra. Saem:
+ *  - toda linha do usuário técnico da plataforma (por id, achado pelo login `@plataforma`; nunca pelo `usuario_nome`, que
+ *    é texto livre de quem cria usuário: um administrador chamado "plataforma/x" não pode sumir da trilha);
+ *  - as linhas `plataforma.*` sem usuário (gestão de síndicos, criação do técnico) gravadas a partir do corte. As
+ *    anteriores continuam visíveis, como a tela prometia.
+ * Corte: 01/11/2026 00:00 em Brasília (dia da publicação da C1). Precisa ser <= o instante da publicação para não deixar
+ * escapar nada; a tela do condomínio (CondeNexo.Front) cita a mesma data.
+ */
+export const INICIO_OCULTACAO_PLATAFORMA = new Date('2026-11-01T03:00:00.000Z');
+
+/** As duas condições acima, em SQL (usuario_id nulo não pode cair no NOT IN: comparação com NULL descartaria a linha). */
+export const foraDaPlataformaSql = () => sql`(${auditLog.usuarioId} IS NULL OR ${auditLog.usuarioId} NOT IN (
+    SELECT ${usuarioSistema.id} FROM ${usuarioSistema} WHERE lower(${usuarioSistema.login}) = ${LOGIN_TECNICO_PLATAFORMA}))
+  AND NOT (${auditLog.usuarioId} IS NULL AND ${auditLog.acao} LIKE 'plataforma.%' AND ${auditLog.em} >= ${INICIO_OCULTACAO_PLATAFORMA.toISOString()}::timestamptz)`;
 
 /**
  * Um acesso do Master aos dados deste condomínio: quando, quem, o quê e por qual rota (sem corpo nem filtros). Nas
@@ -204,14 +223,14 @@ export class AuditoriaRotasService {
 
   /** Trilha de alterações (audit_log), mais recentes primeiro. Os snapshots já estão sem dado pessoal em claro. */
   async alteracoes(f: z.infer<typeof AlteracoesDto>) {
-    const w: SQL[] = [];
+    const w: SQL[] = [foraDaPlataformaSql()];
     if (f.de !== undefined) w.push(gte(auditLog.em, new Date(f.de)));
     if (f.ate !== undefined) w.push(lte(auditLog.em, new Date(f.ate)));
     if (f.usuarioId) w.push(eq(auditLog.usuarioId, f.usuarioId));
     if (f.acao) w.push(eq(auditLog.acao, f.acao));
     if (f.entidade) w.push(eq(auditLog.entidade, f.entidade));
     if (f.cursor) w.push(lt(auditLog.seq, decodificarCursor(f.cursor, CursorSeq).s));
-    const ls = await this.db.select().from(auditLog).where(w.length ? and(...w) : undefined).orderBy(desc(auditLog.seq)).limit(f.limite + 1);
+    const ls = await this.db.select().from(auditLog).where(and(...w)).orderBy(desc(auditLog.seq)).limit(f.limite + 1);
     const pagina = ls.slice(0, f.limite);
     const ultimo = pagina[pagina.length - 1];
     return new Pagina(pagina.map((r) => ({
@@ -225,10 +244,10 @@ export class AuditoriaRotasService {
   /**
    * "Acessos da plataforma" (SAAS-09): as linhas `plataforma.*` da trilha, mais recentes primeiro. Só o que a tela
    * mostra (o `master_usuario_id` do `depois` é da plataforma e não sai). O filtro por período usa o índice de `em`.
-   * Desde 2026-11-01 só as ações sobre síndicos entram aqui; as consultas anteriores continuam listadas.
+   * Desde a Fase C1 só o histórico: as linhas gravadas a partir de INICIO_OCULTACAO_PLATAFORMA ficam de fora.
    */
   async acessosPlataforma(f: z.infer<typeof AcessosPlataformaDto>): Promise<Pagina<AcessoPlataformaApi>> {
-    const w: SQL[] = [like(auditLog.acao, 'plataforma.%')];
+    const w: SQL[] = [like(auditLog.acao, 'plataforma.%'), foraDaPlataformaSql()];
     if (f.de !== undefined) w.push(gte(auditLog.em, new Date(f.de)));
     if (f.ate !== undefined) w.push(lte(auditLog.em, new Date(f.ate)));
     if (f.cursor) w.push(lt(auditLog.seq, decodificarCursor(f.cursor, CursorSeq).s));
@@ -269,7 +288,7 @@ export class AuditoriaController {
   @Acao('auditoria.verificar')
   alteracoes(@Query(new ZodPipe(AlteracoesDto)) q: z.infer<typeof AlteracoesDto>) { return this.servico.alteracoes(q); }
 
-  /** Ações do app do Master neste condomínio e as consultas registradas até 2026-11-01 (SAAS-09). Só leitura: append-only. */
+  /** Histórico das ações e consultas do app do Master registradas até o corte da Fase C1 (SAAS-09). Só leitura: append-only. */
   @Get('acessos-plataforma')
   @Acao('auditoria.acessos_plataforma')
   acessosPlataforma(@Query(new ZodPipe(AcessosPlataformaDto)) q: z.infer<typeof AcessosPlataformaDto>) { return this.servico.acessosPlataforma(q); }

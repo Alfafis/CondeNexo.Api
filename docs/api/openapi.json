@@ -47,9 +47,6 @@
       "name": "lgpd"
     },
     {
-      "name": "motivomaster"
-    },
-    {
       "name": "ocorrencias"
     },
     {
@@ -84,6 +81,9 @@
     },
     {
       "name": "unidades"
+    },
+    {
+      "name": "unidadesmaster"
     },
     {
       "name": "usuarios"
@@ -7549,7 +7549,8 @@
                                   "condominio.ler",
                                   "condominio.listar",
                                   "condominio.modulos",
-                                  "condominio.sindicos"
+                                  "condominio.sindicos",
+                                  "condominio.unidades"
                                 ]
                               }
                             },
@@ -7671,7 +7672,8 @@
                                   "condominio.ler",
                                   "condominio.listar",
                                   "condominio.modulos",
-                                  "condominio.sindicos"
+                                  "condominio.sindicos",
+                                  "condominio.unidades"
                                 ]
                               }
                             },
@@ -7883,7 +7885,8 @@
                                   "condominio.ler",
                                   "condominio.listar",
                                   "condominio.modulos",
-                                  "condominio.sindicos"
+                                  "condominio.sindicos",
+                                  "condominio.unidades"
                                 ]
                               }
                             },
@@ -8092,7 +8095,8 @@
                                   "condominio.ler",
                                   "condominio.listar",
                                   "condominio.modulos",
-                                  "condominio.sindicos"
+                                  "condominio.sindicos",
+                                  "condominio.unidades"
                                 ]
                               }
                             },
@@ -9810,107 +9814,6 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/CondominioPlataforma"
-                    }
-                  },
-                  "required": [
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Erro400"
-          },
-          "401": {
-            "$ref": "#/components/responses/Erro401"
-          },
-          "403": {
-            "$ref": "#/components/responses/Erro403"
-          },
-          "404": {
-            "$ref": "#/components/responses/Erro404"
-          },
-          "409": {
-            "$ref": "#/components/responses/Erro409"
-          },
-          "422": {
-            "$ref": "#/components/responses/Erro422"
-          },
-          "429": {
-            "$ref": "#/components/responses/Erro429"
-          }
-        }
-      }
-    },
-    "/plataforma/condominios/{id}/motivo": {
-      "post": {
-        "tags": [
-          "motivomaster"
-        ],
-        "operationId": "motivomaster_emitir",
-        "summary": "POST /plataforma/condominios/{id}/motivo",
-        "description": "Plataforma (Master). Permissão: `condominio.ler` Obsoleta: desde 2026-11-01 a leitura não pede motivo; a rota só responde ao app anterior e não grava nada. Sai na próxima publicação.",
-        "x-permissao": "condominio.ler",
-        "security": [
-          {
-            "sessaoPlataforma": []
-          }
-        ],
-        "deprecated": true,
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "categoria": {
-                    "type": "string",
-                    "enum": [
-                      "suporte",
-                      "incidente",
-                      "obrigacao_legal",
-                      "operacao"
-                    ]
-                  },
-                  "texto": {
-                    "type": "string",
-                    "minLength": 15,
-                    "maxLength": 500
-                  }
-                },
-                "required": [
-                  "categoria",
-                  "texto"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Sucesso: envelope `{data}`.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/MotivoEmitido"
                     }
                   },
                   "required": [
@@ -12012,6 +11915,98 @@
             "$ref": "#/components/responses/Erro429"
           }
         }
+      },
+      "post": {
+        "tags": [
+          "unidadesmaster"
+        ],
+        "operationId": "unidadesmaster_criar",
+        "summary": "POST /plataforma/condominios/{id}/unidades",
+        "description": "Plataforma (Master). Permissão: `condominio.unidades`",
+        "x-permissao": "condominio.unidades",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bloco": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "numero": {
+                    "type": "string",
+                    "maxLength": 10
+                  }
+                },
+                "required": [
+                  "bloco",
+                  "numero"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UnidadeApi"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
       }
     },
     "/plataforma/condominios/{id}/unidades/{ref}": {
@@ -12145,6 +12140,110 @@
         }
       }
     },
+    "/plataforma/condominios/{id}/unidades/{unidadeId}": {
+      "patch": {
+        "tags": [
+          "unidadesmaster"
+        ],
+        "operationId": "unidadesmaster_editar",
+        "summary": "PATCH /plataforma/condominios/{id}/unidades/{unidadeId}",
+        "description": "Plataforma (Master). Permissão: `condominio.unidades`",
+        "x-permissao": "condominio.unidades",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "unidadeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bloco": {
+                    "type": "string",
+                    "maxLength": 10
+                  },
+                  "numero": {
+                    "type": "string",
+                    "maxLength": 10
+                  }
+                },
+                "required": [
+                  "bloco",
+                  "numero"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UnidadeApi"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
     "/plataforma/condominios/{id}/unidades/{unidadeId}/autorizadores": {
       "get": {
         "tags": [
@@ -12207,6 +12306,164 @@
                         ],
                         "additionalProperties": false
                       }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/condominios/{id}/unidades/{unidadeId}/desativar": {
+      "post": {
+        "tags": [
+          "unidadesmaster"
+        ],
+        "operationId": "unidadesmaster_desativar",
+        "summary": "POST /plataforma/condominios/{id}/unidades/{unidadeId}/desativar",
+        "description": "Plataforma (Master). Permissão: `condominio.unidades`",
+        "x-permissao": "condominio.unidades",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "unidadeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UnidadeApi"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/condominios/{id}/unidades/{unidadeId}/reativar": {
+      "post": {
+        "tags": [
+          "unidadesmaster"
+        ],
+        "operationId": "unidadesmaster_reativar",
+        "summary": "POST /plataforma/condominios/{id}/unidades/{unidadeId}/reativar",
+        "description": "Plataforma (Master). Permissão: `condominio.unidades`",
+        "x-permissao": "condominio.unidades",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "unidadeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UnidadeApi"
                     }
                   },
                   "required": [
@@ -17364,7 +17621,8 @@
                     "condominio.ler",
                     "condominio.listar",
                     "condominio.modulos",
-                    "condominio.sindicos"
+                    "condominio.sindicos",
+                    "condominio.unidades"
                   ]
                 }
               },
@@ -17422,22 +17680,6 @@
           "interfone",
           "morador_presente"
         ]
-      },
-      "MotivoEmitido": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string"
-          },
-          "expiraEm": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "token",
-          "expiraEm"
-        ],
-        "additionalProperties": false
       },
       "OcorrenciaRevelada": {
         "type": "object",

@@ -3089,51 +3089,6 @@
       ]
     },
     {
-      "name": "motivomaster",
-      "item": [
-        {
-          "name": "motivomaster / emitir",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/plataforma/condominios/:id/motivo",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "plataforma",
-                "condominios",
-                ":id",
-                "motivo"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "{{condominioId}}"
-                }
-              ]
-            },
-            "description": "Plataforma (Master). Permissão: `condominio.ler` Obsoleta: desde 2026-11-01 a leitura não pede motivo; a rota só responde ao app anterior e não grava nada. Sai na próxima publicação.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"categoria\": \"suporte\",\n  \"texto\": \"exemploxxxxxxxx\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "ocorrencias",
       "item": [
         {
@@ -4581,6 +4536,160 @@
               ]
             },
             "description": "Permissão: `unidade.ver`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "unidadesmaster",
+      "item": [
+        {
+          "name": "unidadesmaster / criar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.unidades`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloco\": \"exemplo\",\n  \"numero\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "unidadesmaster / editar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades/:unidadeId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades",
+                ":unidadeId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.unidades`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloco\": \"exemplo\",\n  \"numero\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "unidadesmaster / desativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades/:unidadeId/desativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades",
+                ":unidadeId",
+                "desativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.unidades`"
+          }
+        },
+        {
+          "name": "unidadesmaster / reativar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/condominios/:id/unidades/:unidadeId/reativar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "condominios",
+                ":id",
+                "unidades",
+                ":unidadeId",
+                "reativar"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{condominioId}}"
+                },
+                {
+                  "key": "unidadeId",
+                  "value": "{{unidadeId}}"
+                }
+              ]
+            },
+            "description": "Plataforma (Master). Permissão: `condominio.unidades`"
           }
         }
       ]

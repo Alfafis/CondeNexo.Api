@@ -60,9 +60,8 @@ export function configurarApp(app: NestExpressApplication, config: Config) {
       origin: config.corsOrigens,
       credentials: true,
       methods: ['GET', 'POST', 'PATCH'],
-      // X-Motivo-Token: o Front anterior à Fase B (2026-11-01) ainda o manda; a API o ignora. Fica por UMA publicação para o
-      // preflight desse Front não falhar entre os dois deploys; sai na Fase C com o stub de plataforma/motivo-master.controller.ts.
-      allowedHeaders: ['Content-Type', 'X-Condominio', 'X-Motivo-Token'],
+      // X-Motivo-Token saiu na Fase C1 (o Front da Fase B não o manda mais), junto com o stub POST .../motivo.
+      allowedHeaders: ['Content-Type', 'X-Condominio'],
       exposedHeaders: ['Retry-After', 'Content-Disposition'],
       maxAge: 600,
     });

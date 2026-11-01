@@ -1,0 +1,20 @@
+meta {
+  name: unidadesmaster / reativar
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/unidades/:unidadeId/reativar
+  body: none
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+  unidadeId: {{unidadeId}}
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.unidades`
+}

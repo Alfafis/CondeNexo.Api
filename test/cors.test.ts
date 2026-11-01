@@ -29,9 +29,14 @@ describe('CORS com CORS_ORIGENS definido', () => {
     expect(r.headers['access-control-allow-origin']).toBe(FRONT);
     expect(r.headers['access-control-allow-credentials']).toBe('true');
     expect(lista(r.headers['access-control-allow-methods'])).toEqual(['get', 'post', 'patch']);
-    expect(lista(r.headers['access-control-allow-headers'])).toEqual(['content-type', 'x-condominio', 'x-motivo-token']);
+    expect(lista(r.headers['access-control-allow-headers'])).toEqual(['content-type', 'x-condominio']);
     expect(r.headers['access-control-max-age']).toBe('600');
     expect(lista(r.headers.vary)).toContain('origin');
+  });
+
+  it('preflight pedindo X-Motivo-Token (Front anterior à Fase B): o cabeçalho não é liberado (saiu na Fase C1)', async () => {
+    const r = await preflight(api, '/api/v1/plataforma/auth/me', FRONT, 'GET', 'content-type,x-motivo-token');
+    expect(lista(r.headers['access-control-allow-headers'])).not.toContain('x-motivo-token');
   });
 
   it.each([

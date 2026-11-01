@@ -128,8 +128,9 @@ describe('leitura do Master: a view do síndico minimizada, sem motivo e sem tri
     const prefixo = '/plataforma/condominios/{id}';
     const doMaster = Object.entries(openapi.paths).filter(([p]) => p.startsWith(`${prefixo}/`) && p !== `${prefixo}/modulos`)
       .flatMap(([p, ops]) => Object.keys(ops).map((m) => `${m.toUpperCase()} ${p.slice(prefixo.length).replace(/\{[^}]+\}/g, ':x')}`))
-      // Escrita sobre síndicos (§5.5): test/master-sindicos.test.ts. Revelar e o stub do motivo: test/master-revelar.test.ts.
-      .filter((r) => !/^POST \/(sindicos|motivo|[a-z]+\/:x\/revelar)/.test(r)).sort();
+      // Escrita sobre síndicos (§5.5): test/master-sindicos.test.ts. Revelar: test/master-revelar.test.ts. Escrita da Fase C
+      // (unidades): test/master-escrita.test.ts.
+      .filter((r) => !/^(POST|PATCH) \/(sindicos|unidades)|^POST \/[a-z]+\/:x\/revelar/.test(r)).sort();
     const cobertas = [
       ...PARES().map(([, m]) => `GET ${m.split('?')[0]!.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, ':x')}`),
       'GET /ocorrencias/:x/anexos/:x', 'GET /relatorios/resumo/csv',
@@ -316,7 +317,17 @@ describe('quem lê e o que se lê', () => {
     }
   });
 
-  it('nenhuma rota de escrita no condomínio a partir da plataforma', async () => {
+  it('rotas de escrita da plataforma no condomínio: exatamente as desta fase (rota nova sem teste falha); o resto 404', async () => {
+    const o = JSON.parse(readFileSync(fileURLToPath(new URL('../docs/api/openapi.json', import.meta.url)), 'utf8')) as { paths: Record<string, Record<string, unknown>> };
+    const escritas = Object.entries(o.paths).filter(([p]) => p.startsWith('/plataforma/condominios/{id}/'))
+      .flatMap(([p, ms]) => Object.keys(ms).filter((m) => m !== 'get').map((m) => `${m.toUpperCase()} ${p.replace('/plataforma/condominios/{id}', '')}`))
+      .filter((r) => !r.endsWith('/revelar')).sort();
+    expect(escritas).toEqual([
+      'PATCH /modulos',
+      'PATCH /unidades/{unidadeId}',
+      'POST /sindicos', 'POST /sindicos/{usuarioId}/desativar', 'POST /sindicos/{usuarioId}/reativar', 'POST /sindicos/{usuarioId}/redefinir-senha', 'POST /sindicos/{usuarioId}/trocar',
+      'POST /unidades', 'POST /unidades/{unidadeId}/desativar', 'POST /unidades/{unidadeId}/reativar',
+    ].sort());
     for (const [m, url] of [['post', '/pessoas'], ['patch', `/pessoas/${ids.pessoa}`], ['post', `/encomendas/${ids.encomenda}/retirada`], ['post', '/eventos-acesso']] as const) {
       const r = await api.http()[m](`${P}/condominios/${api.pilotoId}${url}`).set('Cookie', master).send({});
       expect(r.status, `${m} ${url}`).toBe(404);
@@ -327,10 +338,11 @@ describe('quem lê e o que se lê', () => {
 describe('tela "Acessos da plataforma" (GET /auditoria/acessos-plataforma): as linhas antigas continuam visíveis', () => {
   // Linhas como a leitura gravava antes de 2026-11-01 (nada é apagado; o síndico continua vendo o histórico).
   beforeAll(async () => {
-    const aud = api.app.get(AuditoriaService);
+    // `em` ANTES do corte da Fase C1 (INICIO_OCULTACAO_PLATAFORMA): o que é posterior não aparece mais ao síndico.
+    let em = Date.parse('2026-10-20T12:00:00Z');
     for (const [rota, entidade, registroId] of [['/pessoas', 'pessoa', null], [`/pessoas/:pessoaId`, 'pessoa', ids.pessoa!], ['/unidades', 'unidade', null], ['/encomendas', 'encomenda', null], ['/catalogo', 'unidade', null]] as const) {
-      await aud.registrarPlataforma(api.db, {
-        email: EMAIL, acao: 'plataforma.ler', entidade, registroId, ip: null,
+      await api.db.insert(s.auditLog).values({
+        em: new Date(em += 60_000), usuarioId: null, usuarioPapel: null, usuarioNome: `plataforma/${EMAIL}`, acao: 'plataforma.ler', entidade, registroId, ip: null,
         depois: { rota, metodo: 'GET', status: 200, masterUsuarioId: masterId, motivo: { categoria: 'suporte', texto: MOTIVO_TEXTO } },
       });
     }
@@ -423,5 +435,26 @@ describe('arquitetura: ponto único', () => {
     // Só o ponto único chama a leitura sem máscara de pessoa.
     expect(fontes.filter((x) => x.texto.includes('paraRevelarNaPlataforma(')).map((x) => x.f).sort())
       .toEqual(['pessoas/pessoas.service.ts', 'plataforma/revelar-master.controller.ts']);
+  });
+
+  it('escrita da Fase C: toda rota do controller de unidades passa por escrever, na ordem fixa do spec (D1)', () => {
+    const texto = fontes.find((x) => x.f === 'plataforma/unidades-master.controller.ts')!.texto;
+    const handlers = [...texto.matchAll(/@(Get|Post|Patch|Put|Delete)\(/g)].length;
+    expect(handlers).toBe(4);
+    expect([...texto.matchAll(/this\.acesso\.escrever\(m, req, id, \{ entidade: '/g)].length).toBe(handlers);
+    expect(texto).not.toMatch(/@Get\(/);
+    const servico = fontes.find((x) => x.f === 'plataforma/acesso-plataforma.service.ts')!.texto;
+    const corpo = servico.slice(servico.indexOf('async escrever<T>('), servico.indexOf('private async paraEscrita('));
+    const ordem = ['this.limiteEscrita.consumir(', 'this.paraEscrita(', 'this.exigirModulo(', 'this.previaDiaria(', 'this.contextoPlataforma(',
+      'await fn(this.servicosDe(c), ctx)', 'registrarPlataforma(', 'minimizarLeituraPlataforma('];
+    const pos = ordem.map((t) => corpo.indexOf(t));
+    expect(pos.every((p) => p > 0), JSON.stringify(Object.fromEntries(ordem.map((t, i) => [t, pos[i]])))).toBe(true);
+    expect([...pos].sort((a, b) => a - b)).toEqual(pos);
+    // O técnico só é criado pelo ponto único; o contexto com o login técnico só é montado lá (e o login, definido em usuários).
+    expect(fontes.filter((x) => x.texto.includes('garantirTecnicoPlataforma(')).map((x) => x.f).sort())
+      .toEqual(['plataforma/acesso-plataforma.service.ts', 'usuarios/usuarios.service.ts']);
+    expect(fontes.filter((x) => /login: LOGIN_TECNICO_PLATAFORMA/.test(x.texto)).map((x) => x.f).sort())
+      .toEqual(['plataforma/acesso-plataforma.service.ts', 'usuarios/usuarios.service.ts']);
+    expect(fontes.filter((x) => x.texto.includes("'@plataforma'")).map((x) => x.f)).toEqual(['usuarios/usuarios.service.ts']);
   });
 });

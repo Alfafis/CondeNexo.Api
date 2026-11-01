@@ -313,6 +313,21 @@ portaria. Hoje o cookie é isolado por `Path`, mas a origem é a mesma (ver risc
 
 ### SAAS-09 — Master e LGPD: acesso direto e auditado ("Master vê tudo")
 
+> **Revisado em 2026-11-01 (Fase C1, decisão do dono do produto; risco aceito).** O Master passa a ESCREVER no dado do
+> condomínio, começando por unidades (criar, editar, desativar, reativar: `POST/PATCH /plataforma/condominios/:id/unidades...`,
+> ação `condominio.unidades`, só `master`), pelos MESMOS serviços do síndico, sem senha nem motivo, pelo ponto único
+> (`AcessoPlataformaService.escrever`: limite `PLATAFORMA_ESCRITAS_POR_MINUTO`, só `ativo`/`suspenso`, módulo ligado,
+> linha `condominio.escrever` em `plataforma_audit`, resposta minimizada). O ator nas colunas de autoria é um usuário
+> técnico por condomínio (`@plataforma`, "Suporte da plataforma", papel `administracao`), criado pela Api na primeira
+> escrita, sem migração, fora da lista de usuários, 404 em toda ação sobre ele e com login recusado como inexistente.
+> **O síndico não vê o que o Master faz**: `/auditoria/alteracoes` e `/auditoria/acessos-plataforma` deixam de fora as
+> linhas do técnico e as `plataforma.*` sem usuário gravadas a partir de 01/11/2026 (inclusive as da gestão de síndicos,
+> §5.5); as anteriores continuam visíveis. Onde uma view mostra o autor pelo cadastro, aparece "Suporte da plataforma".
+> A gestão de síndicos (§5.5), que emite credencial, continua pedindo a senha do Master e o motivo. Destrutivas
+> (`PLATAFORMA_DESTRUTIVAS_POR_DIA`, padrão 0 = desligadas) e credenciais (`PLATAFORMA_CREDENCIAIS_POR_DIA`, padrão 10)
+> têm limite diário durável, ainda sem rota que os use. O stub `POST .../motivo` e o cabeçalho `X-Motivo-Token` saíram.
+> Spec: `projetos/rm-digital/CondeNexo.Api/specs/2026-11-01-fase-c-escrita-master-design.md` (vault).
+
 > **Revisado em 2026-11-01 (Fase B, decisão do dono do produto, contra a recomendação; risco aceito).** Regra nova:
 > - **Leitura sem motivo e sem trilha.** O Master lê os dados de qualquer condomínio (ativo, suspenso ou encerrado) sem
 >   informar motivo e **sem nenhuma linha** no `audit_log` do condomínio nem em `plataforma_audit`. Listas, fichas,
@@ -324,8 +339,8 @@ portaria. Hoje o cookie é isolado por `Path`, mas a origem é a mesma (ver risc
 >   Cada revelação grava UMA linha `condominio.revelar` em `plataforma_audit` (entidade, id do registro, rota, status, IP;
 >   nunca o valor) e nada no `audit_log` do condomínio. Falhou a gravação: 503 e o valor não sai. Limite por usuário:
 >   `PLATAFORMA_REVELAR_POR_MINUTO` (padrão 60), em memória, 429 com `Retry-After`. Só `master`; `suporte` não muda.
-> - **O síndico não vê nada disso.** A tela "Acessos da plataforma" continua mostrando as ações do Master sobre os
->   síndicos (§5.5) e as consultas registradas **até 01/11/2026**; nenhuma linha antiga foi apagada.
+> - **O síndico não vê nada disso.** A tela "Acessos da plataforma" mostra só o histórico registrado **até 01/11/2026**
+>   (desde a Fase C1 nem as ações sobre síndicos entram); nenhuma linha antiga foi apagada.
 > - **Risco aceito:** a RM Digital, como operadora, deixa de ter registro de quem leu o quê nas listas e fichas; não há
 >   como responder a um titular ou síndico "quem viu e por quê", exceto pelas revelações (trilha interna). Os itens 1, 2 e
 >   4 da mitigação abaixo e a cláusula de contrato "todo acesso fica registrado e visível ao síndico" **deixaram de valer**,
@@ -1355,7 +1370,7 @@ Nada disso exige mudança agora, exceto não criar unicidade ou trigger que impe
 | R4 | Esgotamento de conexões com muitos condomínios | Pool pequeno com timeout; teto global; revisitar SAAS-01 acima de ~100 |
 | R5 | Perda da chave mestra = perda de todos os anexos e da busca por CPF de todos os condomínios | Cópia da chave mestra fora da VPS, em cofre, com procedimento de recuperação testado (pergunta 6) |
 | R6 | Vazamento da chave mestra + dump = força bruta de CPF | Mestra fora do backup; acesso restrito; rotação da mestra é barata |
-| R7 | Master comprometido: desde 2026-10-22 alcança o dado pessoal de **todos** os condomínios (SAAS-09); **agravado em 2026-10-26 (§5.5): pode criar síndico (ou trocar, ou gerar nova senha) em qualquer condomínio e entrar como ele** | Origem separada, ~~TOTP~~ (sem 2FA desde 2026-10-23: senha 16+, limite de tentativas, sessão curta, trilha com IP, gerenciador de senhas; SAAS-08), poucos usuários `master`, ponto único que grava a trilha de cada condomínio antes de responder, tela do síndico, revisão de acessos (**desde 2026-11-01 a leitura não grava mais trilha**: sobram o mascaramento, o Revelar registrado e limitado e o bloco "Revelações" do painel). A aprovação do síndico saiu. Na gestão de síndicos: reautenticação no próprio pedido (sessão roubada não basta), motivo obrigatório, trilha do condomínio na mesma transação e visível ao síndico em "Acessos da plataforma"; o síndico substituído perde o acesso na hora e percebe |
+| R7 | Master comprometido: desde 2026-10-22 alcança o dado pessoal de **todos** os condomínios (SAAS-09); **agravado em 2026-10-26 (§5.5): pode criar síndico (ou trocar, ou gerar nova senha) em qualquer condomínio e entrar como ele** | Origem separada, ~~TOTP~~ (sem 2FA desde 2026-10-23: senha 16+, limite de tentativas, sessão curta, trilha com IP, gerenciador de senhas; SAAS-08), poucos usuários `master`, ponto único que grava a trilha de cada condomínio antes de responder, tela do síndico, revisão de acessos (**desde 2026-11-01 a leitura não grava mais trilha**: sobram o mascaramento, o Revelar registrado e limitado e o bloco "Revelações" do painel). A aprovação do síndico saiu. Na gestão de síndicos: reautenticação no próprio pedido (sessão roubada não basta), motivo obrigatório, trilha do condomínio na mesma transação (~~visível ao síndico em "Acessos da plataforma"~~: desde a Fase C1, 01/11/2026, o síndico não vê mais as ações do Master); o síndico substituído perde o acesso na hora e percebe. **Agravado na Fase C1: o Master escreve unidades sem senha nem motivo, invisível ao síndico** |
 | R8 | API comprometida = todos os condomínios | Inerente a um processo (P3). Reduz o alcance: `app_rw` sem DELETE, trilha append-only, âncora fora do servidor |
 | R9 | VPS compartilhada com sistema de terceiros, mantida com vários clientes (decisão de 2026-10-22) | Mitigações M1 a M9 (seção 10); gatilhos de saída para VPS dedicada (M9) |
 | R10 | Âncora controlada pelo operador não protege o cliente contra o operador | E-mail ao síndico obrigatório; raiz pública em repositório com proteção de branch |

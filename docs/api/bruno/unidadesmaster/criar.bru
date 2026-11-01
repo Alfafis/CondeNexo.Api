@@ -1,0 +1,26 @@
+meta {
+  name: unidadesmaster / criar
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/plataforma/condominios/:id/unidades
+  body: json
+  auth: none
+}
+
+params:path {
+  id: {{condominioId}}
+}
+
+body:json {
+  {
+    "bloco": "exemplo",
+    "numero": "exemplo"
+  }
+}
+
+docs {
+  Plataforma (Master). Permissão: `condominio.unidades`
+}
