@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Rápido (segundos): só o typecheck. A suíte inteira (~3 min) fica no pre-push.
+# Pular uma vez: git commit --no-verify
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+. .githooks/_comum.sh
+
+if git diff --cached --name-only | so_documentacao; then
+  exit 0
+fi
+echo "pre-commit: typecheck"
+npm run --silent typecheck
