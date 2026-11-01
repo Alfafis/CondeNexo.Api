@@ -8,7 +8,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { senhaTemporariaVencida } from '../dominio/rules';
 import { type PapelPlataforma, SENHA_MIN_MASTER } from '../dominio/rbac-plataforma';
 import { eq, sql } from 'drizzle-orm';
-import { erroApi } from '../comum/erros';
+import { codigoPg, constraintPg, erroApi } from '../comum/erros';
 import { RELOGIO, type Relogio } from '../comum/relogio';
 import { EsperaLogin } from '../auth/login-sem-condominio';
 import { normalizarLogin } from '../auth/limite-login.service';
@@ -22,6 +22,10 @@ import { registrarPlataforma } from './trilha-plataforma';
 
 export const MENSAGEM_CREDENCIAIS_MASTER = 'E-mail ou senha inválidos.';
 export const MENSAGEM_TEMPORARIA_EXPIRADA_MASTER = 'Senha temporária vencida. Peça uma nova ao operador da plataforma.';
+
+/** Pedido de PATCH /plataforma/auth/me, já normalizado (normalizarEmail/normalizarNome) pelo DTO do controller. */
+export interface PerfilMaster { nome?: string; email?: string; senhaAtual?: string }
+export type ResultadoPerfilMaster = { ok: true; usuario: UsuarioPlataforma } | { ok: false; motivo: 'bloqueado'; ate: Date };
 
 export type ResultadoLoginMaster =
   | { ok: true; token: string; expiraEm: Date; usuario: UsuarioPlataforma }
@@ -202,5 +206,63 @@ export class AuthMasterService {
     });
     await this.limite.sucesso(this.limite.chave('master', m.usuario.email), par, null, agora);
     return usuario;
+  }
+
+  /**
+   * "Minha conta": o próprio nome e e-mail (qualquer papel; autoatendimento, fora da MATRIZ_PLATAFORMA). Valor igual ao
+   * atual (e-mail sem diferenciar caixa) não conta como mudança. Trocar o e-mail (o identificador de login) exige a senha
+   * atual, contada no limite do par login+IP como em trocarSenha. ORDEM: senha ANTES da unicidade, para quem não sabe a
+   * senha (sessão roubada) não descobrir se um e-mail existe. As sessões NÃO são revogadas (o usuário precisa da sessão
+   * para corrigir um erro de digitação; o CHECK de motivo de revogação nem tem este caso). A trilha leva só os campos.
+   */
+  async atualizarPerfil(m: AuthMaster, p: PerfilMaster): Promise<ResultadoPerfilMaster> {
+    const atual = m.usuario;
+    const nome = p.nome !== undefined && p.nome !== atual.nome ? p.nome : undefined;
+    const email = p.email !== undefined && p.email !== normalizarLogin(atual.email) ? p.email : undefined;
+    if (nome === undefined && email === undefined) return { ok: true, usuario: await this.me(m) };
+
+    if (email !== undefined) {
+      if (p.senhaAtual === undefined) {
+        const message = 'Informe a senha atual para trocar o e-mail.';
+        throw erroApi(400, 'DADOS_INVALIDOS', 'Dados inválidos.', [{ field: 'senhaAtual', message }]);
+      }
+      const agora = this.relogio.agora();
+      // Chaves do e-mail ANTIGO (o login em vigor, o que um ladrão de sessão tentaria): o MESMO par que login, trocarSenha
+      // e reautenticar contam, então alternar entre as rotas não dá palpites extras. As do e-mail novo ficam como estão
+      // (contam tentativas de login com ele, de quem quer que seja); as do antigo ficam órfãs e expiram (aceito no spec).
+      const par = this.limite.chavePar(atual.email, m.ip);
+      const r = await this.limite.reservar(par, agora);
+      if (this.limite.estaBloqueada(r, agora)) return { ok: false, motivo: 'bloqueado', ate: this.fimDoBloqueio([r], agora) };
+      const [u] = await this.db.select({ senhaHash: masterUsuario.senhaHash }).from(masterUsuario).where(eq(masterUsuario.id, atual.id));
+      if (!u || !(await this.senhas.verificar(u.senhaHash, p.senhaAtual))) {
+        await registrarPlataforma(this.db, { masterUsuarioId: atual.id, acao: 'auth.alterar_perfil_falha', detalhes: { ip: m.ip } });
+        const ate = await this.limite.bloquearSeAtingiu(r, agora);
+        if (ate) await registrarPlataforma(this.db, { masterUsuarioId: atual.id, acao: 'auth.bloqueio', detalhes: { tipo: 'master_ip', falhas: r.falhas, bloqueado_ate: ate, ip: m.ip } });
+        const mensagem = 'A senha atual não confere.';
+        throw erroApi(422, 'SENHA_ATUAL_INCORRETA', mensagem, [{ field: 'senhaAtual', message: mensagem }]);
+      }
+      // A senha conferiu: zera aqui, antes da unicidade. Um 409 (e-mail de outro usuário) não é palpite errado de senha.
+      await this.limite.sucesso(this.limite.chave('master', atual.email), par, null, agora);
+    }
+
+    const campos = [...(nome !== undefined ? ['nome'] : []), ...(email !== undefined ? ['email'] : [])];
+    try {
+      const usuario = await this.db.transaction(async (tx) => {
+        const [depois] = await tx.update(masterUsuario).set({ ...(nome !== undefined ? { nome } : {}), ...(email !== undefined ? { email } : {}) })
+          .where(eq(masterUsuario.id, atual.id)).returning(colunas);
+        if (!depois) throw erroApi(401, 'SESSAO_INVALIDA', 'Sua sessão expirou. Entre novamente.');
+        // Só QUAIS campos mudaram: nunca o nome nem o e-mail (a trilha é append-only e não guarda texto digitado).
+        await registrarPlataforma(tx, { masterUsuarioId: atual.id, acao: 'auth.alterar_perfil', detalhes: { campos, ip: m.ip } });
+        return publico(depois);
+      });
+      return { ok: true, usuario };
+    } catch (e) {
+      // Índice único em lower(email): também cobre a corrida de dois pedidos com o mesmo e-mail novo.
+      if (codigoPg(e) === '23505' && constraintPg(e) === 'master_usuario_email_uq') {
+        const mensagem = 'Este e-mail já é usado por outro usuário da plataforma.';
+        throw erroApi(409, 'EMAIL_EM_USO', mensagem, [{ field: 'email', message: mensagem }]);
+      }
+      throw e;
+    }
   }
 }

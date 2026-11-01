@@ -12,6 +12,7 @@ import { erroApi } from '../comum/erros';
 import { uuidParam, ZodPipe } from '../comum/zod.pipe';
 import { CONFIG, type Config } from '../config/config';
 import { EntradaJson } from '../plataforma/provisionar';
+import { EMAIL_MAX, NOME_MAX, NOME_MIN, normalizarEmail, normalizarNome } from './usuario-plataforma';
 import { AuthMasterService, MENSAGEM_CREDENCIAIS_MASTER, MENSAGEM_TEMPORARIA_EXPIRADA_MASTER } from './auth-master.service';
 import { CondominiosMasterService } from './condominios-master.service';
 import { gravarCookieMaster, limparCookieMaster } from './cookie-master';
@@ -30,6 +31,30 @@ const TrocarSenhaDto = z.strictObject({
   senhaAtual: z.string().min(1).max(SENHA_MAX),
   novaSenha: z.string().min(1).max(SENHA_MAX),
 });
+
+/**
+ * Aplica a regra comum (usuario-plataforma.ts, a mesma da CLI) e devolve o valor normalizado; inválido = 400 no campo.
+ * `base` leva os limites ao texto bruto: documenta no OpenAPI o tamanho real e barra o corpo enorme antes da regra.
+ */
+const normalizado = (base: z.ZodString, regra: (v: string) => string | null, mensagem: string) =>
+  base.transform((v, ctx) => {
+    const n = regra(v);
+    if (n === null) { ctx.addIssue({ code: 'custom', message: mensagem }); return z.NEVER; }
+    return n;
+  });
+
+const MSG_NOME = `O nome precisa ter de ${NOME_MIN} a ${NOME_MAX} caracteres.`;
+const MSG_EMAIL = `Informe um e-mail válido (até ${EMAIL_MAX} caracteres).`;
+
+/**
+ * "Minha conta" (PATCH /plataforma/auth/me). Ao menos um de nome e e-mail. `senhaAtual` só é exigida (e só é conferida)
+ * quando o e-mail MUDA, o que depende do e-mail atual: essa regra fica no serviço, com a mesma resposta 400.
+ */
+const PerfilDto = z.strictObject({
+  nome: normalizado(z.string().min(NOME_MIN, MSG_NOME).max(NOME_MAX, MSG_NOME), normalizarNome, MSG_NOME).optional(),
+  email: normalizado(z.string().max(EMAIL_MAX, MSG_EMAIL), normalizarEmail, MSG_EMAIL).optional(),
+  senhaAtual: z.string().min(1, 'Informe a senha atual.').max(SENHA_MAX).optional(),
+}).refine((b) => b.nome !== undefined || b.email !== undefined, { message: 'Informe o nome ou o e-mail.' });
 
 const ModulosDto = z.strictObject({ modulos: z.array(z.enum(MODULOS)).max(MODULOS.length * 2) });
 
@@ -53,6 +78,8 @@ export interface ParametrosPlataforma {
   justificativaMin: number;
 }
 
+/** Segundos até o fim do bloqueio do limite de tentativas (mínimo 1), para o Retry-After do 429. */
+const retryAfter = (ate: Date) => String(Math.max(1, Math.ceil((ate.getTime() - Date.now()) / 1000)));
 const sessaoDe = (expiraEm: Date) => ({ expiraEm: expiraEm.toISOString(), inatividadeMin: SESSAO_MASTER_INATIVIDADE_MIN });
 /**
  * O que o app do Master só consulta: as ações da MATRIZ_PLATAFORMA que o papel pode (a PlataformaGuard decide de novo
@@ -73,7 +100,7 @@ export class AuthMasterController {
   async login(@Body(new ZodPipe(LoginDto)) body: z.infer<typeof LoginDto>, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const r = await this.auth.login(body.email, body.senha, ipDe(req));
     if (!r.ok && r.motivo === 'bloqueado') {
-      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((r.ate.getTime() - Date.now()) / 1000))));
+      res.setHeader('Retry-After', retryAfter(r.ate));
       throw erroApi(429, 'LOGIN_BLOQUEADO', 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
     }
     if (!r.ok && r.motivo === 'senha_temporaria_expirada') throw erroApi(401, 'SENHA_TEMPORARIA_EXPIRADA', MENSAGEM_TEMPORARIA_EXPIRADA_MASTER);
@@ -95,6 +122,22 @@ export class AuthMasterController {
   async me(@Master() m: AuthMaster) {
     const usuario = await this.auth.me(m);
     return { usuario, sessao: sessaoDe(m.expiraEm), permissoes: permissoesDe(usuario.papel) };
+  }
+
+  /**
+   * O próprio nome e e-mail (master e suporte; sem ação na MATRIZ_PLATAFORMA). Trocar o e-mail exige `senhaAtual`, sob o
+   * limite do par login+IP: errada = 422 SENHA_ATUAL_INCORRETA, bloqueado = 429 com Retry-After; só depois da senha a
+   * unicidade (409 EMAIL_EM_USO). A sessão atual continua válida. Troca de senha pendente: 403, como as demais rotas.
+   */
+  @Patch('me')
+  @PlataformaAutenticada()
+  async atualizarPerfil(@Master() m: AuthMaster, @Body(new ZodPipe(PerfilDto)) body: z.infer<typeof PerfilDto>, @Res({ passthrough: true }) res: Response) {
+    const r = await this.auth.atualizarPerfil(m, body);
+    if (!r.ok) {
+      res.setHeader('Retry-After', retryAfter(r.ate));
+      throw erroApi(429, 'LOGIN_BLOQUEADO', 'Muitas tentativas. Aguarde e tente novamente.');
+    }
+    return { usuario: r.usuario, permissoes: permissoesDe(r.usuario.papel) };
   }
 
   @Post('trocar-senha')

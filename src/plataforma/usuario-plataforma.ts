@@ -2,6 +2,8 @@
 // tela para isso de propósito: o primeiro Master não tem quem o crie pela tela, e reemitir a senha pela tela seria o
 // caminho de quem roubou a sessão. Roda como app_plataforma (INSERT/UPDATE em master_usuario e master_sessao, INSERT em
 // plataforma_audit); a senha temporária sai SÓ no resultado, para o terminal. Sem segundo fator desde 2026-10-23 (SAAS-08).
+// Criar e reemitir continuam só aqui. O próprio usuário logado edita o PRÓPRIO nome e e-mail pela tela "Minha conta"
+// (PATCH /plataforma/auth/me, com a senha atual para trocar o e-mail), com as regras normalizarNome/normalizarEmail daqui.
 import { randomUUID } from 'node:crypto';
 import { SENHA_TEMPORARIA_VALIDADE_MS } from '../dominio/rules';
 import { PAPEIS_PLATAFORMA, type PapelPlataforma } from '../dominio/rbac-plataforma';

@@ -1,7 +1,7 @@
 // App do Master na API (F5, entrega 1; src/plataforma): login com e-mail e senha (sem 2º fator desde 2026-10-23, SAAS-08),
 // sessão e cookie próprios, guarda,
 // trilha da plataforma, troca de senha obrigatória, limite de tentativas, cookies cruzados com o condomínio, lista de
-// condomínios, provisionamento pela tela (provisionar() de verdade sobre PGlite) e módulos.
+// condomínios, provisionamento pela tela (provisionar() de verdade sobre PGlite), módulos e "Minha conta" (PATCH /auth/me).
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as s from '../src/db/schema';
@@ -244,6 +244,178 @@ describe('troca de senha obrigatória', () => {
     await api.plataforma.db.update(masterUsuario).set({ senhaTemporariaExpiraEm: new Date(api.relogio.agora().getTime() - 60_000) }).where(eq(masterUsuario.id, id));
     expect((await login('vencido@exemplo.test', 'senha-errada-errada')).body.code).toBe('CREDENCIAIS_INVALIDAS');
     expect((await login('vencido@exemplo.test')).body.code).toBe('SENHA_TEMPORARIA_EXPIRADA');
+  });
+});
+
+describe('minha conta (PATCH /auth/me: o próprio nome e e-mail)', () => {
+  const patchMe = (cookie: string, corpo: object, ip = novoIp()) =>
+    api.http().patch(`${P}/auth/me`).set('Cookie', cookie).set('X-Forwarded-For', ip).send(corpo);
+  const doUsuario = async (acao: string, id: string) => (await trilhaP(acao)).filter((l) => l.masterUsuarioId === id);
+  const linha = async (id: string) => (await api.plataforma.db.select().from(masterUsuario).where(eq(masterUsuario.id, id)))[0]!;
+  const campos = (r: { body: { details?: { field: string }[] } }) => (r.body.details ?? []).map((d) => d.field);
+
+  it('nome sozinho: aparado, sem pedir senha, `me` reflete; trilha só com os campos e o IP (nunca o valor)', async () => {
+    const id = await novoMaster('conta.nome@exemplo.test');
+    const m = await entrarMaster('conta.nome@exemplo.test');
+    const ip = novoIp();
+    const r = await patchMe(m, { nome: '  Nome Novo Fictício  ' }, ip);
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body.data).toEqual({
+      usuario: { id, nome: 'Nome Novo Fictício', email: 'conta.nome@exemplo.test', papel: 'master', deveTrocarSenha: false },
+      permissoes: { acoes: expect.any(Array), senhaMin: SENHA_MIN_MASTER },
+    });
+    expect((await api.http().get(`${P}/auth/me`).set('Cookie', m)).body.data.usuario.nome).toBe('Nome Novo Fictício');
+    const linhas = await doUsuario('auth.alterar_perfil', id);
+    expect(linhas.map((l) => l.detalhes)).toEqual([{ campos: ['nome'], ip }]);
+    const texto = JSON.stringify(linhas);
+    expect(texto).not.toContain('Nome Novo');
+    expect(texto).not.toContain('conta.nome@');
+    // Mesmo nome de novo: nada muda, nenhuma linha nova.
+    expect((await patchMe(m, { nome: 'Nome Novo Fictício' })).status).toBe(200);
+    expect(await doUsuario('auth.alterar_perfil', id)).toHaveLength(1);
+  });
+
+  it('nome inválido (curto depois de aparar, longo, não texto) = 400 no campo, nada gravado', async () => {
+    const id = await novoMaster('conta.nomeruim@exemplo.test');
+    const m = await entrarMaster('conta.nomeruim@exemplo.test');
+    for (const nome of ['  ab  ', 'x'.repeat(121), 123, '']) {
+      const r = await patchMe(m, { nome });
+      expect([r.status, r.body.code], JSON.stringify(nome)).toEqual([400, 'DADOS_INVALIDOS']);
+      expect(campos(r)).toContain('nome');
+    }
+    expect((await patchMe(m, { nome: 'x'.repeat(120) })).status).toBe(200);
+    expect((await linha(id)).nome).toBe('x'.repeat(120));
+  });
+
+  it('e-mail com a senha certa: muda (normalizado), a sessão atual e as outras continuam, entra com o novo e não com o antigo', async () => {
+    const id = await novoMaster('conta.email@exemplo.test');
+    const outra = await entrarMaster('conta.email@exemplo.test');
+    const m = await entrarMaster('conta.email@exemplo.test');
+    const ip = novoIp();
+    const r = await patchMe(m, { email: '  Conta.Nova@Exemplo.TEST ', senhaAtual: SENHA_M }, ip);
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body.data.usuario).toMatchObject({ id, email: 'conta.nova@exemplo.test', nome: 'Operador conta.email' });
+    expect((await linha(id)).email).toBe('conta.nova@exemplo.test');
+    // Não revoga: nem a sessão do pedido nem as outras (o usuário corrige um erro de digitação com a sessão aberta).
+    expect((await api.http().get(`${P}/auth/me`).set('Cookie', m)).body.data.usuario.email).toBe('conta.nova@exemplo.test');
+    expect((await api.http().get(`${P}/auth/me`).set('Cookie', outra)).status).toBe(200);
+    expect((await api.plataforma.db.select().from(masterSessao).where(eq(masterSessao.masterUsuarioId, id))).every((x) => x.revogadaEm === null)).toBe(true);
+    expect((await login('conta.email@exemplo.test')).body.code).toBe('CREDENCIAIS_INVALIDAS');
+    expect((await login('conta.nova@exemplo.test')).status).toBe(200);
+    const linhas = await doUsuario('auth.alterar_perfil', id);
+    expect(linhas.map((l) => l.detalhes)).toEqual([{ campos: ['email'], ip }]);
+    const texto = JSON.stringify(linhas);
+    expect(texto).not.toMatch(/conta\.nova|conta\.email|exemplo\.test/i);
+    // Nome e e-mail juntos (a senha é conferida contra o login em vigor, que agora é o novo).
+    const juntos = await patchMe(m, { nome: 'Conta Renomeada', email: 'conta.terceira@exemplo.test', senhaAtual: SENHA_M }, ip);
+    expect(juntos.status, JSON.stringify(juntos.body)).toBe(200);
+    expect((await doUsuario('auth.alterar_perfil', id)).at(-1)!.detalhes).toEqual({ campos: ['nome', 'email'], ip });
+    expect(JSON.stringify(await doUsuario('auth.alterar_perfil', id))).not.toMatch(/Renomeada|terceira/);
+  });
+
+  it('e-mail com a senha errada: 422 SENHA_ATUAL_INCORRETA, nada muda (nem o nome do mesmo pedido), conta no limite do par e-mail+IP; no limite, 429 com Retry-After', async () => {
+    const id = await novoMaster('conta.errada@exemplo.test');
+    const m = await entrarMaster('conta.errada@exemplo.test');
+    const ip = novoIp();
+    const r = await patchMe(m, { nome: 'Nome Que Não Fica', email: 'conta.tentada@exemplo.test', senhaAtual: 'senha-errada-perfil' }, ip);
+    expect([r.status, r.body.code, r.body.message]).toEqual([422, 'SENHA_ATUAL_INCORRETA', 'A senha atual não confere.']);
+    expect(campos(r)).toEqual(['senhaAtual']);
+    expect(await linha(id)).toMatchObject({ nome: 'Operador conta.errada', email: 'conta.errada@exemplo.test' });
+    const falhas = await doUsuario('auth.alterar_perfil_falha', id);
+    expect(falhas.map((l) => l.detalhes)).toEqual([{ ip }]);
+    expect(JSON.stringify(falhas)).not.toMatch(/conta\.tentada|conta\.errada|Não Fica|senha-errada/);
+    expect(await doUsuario('auth.alterar_perfil', id)).toEqual([]);
+    // Mais 9 (10 no total): a 10ª grava o bloqueio do par; a 11ª é 429 mesmo com a senha certa, sem argon2.
+    for (let i = 0; i < 9; i++) {
+      expect((await patchMe(m, { email: 'conta.tentada@exemplo.test', senhaAtual: 'senha-errada-perfil' }, ip)).status).toBe(422);
+    }
+    const senhas = api.app.get(SenhaService, { strict: false });
+    const verificar = vi.spyOn(senhas, 'verificar');
+    const bloqueado = await patchMe(m, { email: 'conta.tentada@exemplo.test', senhaAtual: SENHA_M }, ip);
+    expect([bloqueado.status, bloqueado.body.code]).toEqual([429, 'LOGIN_BLOQUEADO']);
+    expect(Number(bloqueado.headers['retry-after'])).toBeGreaterThan(0);
+    expect(verificar).not.toHaveBeenCalled();
+    verificar.mockRestore();
+    const bloqueio = (await doUsuario('auth.bloqueio', id)).map((l) => l.detalhes as { tipo: string; ip: string; falhas: number });
+    expect(bloqueio).toEqual([expect.objectContaining({ tipo: 'master_ip', ip, falhas: 10 })]);
+    // É o MESMO par do login: o login com a senha certa desse IP também está bloqueado.
+    expect((await login('conta.errada@exemplo.test', SENHA_M, ip)).status).toBe(429);
+    expect((await linha(id)).email).toBe('conta.errada@exemplo.test');
+    // A sessão continua válida (403/422 não derrubam), e a troca só de nome não passa pelo limite.
+    expect((await patchMe(m, { nome: 'Nome Depois do Bloqueio' }, ip)).status).toBe(200);
+  });
+
+  it('formato e corpo: sem senhaAtual, senha vazia, e-mail inválido, corpo vazio, só senha, campo desconhecido = 400, sem tocar no limite nem na trilha', async () => {
+    const id = await novoMaster('conta.corpo@exemplo.test');
+    const m = await entrarMaster('conta.corpo@exemplo.test');
+    const casos: [object, string][] = [
+      [{ email: 'conta.outra@exemplo.test' }, 'senhaAtual'],
+      [{ email: 'conta.outra@exemplo.test', senhaAtual: '' }, 'senhaAtual'],
+      [{ email: 'sem-arroba', senhaAtual: SENHA_M }, 'email'],
+      [{ email: `${'a'.repeat(242)}@exemplo.test`, senhaAtual: SENHA_M }, 'email'],
+      [{ email: `a@${'.'.repeat(5000)}@`, senhaAtual: SENHA_M }, 'email'],
+      [{}, '(corpo)'],
+      [{ senhaAtual: SENHA_M }, '(corpo)'],
+      [{ nome: 'Fulano de Tal', papel: 'master' }, '(corpo)'],
+      [{ nome: 'Fulano de Tal', ativo: false }, '(corpo)'],
+    ];
+    for (const [corpo, campo] of casos) {
+      const r = await patchMe(m, corpo);
+      expect([r.status, r.body.code], JSON.stringify(corpo).slice(0, 80)).toEqual([400, 'DADOS_INVALIDOS']);
+      if (campo !== '(corpo)') expect(campos(r), JSON.stringify(r.body)).toContain(campo);
+    }
+    expect(await linha(id)).toMatchObject({ nome: 'Operador conta.corpo', email: 'conta.corpo@exemplo.test', papel: 'master', ativo: true });
+    expect(await doUsuario('auth.alterar_perfil_falha', id)).toEqual([]);
+    expect(await doUsuario('auth.alterar_perfil', id)).toEqual([]);
+  });
+
+  it('e-mail de outro usuário: 409 EMAIL_EM_USO só DEPOIS da senha conferir (senha errada = 422, não revela que o e-mail existe)', async () => {
+    const id = await novoMaster('conta.conflito@exemplo.test');
+    const m = await entrarMaster('conta.conflito@exemplo.test');
+    const errada = await patchMe(m, { email: 'ALVO@exemplo.test', senhaAtual: 'senha-errada-perfil' });
+    expect([errada.status, errada.body.code]).toEqual([422, 'SENHA_ATUAL_INCORRETA']);
+    const r = await patchMe(m, { nome: 'Nome Que Não Fica', email: 'ALVO@exemplo.test', senhaAtual: SENHA_M });
+    expect([r.status, r.body.code], JSON.stringify(r.body)).toEqual([409, 'EMAIL_EM_USO']);
+    expect(campos(r)).toEqual(['email']);
+    expect(await linha(id)).toMatchObject({ nome: 'Operador conta.conflito', email: 'conta.conflito@exemplo.test' });
+    expect(await doUsuario('auth.alterar_perfil', id)).toEqual([]);
+    // O outro usuário não foi tocado e continua entrando.
+    expect((await login('alvo@exemplo.test')).status).toBe(200);
+  });
+
+  it('e-mail igual ao atual (inclusive com outra caixa) é "não alterado": sem senha, sem trilha; com o nome, só `nome` muda', async () => {
+    const id = await novoMaster('conta.igual@exemplo.test');
+    const m = await entrarMaster('conta.igual@exemplo.test');
+    const r = await patchMe(m, { email: '  CONTA.Igual@Exemplo.test ' });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body.data.usuario.email).toBe('conta.igual@exemplo.test');
+    expect(await doUsuario('auth.alterar_perfil', id)).toEqual([]);
+    const ip = novoIp();
+    const comNome = await patchMe(m, { nome: 'Conta Igual Renomeada', email: 'Conta.Igual@exemplo.test' }, ip);
+    expect(comNome.status, JSON.stringify(comNome.body)).toBe(200);
+    expect((await doUsuario('auth.alterar_perfil', id)).map((l) => l.detalhes)).toEqual([{ campos: ['nome'], ip }]);
+    expect(await doUsuario('auth.alterar_perfil_falha', id)).toEqual([]);
+  });
+
+  it('suporte edita a própria conta (autoatendimento, fora da MATRIZ_PLATAFORMA)', async () => {
+    const id = await novoMaster('conta.suporte@exemplo.test', { papel: 'suporte' });
+    const m = await entrarMaster('conta.suporte@exemplo.test');
+    const r = await patchMe(m, { nome: 'Suporte Renomeado', email: 'conta.suporte2@exemplo.test', senhaAtual: SENHA_M });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body.data.usuario).toMatchObject({ id, papel: 'suporte', nome: 'Suporte Renomeado', email: 'conta.suporte2@exemplo.test' });
+    expect(r.body.data.permissoes.acoes).toEqual(['condominio.listar']);
+    expect((await linha(id)).papel).toBe('suporte');
+  });
+
+  it('com a troca de senha obrigatória pendente: 403 TROCA_DE_SENHA_OBRIGATORIA, nada muda; sem sessão: 401', async () => {
+    const id = await novoMaster('conta.pendente@exemplo.test', { trocaPendente: true });
+    const m = await entrarMaster('conta.pendente@exemplo.test');
+    for (const corpo of [{ nome: 'Nome Que Não Fica' }, { email: 'conta.pendente2@exemplo.test', senhaAtual: SENHA_M }]) {
+      const r = await patchMe(m, corpo);
+      expect([r.status, r.body.code]).toEqual([403, 'TROCA_DE_SENHA_OBRIGATORIA']);
+    }
+    expect(await linha(id)).toMatchObject({ nome: 'Operador conta.pendente', email: 'conta.pendente@exemplo.test' });
+    expect((await api.http().patch(`${P}/auth/me`).send({ nome: 'Sem Sessão' })).status).toBe(401);
   });
 });
 
