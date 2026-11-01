@@ -83,8 +83,9 @@ deploy quando `DEPLOY_HOST` está configurado; hoje o deploy é manual. Passo a 
 
 ## CI
 
-`testes-api.yml` (typecheck, testes, scripts, build), `testes-postgres.yml` (Postgres 17 real), `ancora-selo.yml` (âncora
-pública do selo) e `deploy-api.yml`.
+O CI só publica: `deploy-api.yml` atualiza a VPS em todo push na `main` que muda o que entra na imagem. **Não há teste no CI
+nem no `pre-push`**: valide à mão com `npm test` quando quiser. `testes-postgres.yml` (Postgres 17 real) roda só sob demanda,
+e `ancora-selo.yml` (âncora pública do selo) segue diário.
 
 ## Licença
 

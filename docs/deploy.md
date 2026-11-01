@@ -611,8 +611,9 @@ docker compose build && docker compose up -d --wait
 A tag anterior continua em `docker images tcc-portaria-api`. Só o `api`, o `migrate` e o `permissoes` dependem de
 `API_TAG`, e o `db` não é recriado.
 
-**Deploy automático** (`.github/workflows/deploy-api.yml`): push na `main` que mexa em `a API`, `src/dominio`
-ou no `package-lock.json` roda typecheck e testes e, se passarem, entra por SSH na VPS com a chave do CI. No
+**Deploy automático** (`.github/workflows/deploy-api.yml`): push na `main` que mude o que entra na imagem
+(`src/`, migrações, dependências, tsconfig, Dockerfile e infra) entra por SSH na VPS com a chave do CI, **sem rodar teste
+nenhum** (desde 2026-11-01 os testes são só `npm test` à mão; a rede de segurança é o build com tsc e o rollback do script). No
 `authorized_keys` do root essa chave é `restrict,command="/usr/local/sbin/tcc-portaria-deploy"`: ela só executa o
 `scripts/deploy/deploy-vps.sh` (instalado fora do clone, por cópia manual), que faz o passo acima sozinho:
 

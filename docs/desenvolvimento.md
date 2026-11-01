@@ -29,8 +29,9 @@ docker compose up --build --watch     # ambiente completo com Postgres (ver "Amb
   comprovante), `POST /eventos-acesso/avaliacao` (avalia a entrada sem gravar: meios, autorizações no instante, escala,
   prazo, erro), `GET /plataforma/parametros` e `POST /plataforma/unidades/analise` (lista de unidades do assistente), e os
   campos calculados `PermanenciaView.proximoPrazo`, `EncomendaViewApi.atrasada` e `UsuarioGerenciado.senhaTemporariaVencida`.
-- **CI:** `.github/workflows/testes-api.yml` (typecheck, testes, scripts, build), `testes-postgres.yml` (Postgres 17 real,
-  bootstrap, CLIs), `ancora-selo.yml` (âncora pública do selo) e `deploy-api.yml` (testes + deploy na VPS).
+- **CI:** só publica. `deploy-api.yml` atualiza a VPS em push na `main` que mude a imagem (sem testes: rode `npm test` à
+  mão para validar); `testes-postgres.yml` (Postgres 17 real, bootstrap, CLIs) só sob demanda; `ancora-selo.yml` (âncora
+  pública do selo) diário.
 - **Publicar (deploy):** `deploy-api.yml` faz SSH na VPS e roda `scripts/deploy/deploy-vps.sh` (instalado fora do clone), que
   busca a `origin/main` DESTE repositório, faz backup, build, migração e `/saude` com rollback (docs/deploy.md, seção 11).
   Neste repositório novo NADA está configurado: faltam as variáveis `DEPLOY_HOST` e `DEPLOY_KNOWN_HOSTS`, o environment

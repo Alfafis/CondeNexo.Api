@@ -14,12 +14,8 @@
 name: Testes do Postgres real
 
 on:
-  # Chamado por deploy-api.yml ("CI e publicação da API"), só quando o push mexeu em banco, plataforma, tenancy, CLIs,
-  # scripts, Docker ou dependências. Antes disparava em todo push e pull request de código.
-  workflow_call:
-  # Toda segunda, 06:43 UTC: pega deriva do Postgres 17 ou do Debian mesmo sem push. Minuto quebrado (fila do Actions).
-  schedule:
-    - cron: '43 6 * * 1'
+  # SÓ à mão (aba Actions > Run workflow), por decisão de 2026-11-01: teste não roda mais no CI da API. Use antes de uma
+  # mudança em banco, roles, migração, CLIs ou Docker, quando quiser a prova contra o Postgres 17 real.
   workflow_dispatch:
 
 permissions: {}

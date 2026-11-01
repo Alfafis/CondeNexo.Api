@@ -1,141 +1,58 @@
-# CI e publicação da API: UM workflow por push (antes eram três: testes-api.yml, testes-postgres.yml e este).
+# Publica a API na VPS. SÓ isso: nenhum teste roda aqui (decisão de 2026-11-01, para ganhar velocidade). A validação é à mão:
+# `npm test` na máquina de quem desenvolve, quando quiser. A rede de segurança de produção é a própria VPS: o build da
+# imagem compila com tsc (erro de tipo derruba o build e nada muda no que está no ar), o `migrate` roda antes da API, o
+# /saude confere o banco e, se falhar, o script volta a imagem e o commit anteriores.
 #
-#   mudancas        o que o push alterou: decide se a imagem da API mudou (publicar) e se o Postgres real vale a pena.
-#   verificar       typecheck, build e testes dos scripts, uma vez só.
-#   suite           a suíte inteira (PGlite) em 3 partes paralelas. O pre-push local (.githooks) roda a mesma suíte antes do
-#                   push; aqui ela é a rede de segurança. NÃO trava a publicação (como antes): a trava é o pre-push.
-#   postgres-real   testes-postgres.yml (workflow reutilizável), só se o push mexeu em banco, plataforma, tenancy, CLIs,
-#                   scripts, Docker ou dependências. Também roda toda semana e à mão (próprio arquivo).
-#   publicar        SSH na VPS com a chave do CI, que no servidor só executa /usr/local/sbin/tcc-portaria-deploy
-#                   (scripts/deploy/deploy-vps.sh): fetch da origin/main, backup, build, migrate, /saude e rollback da imagem
-#                   se falhar. O workflow não manda comando nem commit: a VPS sempre sobe a origin/main que ela mesma busca.
-#                   Só depende de `verificar` e só roda quando o que vai para a imagem mudou (src/, migrações, dependências,
-#                   tsconfig, Dockerfile e infra). Mudar só teste, documentação ou workflow NÃO publica.
+# Dispara em push na main SÓ quando muda o que entra na imagem da API ou como ela sobe (lista em `paths`). Mudar teste,
+# documentação, coleções ou workflow não publica. Infra (compose, Dockerfile, db/, scripts/deploy, .env.producao.example)
+# continua na lista de propósito: o script da VPS recusa (código 2) e o job fica vermelho, avisando que esse deploy é manual
+# (docs/deploy.md, seção 11). Execução à mão: aba Actions > Run workflow (publica o que está na origin/main).
 #
-# Mudança de infra (compose, Dockerfile, bootstrap do banco, scripts de deploy/backup, .env.producao.example) faz o
-# script da VPS sair com código 2 e o job falhar de propósito: esse deploy é manual (docs/deploy.md, seção 11). Por isso
-# esses arquivos continuam disparando a publicação: o aviso não pode se perder.
+# O que roda na VPS: SSH com a chave do CI, que no servidor só executa /usr/local/sbin/tcc-portaria-deploy
+# (scripts/deploy/deploy-vps.sh): fetch da origin/main, backup, build, migrate, /saude e rollback da imagem se falhar. O
+# workflow não manda comando nem commit: a VPS sempre sobe a origin/main que ela mesma busca.
 #
 # Configuração (só o dono do repositório; ver README.md, "Publicar"):
 #   variáveis do repositório: DEPLOY_HOST (IP da VPS) e DEPLOY_KNOWN_HOSTS (linha do known_hosts, fixa a chave do host)
 #   environment `producao`, restrito ao branch main: secret DEPLOY_SSH_KEY (chave privada do CI)
-# Sem DEPLOY_HOST o job de publicação é pulado sem falhar.
-name: CI e publicação da API
+# Sem DEPLOY_HOST o job é pulado sem falhar.
+name: Publicar a API na VPS
 
 on:
   push:
     branches: [main]
-  pull_request:
+    paths:
+      - 'src/**'
+      - 'drizzle/**'
+      - 'drizzle-plataforma/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - 'drizzle.config.ts'
+      - 'drizzle-plataforma.config.ts'
+      - 'scripts/migrar-bancos.mjs'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'docker-compose*.yml'
+      - 'db/**'
+      - 'scripts/deploy/**'
+      - '.env.producao.example'
   workflow_dispatch:
 
 permissions: {}
 
-# Push na main: execuções novas esperam (só a mais recente fica na fila) e nenhuma é cancelada, para nunca interromper uma
-# publicação. Pull request: a execução antiga é cancelada pela nova.
+# Uma publicação por vez; as seguintes esperam na fila (só a mais recente fica) e NUNCA se cancela uma em andamento.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: deploy-api
+  cancel-in-progress: false
 
 jobs:
-  mudancas:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      imagem: ${{ steps.diff.outputs.imagem }}
-      postgres: ${{ steps.diff.outputs.postgres }}
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - id: diff
-        env:
-          EVENTO: ${{ github.event_name }}
-          ANTES: ${{ github.event.before }}
-          BASE_PR: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          # O que entra na imagem da API (ou muda como ela sobe). Infra fica na lista de propósito (ver cabeçalho).
-          IMAGEM_RE='^(src/|drizzle/|drizzle-plataforma/|package(-lock)?\.json$|tsconfig[^/]*\.json$|drizzle(-plataforma)?\.config\.ts$|scripts/migrar-bancos\.mjs$|Dockerfile|\.dockerignore|docker-compose[^/]*\.ya?ml$|db/|scripts/deploy/|\.env\.producao\.example$)'
-          # O que o Postgres real prova e o PGlite não.
-          POSTGRES_RE='^(src/(plataforma|tenancy|db|database|cli)/|drizzle/|drizzle-plataforma/|db/|scripts/|test/postgres-real/|Dockerfile|docker-compose[^/]*\.ya?ml$|package(-lock)?\.json$|\.github/workflows/(deploy-api|testes-postgres)\.yml$)'
-          base=""
-          if [ "$EVENTO" = pull_request ]; then base="$BASE_PR"; elif [ "$EVENTO" = push ]; then base="$ANTES"; fi
-          if [ -z "$base" ] || [ "${base//0/}" = "" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            # Execução manual, branch nova ou base perdida (force-push): sem base confiável, tudo vale.
-            echo "sem base confiável ($EVENTO): imagem e Postgres real valem"
-            echo "imagem=true" >> "$GITHUB_OUTPUT"; echo "postgres=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          arquivos="$(git diff --name-only "$base" "$GITHUB_SHA")"
-          printf 'arquivos alterados:\n%s\n' "$arquivos"
-          if grep -qE "$IMAGEM_RE" <<<"$arquivos"; then echo "imagem=true" >> "$GITHUB_OUTPUT"; else echo "imagem=false" >> "$GITHUB_OUTPUT"; fi
-          if grep -qE "$POSTGRES_RE" <<<"$arquivos"; then echo "postgres=true" >> "$GITHUB_OUTPUT"; else echo "postgres=false" >> "$GITHUB_OUTPUT"; fi
-
-  verificar:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    # Mesma versão de Node da imagem da API (Dockerfile).
-    container: node:22-bookworm-slim
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          persist-credentials: false
-      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: npm-${{ runner.os }}-
-      - run: npm ci --prefer-offline --no-audit --no-fund
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm run test:scripts
-
-  suite:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    container: node:22-bookworm-slim
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        parte: [1, 2, 3]
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
-        with:
-          persist-credentials: false
-      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-        with:
-          path: ~/.npm
-          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: npm-${{ runner.os }}-
-      - run: npm ci --prefer-offline --no-audit --no-fund
-      # Cada arquivo de teste sobe um PGlite com as migrações reais; o vitest reparte os arquivos entre as 3 partes.
-      - run: npx vitest run --shard=${{ matrix.parte }}/3
-
-  postgres-real:
-    needs: mudancas
-    if: ${{ needs.mudancas.outputs.postgres == 'true' }}
-    permissions:
-      contents: read
-    uses: ./.github/workflows/testes-postgres.yml
-
   publicar:
-    needs: [mudancas, verificar]
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.mudancas.outputs.imagem == 'true' && vars.DEPLOY_HOST != '' }}
+    if: ${{ vars.DEPLOY_HOST != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     environment: producao
     permissions: {}
-    # Nunca cancelar uma publicação em andamento; as seguintes esperam na fila.
-    concurrency:
-      group: deploy-api
-      cancel-in-progress: false
     env:
       DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
       DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
