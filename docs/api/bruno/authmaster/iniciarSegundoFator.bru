@@ -1,0 +1,23 @@
+meta {
+  name: authmaster / iniciarSegundoFator
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/plataforma/auth/segundo-fator/iniciar
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "senhaAtual": "{{senhaAtual}}",
+    "codigo": "exemplo",
+    "codigoRecuperacao": "exemplo"
+  }
+}
+
+docs {
+  Plataforma (Master): qualquer usuário da plataforma logado.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: authmaster / confirmarSegundoFator
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/plataforma/auth/segundo-fator/confirmar
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "exemplo"
+  }
+}
+
+docs {
+  Plataforma (Master): qualquer usuário da plataforma logado.
+}

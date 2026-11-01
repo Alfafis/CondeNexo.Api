@@ -75,7 +75,7 @@ describe('banco plataforma: migrações próprias, separadas dos bancos de condo
   it('cria as tabelas da §4.1 aqui e nenhuma delas no banco de condomínio (e vice-versa)', async () => {
     const tabelas = (await p.client.query<{ t: string }>(`SELECT tablename AS t FROM pg_tables WHERE schemaname = 'public' ORDER BY 1`)).rows.map((r) => r.t);
     expect(tabelas).toEqual(['ancora_diaria', 'condominio', 'condominio_chave', 'condominio_contrato', 'condominio_metrica',
-      'lgpd_anonimizacao', 'master_sessao', 'master_usuario', 'plataforma_audit', 'plataforma_login_limite']);
+      'lgpd_anonimizacao', 'master_codigo_recuperacao', 'master_login_pendente', 'master_sessao', 'master_usuario', 'plataforma_audit', 'plataforma_login_limite']);
     const cond = await novoBanco();
     try {
       const r = await cond.client.query<{ c: string | null; e: string | null }>(`SELECT to_regclass('condominio_chave')::text AS c, to_regclass('evento_acesso')::text AS e`);

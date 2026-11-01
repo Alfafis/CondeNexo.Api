@@ -14,6 +14,10 @@
 //   lote, no banco do condomínio, com ida e volta antes do COMMIT). O arquivo cifrado não muda. Queda entre lotes:
 //   o que já foi está na versão nova, o resto na anterior, e as duas são legíveis; rodar de novo continua.
 //
+// Segredo TOTP dos usuários da plataforma (sub-projeto C2): `master_usuario.totp_cifrado` e `totp_pendente_cifrado` também
+// são cifrados pela mestra (segredo-totp.ts). A rotação da mestra os re-cifra na MESMA transação, com a mesma ida e volta;
+// sem isso a próxima rotação trancaria o Master fora do 2º fator. O dry-run os conta e confere se abrem.
+//
 // Nada aqui imprime, loga ou devolve chave (nem em hex/base64): os resultados levam contagens, tipos, versões e o id/código
 // do condomínio. Os buffers em claro são zerados ao fim de cada operação.
 import { randomBytes } from 'node:crypto';
@@ -24,6 +28,7 @@ import { abrirDek, embrulharDek } from '../documentos/cofre';
 import { type ChaveMestra, desembrulhar, embrulhar, type IdChave, mesmaChave } from './chave-mestra';
 import type { DbPlataforma } from './registrar-piloto';
 import * as sp from './schema-plataforma';
+import { cifrarSegredoTotp, decifrarSegredoTotp, type EstadoTotp } from './segredo-totp';
 
 export class ErroRotacao extends Error {}
 
@@ -66,6 +71,99 @@ const descreverVersoes = (linhas: LinhaChave[]) =>
   Object.entries(contarPor(linhas, (l) => l.mestraVersao)).map(([v, n]) => `v${v}: ${n}`).join(', ');
 
 // ------------------------------------------------------------------------------------------------------------------
+// Segredo TOTP (master_usuario)
+// ------------------------------------------------------------------------------------------------------------------
+
+interface LinhaTotp { usuarioId: string; estado: EstadoTotp; cifrado: Uint8Array; mestraVersao: number }
+
+type ExecLeitura = Pick<DbPlataforma, 'select'>;
+
+/** Cada segredo TOTP gravado (ativo e pendente), em ordem estável. `paraAtualizar`: trava as linhas até o COMMIT. */
+async function lerTotps(db: ExecLeitura, paraAtualizar = false): Promise<LinhaTotp[]> {
+  let q = db.select({
+    id: sp.masterUsuario.id, a: sp.masterUsuario.totpCifrado, av: sp.masterUsuario.totpMestraVersao,
+    p: sp.masterUsuario.totpPendenteCifrado, pv: sp.masterUsuario.totpPendenteMestraVersao,
+  }).from(sp.masterUsuario).orderBy(asc(sp.masterUsuario.id)).$dynamic();
+  if (paraAtualizar) q = q.for('update');
+  const linhas: LinhaTotp[] = [];
+  for (const u of await q) {
+    if (u.a && u.av) linhas.push({ usuarioId: u.id, estado: 'ativo', cifrado: u.a, mestraVersao: u.av });
+    if (u.p && u.pv) linhas.push({ usuarioId: u.id, estado: 'pendente', cifrado: u.p, mestraVersao: u.pv });
+  }
+  return linhas;
+}
+
+/**
+ * Re-cifra com a `nova` cada segredo TOTP que está na `atual`; os que já estão na nova são conferidos (abrem com ela).
+ * Qualquer outra versão: recusa (nada foi alterado, a transação desfaz). Ida e volta antes de devolver. Devolve quantos
+ * foram re-cifrados. `db` = a transação da rotação (app_migrator, dono de master_usuario).
+ */
+async function rotacionarTotps(tx: Pick<DbPlataforma, 'select' | 'update'>, atual: ChaveMestra, nova: ChaveMestra): Promise<number> {
+  const linhas = await lerTotps(tx, true);
+  const fora = linhas.filter((l) => l.mestraVersao !== atual.versao && l.mestraVersao !== nova.versao);
+  if (fora.length) {
+    throw new ErroRotacao(`segredo TOTP de usuário da plataforma em versão da mestra inesperada (${fora.map((l) => `v${l.mestraVersao}`).join(', ')}); esperado v${atual.versao} ou v${nova.versao}. Nada foi alterado`);
+  }
+  const claros: Buffer[] = [];
+  try {
+    let n = 0;
+    for (const l of linhas) {
+      if (l.mestraVersao === nova.versao) {
+        try { decifrarSegredoTotp(nova, l.usuarioId, l.estado, l).fill(0); } catch {
+          throw new ErroRotacao(`segredo TOTP (${l.estado}) do usuário ${l.usuarioId} marcado na v${nova.versao} não abre com a mestra nova. Nada foi alterado`);
+        }
+        continue;
+      }
+      let claro: Buffer;
+      try { claro = decifrarSegredoTotp(atual, l.usuarioId, l.estado, l); } catch {
+        throw new ErroRotacao(`segredo TOTP (${l.estado}) do usuário ${l.usuarioId} não abre com a mestra atual. Nada foi alterado (o usuário entra com código de recuperação; a CLI --resetar-2fa zera o fator)`);
+      }
+      claros.push(claro);
+      const c = cifrarSegredoTotp(nova, l.usuarioId, l.estado, claro);
+      const set = l.estado === 'ativo' ? { totpCifrado: c.cifrado, totpMestraVersao: c.mestraVersao } : { totpPendenteCifrado: c.cifrado, totpPendenteMestraVersao: c.mestraVersao };
+      const cond = l.estado === 'ativo' ? eq(sp.masterUsuario.totpMestraVersao, atual.versao) : eq(sp.masterUsuario.totpPendenteMestraVersao, atual.versao);
+      const r = await tx.update(sp.masterUsuario).set(set).where(and(eq(sp.masterUsuario.id, l.usuarioId), cond)).returning({ id: sp.masterUsuario.id });
+      if (r.length !== 1) throw new ErroRotacao(`segredo TOTP do usuário ${l.usuarioId} mudou durante a rotação: nada foi alterado`);
+      n++;
+    }
+    // Ida e volta: relê, abre com a nova e compara com o claro de antes.
+    const relidas = await lerTotps(tx);
+    let i = 0;
+    for (const l of relidas) {
+      if (l.mestraVersao !== nova.versao) throw new ErroRotacao('verificação de ida e volta (TOTP): versão divergente; nada foi alterado');
+      const o = linhas.find((x) => x.usuarioId === l.usuarioId && x.estado === l.estado);
+      if (!o) throw new ErroRotacao('verificação de ida e volta (TOTP): linha nova durante a rotação; nada foi alterado');
+      if (o.mestraVersao !== atual.versao) continue;
+      const volta = decifrarSegredoTotp(nova, l.usuarioId, l.estado, l);
+      try {
+        if (!mesmaChave(volta, claros[i++]!)) throw new ErroRotacao('verificação de ida e volta (TOTP): segredo divergente; nada foi alterado');
+      } finally {
+        volta.fill(0);
+      }
+    }
+    if (relidas.length !== linhas.length) throw new ErroRotacao('verificação de ida e volta (TOTP): contagem divergente; nada foi alterado');
+    return n;
+  } finally {
+    zerar(claros);
+  }
+}
+
+export interface ResumoTotp {
+  /** Segredos TOTP gravados (ativo + pendente). */
+  linhas: number;
+  porMestraVersao: Record<string, number>;
+  naoAbrem: number;
+}
+
+function inspecionarTotps(linhas: LinhaTotp[], mestra: ChaveMestra): ResumoTotp {
+  let naoAbrem = 0;
+  for (const l of linhas) {
+    try { decifrarSegredoTotp(mestra, l.usuarioId, l.estado, l).fill(0); } catch { naoAbrem++; }
+  }
+  return { linhas: linhas.length, porMestraVersao: contarPor(linhas, (l) => l.mestraVersao), naoAbrem };
+}
+
+// ------------------------------------------------------------------------------------------------------------------
 // Inspeção (dry-run)
 // ------------------------------------------------------------------------------------------------------------------
 
@@ -86,9 +184,11 @@ export interface RelatorioInspecao {
   porTipoVersao: Record<string, number>;
   linhasQueNaoAbrem: number;
   condominios: ResumoCondominio[];
+  /** Segredos TOTP dos usuários da plataforma (cifrados pela mestra). */
+  totp: ResumoTotp;
   /** Só se a mestra nova estiver no ambiente: o que a rotação faria. */
-  mestraNova?: { versao: number; situacao: SituacaoMestra; linhasAReembrulhar: number };
-  /** Total de problemas (linha que não abre + anexo sem chave + anexo cuja DEK não abre). 0 = pronto. */
+  mestraNova?: { versao: number; situacao: SituacaoMestra; linhasAReembrulhar: number; totpARecifrar: number };
+  /** Total de problemas (linha que não abre + segredo TOTP que não abre + anexo sem chave + anexo cuja DEK não abre). 0 = pronto. */
   falhas: number;
 }
 
@@ -168,6 +268,8 @@ export async function inspecionar(
     }
     saida.push(resumo);
   }
+  const totps = await lerTotps(plataforma);
+  const totp = inspecionarTotps(totps, mestra);
   const rel: RelatorioInspecao = {
     mestraVersao: mestra.versao,
     linhas: linhas.length,
@@ -175,12 +277,16 @@ export async function inspecionar(
     porTipoVersao: contarPor(linhas, (l) => `${l.tipo}:v${l.versao}${l.ativa ? ':ativa' : ''}`),
     linhasQueNaoAbrem,
     condominios: saida,
-    falhas: linhasQueNaoAbrem + falhasDocs,
+    totp,
+    falhas: linhasQueNaoAbrem + falhasDocs + totp.naoAbrem,
   };
   if (nova) {
     validarMestraNova(mestra, nova);
     const situacao = situacaoMestra(linhas, mestra.versao, nova.versao);
-    rel.mestraNova = { versao: nova.versao, situacao, linhasAReembrulhar: situacao === 'a_rotacionar' ? linhas.length : 0 };
+    rel.mestraNova = {
+      versao: nova.versao, situacao, linhasAReembrulhar: situacao === 'a_rotacionar' ? linhas.length : 0,
+      totpARecifrar: totps.filter((l) => l.mestraVersao === mestra.versao).length,
+    };
   }
   return rel;
 }
@@ -195,6 +301,8 @@ export interface ResultadoMestra {
   mestraVersao: number;
   linhas: number;
   porTipoVersao: Record<string, number>;
+  /** Segredos TOTP (ativo + pendente) re-cifrados nesta execução. */
+  totp: number;
 }
 
 /** Ganchos de teste (falha injetada no meio). Produção não passa nada. */
@@ -221,7 +329,13 @@ export async function rotacionarMestra(db: DbPlataforma, atual: ChaveMestra, nov
     if (situacao === 'ja_rotacionada') {
       // Prova de que a "nova" do ambiente é mesmo a que embrulhou (não basta o número da versão).
       for (const l of linhas) desembrulhar(nova, idDe(l), l).fill(0);
-      return { situacao: 'ja_rotacionada' as const, ...base };
+      // Segredo TOTP gravado DEPOIS da rotação por uma API ainda com a mestra antiga: re-cifra só ele.
+      const totp = await rotacionarTotps(tx, atual, nova);
+      if (!totp) return { situacao: 'ja_rotacionada' as const, ...base, totp };
+      await tx.insert(sp.plataformaAudit).values({
+        acao: 'plataforma.mestraRotacionada', detalhes: { origem: 'cli', de: atual.versao, para: nova.versao, linhas: 0, totp },
+      });
+      return { situacao: 'rotacionada' as const, ...base, totp };
     }
 
     const claros: Buffer[] = [];
@@ -254,11 +368,12 @@ export async function rotacionarMestra(db: DbPlataforma, atual: ChaveMestra, nov
           volta.fill(0);
         }
       }
+      const totp = await rotacionarTotps(tx, atual, nova);
       await tx.insert(sp.plataformaAudit).values({
         acao: 'plataforma.mestraRotacionada',
-        detalhes: { origem: 'cli', de: atual.versao, para: nova.versao, linhas: linhas.length },
+        detalhes: { origem: 'cli', de: atual.versao, para: nova.versao, linhas: linhas.length, totp },
       });
-      return { situacao: 'rotacionada' as const, ...base };
+      return { situacao: 'rotacionada' as const, ...base, totp };
     } finally {
       zerar(claros);
     }

@@ -1059,6 +1059,40 @@
           }
         },
         {
+          "name": "authmaster / loginSegundoFator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/login/segundo-fator",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "login",
+                "segundo-fator"
+              ]
+            },
+            "description": "Plataforma (Master). Pública: não exige sessão.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"exemplo\",\n  \"codigoRecuperacao\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "authmaster / logout",
           "request": {
             "method": "POST",
@@ -1121,6 +1155,108 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Fulano de Tal\",\n  \"email\": \"pessoa.exemplo@exemplo.org\",\n  \"senhaAtual\": \"{{senhaAtual}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "authmaster / regerarCodigos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/segundo-fator/codigos-recuperacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "segundo-fator",
+                "codigos-recuperacao"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"{{senhaAtual}}\",\n  \"codigo\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "authmaster / confirmarSegundoFator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/segundo-fator/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "segundo-fator",
+                "confirmar"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"exemplo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "authmaster / iniciarSegundoFator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/plataforma/auth/segundo-fator/iniciar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "plataforma",
+                "auth",
+                "segundo-fator",
+                "iniciar"
+              ]
+            },
+            "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"{{senhaAtual}}\",\n  \"codigo\": \"exemplo\",\n  \"codigoRecuperacao\": \"exemplo\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

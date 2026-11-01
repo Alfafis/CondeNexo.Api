@@ -1,0 +1,22 @@
+meta {
+  name: authmaster / loginSegundoFator
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/plataforma/auth/login/segundo-fator
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "codigo": "exemplo",
+    "codigoRecuperacao": "exemplo"
+  }
+}
+
+docs {
+  Plataforma (Master). Pública: não exige sessão.
+}

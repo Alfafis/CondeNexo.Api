@@ -4,10 +4,13 @@
 //
 //   docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e-mail> --nome "<nome>" [--papel master|suporte]
 //   docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e-mail> --nova-senha
+//   docker compose --profile plataforma run --rm usuario-plataforma-cli --email <e-mail> --resetar-2fa [--nova-senha]
 //
 // Ambiente: DATABASE_URL_PLATAFORMA (app_plataforma no banco plataforma). Saída: a senha temporária (72 h, troca
-// obrigatória no primeiro login, a nova com 16+ caracteres), UMA vez; nada fica gravado em claro. Sem segundo fator desde
-// 2026-10-23 (SAAS-08): não há segredo TOTP nem --reemitir-totp. Códigos: 0 ok; 1 recusa; 2 uso.
+// obrigatória no primeiro login, a nova com 16+ caracteres), UMA vez; nada fica gravado em claro. `--resetar-2fa` desliga o
+// 2º fator (sub-projeto C2) e encerra as sessões; não precisa da chave mestra e não imprime segredo nenhum (o enrolamento
+// é pela tela "Minha conta"). Perdeu o celular E os códigos, ou suspeita de senha vazada: os dois flags juntos.
+// Códigos: 0 ok; 1 recusa; 2 uso.
 import { hash } from '@node-rs/argon2';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -15,16 +18,17 @@ import { gerarSenhaTemporaria } from '../auth/senha.service';
 import { PADROES_ARGON2 } from '../config/config';
 import { type DbPlataforma, urlPlataforma } from '../plataforma/plataforma-db';
 import * as sp from '../plataforma/schema-plataforma';
-import { type Credenciais, criarUsuario, ErroUsuarioPlataforma, reemitirSenha, validarCadastro } from '../plataforma/usuario-plataforma';
+import { type Credenciais, criarUsuario, ErroUsuarioPlataforma, reemitirSenha, resetarSegundoFator, validarCadastro } from '../plataforma/usuario-plataforma';
 
 const USO = [
   'uso: criar-usuario-plataforma.js --email <e-mail> --nome "<nome>" [--papel master|suporte]',
   '     criar-usuario-plataforma.js --email <e-mail> --nova-senha',
+  '     criar-usuario-plataforma.js --email <e-mail> --resetar-2fa [--nova-senha]',
 ].join('\n');
 
 export class ErroUsoCli extends Error {}
 
-export interface ArgsCli { email?: string; nome?: string; papel?: string; novaSenha: boolean }
+export interface ArgsCli { email?: string; nome?: string; papel?: string; novaSenha: boolean; resetar2fa?: true }
 
 export function lerArgsUsuario(argv: string[]): ArgsCli {
   const a: ArgsCli = { novaSenha: false };
@@ -34,13 +38,25 @@ export function lerArgsUsuario(argv: string[]): ArgsCli {
     if ((k === '--email' || k === '--nome' || k === '--papel') && v !== undefined && !v.startsWith('--')) {
       a[k.slice(2) as 'email' | 'nome' | 'papel'] = v;
       i++;
-    } else if (k === '--nova-senha') a.novaSenha = true;
+    } else if (k === '--nova-senha' && !a.novaSenha) a.novaSenha = true;
+    else if (k === '--resetar-2fa' && !a.resetar2fa) a.resetar2fa = true;
     else throw new ErroUsoCli(USO);
   }
   if (!a.email) throw new ErroUsoCli(USO);
-  if (a.novaSenha && (a.nome || a.papel)) throw new ErroUsoCli(`${USO}\n(--nome e --papel só na criação)`);
-  if (!a.novaSenha && !a.nome) throw new ErroUsoCli(USO);
+  if ((a.novaSenha || a.resetar2fa) && (a.nome || a.papel)) throw new ErroUsoCli(`${USO}\n(--nome e --papel só na criação)`);
+  if (!a.novaSenha && !a.resetar2fa && !a.nome) throw new ErroUsoCli(USO);
   return a;
+}
+
+/** Bloco do terminal do --resetar-2fa: só a confirmação (e a senha temporária, se --nova-senha). Nunca segredo. */
+export function textoReset(c: Credenciais & { segundoFatorEstavaAtivo: boolean }): string {
+  const linhas = ['', '============ VERIFICAÇÃO EM DUAS ETAPAS DESLIGADA ============',
+    `  usuário: ${c.email}`,
+    `  2º fator: ${c.segundoFatorEstavaAtivo ? 'estava ativo; desligado' : 'não estava ativo'} (códigos de recuperação antigos invalidados)`];
+  if (c.senhaTemporaria) linhas.push(`  senha temporária:      ${c.senhaTemporaria}  (mostrada UMA vez; não fica guardada)`, `  válida até:            ${c.senhaExpiraEm} (troca obrigatória no primeiro login)`);
+  linhas.push('  Sessões abertas deste usuário foram encerradas. Ative de novo pela tela "Minha conta".',
+    '==============================================================', '');
+  return linhas.join('\n');
 }
 
 /** Bloco do terminal: a senha temporária, uma vez. */
@@ -71,6 +87,10 @@ async function principal(): Promise<number> {
       hashSenha: (s: string) => hash(s, { memoryCost: PADROES_ARGON2.memoriaKib, timeCost: PADROES_ARGON2.iteracoes, parallelism: PADROES_ARGON2.paralelismo }),
       gerarSenha: () => gerarSenhaTemporaria(),
     };
+    if (args.resetar2fa) {
+      console.log(textoReset(await resetarSegundoFator(db, f, args.email!, { novaSenha: args.novaSenha })));
+      return 0;
+    }
     const c = args.novaSenha ? await reemitirSenha(db, f, args.email!) : await criarUsuario(db, f, validarCadastro(args));
     console.log(textoCredenciais(c, !args.novaSenha));
     return 0;

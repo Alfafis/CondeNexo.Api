@@ -7,7 +7,7 @@ export type PapelPlataforma = (typeof PAPEIS_PLATAFORMA)[number];
 
 /**
  * Tamanho mínimo da senha do usuário da plataforma na troca (a do condomínio é 12, em src/auth/senha.service.ts). Maior de
- * propósito: desde 2026-10-23 o Master entra sem segundo fator (SAAS-08), e é a conta que alcança todos os condomínios.
+ * propósito: é a conta que alcança todos os condomínios, e o 2º fator ainda é opcional (sub-projeto C2, fase A1).
  * A API valida (fonte de verdade); o app do Master usa para avisar antes de enviar.
  */
 export const SENHA_MIN_MASTER = 16;

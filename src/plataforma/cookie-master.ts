@@ -29,9 +29,12 @@ const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 
 /** Só o cookie do Master, só no formato emitido (base64url de 32 bytes). Qualquer outra coisa: null. */
 export function lerCookieMaster(req: Request, config: Config): string | null {
+  return lerCookie(req, nomeCookieMaster(config.cookie.secure));
+}
+
+function lerCookie(req: Request, nome: string): string | null {
   const cabecalho = req.headers.cookie;
   if (!cabecalho) return null;
-  const nome = nomeCookieMaster(config.cookie.secure);
   for (const parte of cabecalho.split(';')) {
     const i = parte.indexOf('=');
     if (i < 0 || parte.slice(0, i).trim() !== nome) continue;
@@ -39,4 +42,26 @@ export function lerCookieMaster(req: Request, config: Config): string | null {
     return TOKEN.test(valor) ? valor : null;
   }
   return null;
+}
+
+// Cookie do DESAFIO do login em duas etapas (spec C2, D1): outro nome, caminho só do login (o navegador não o manda a
+// nenhuma outra rota), 5 min. Nunca autentica rota: a PlataformaGuard só lê o cookie de sessão, e o token do desafio vive
+// em `master_login_pendente`, não em `master_sessao`.
+export const CAMINHO_COOKIE_DESAFIO = '/api/v1/plataforma/auth/login';
+export const nomeCookieDesafio = (secure: boolean) => (secure ? '__Secure-portaria_plataforma_2fa' : 'portaria_plataforma_2fa');
+
+const opcoesDesafio = (config: Config): CookieOptions => ({
+  httpOnly: true, secure: config.cookie.secure, sameSite: 'strict', path: CAMINHO_COOKIE_DESAFIO,
+});
+
+export function gravarCookieDesafio(res: Response, config: Config, token: string, ttlMs: number) {
+  res.cookie(nomeCookieDesafio(config.cookie.secure), token, { ...opcoesDesafio(config), maxAge: ttlMs });
+}
+
+export function limparCookieDesafio(res: Response, config: Config) {
+  res.clearCookie(nomeCookieDesafio(config.cookie.secure), opcoesDesafio(config));
+}
+
+export function lerCookieDesafio(req: Request, config: Config): string | null {
+  return lerCookie(req, nomeCookieDesafio(config.cookie.secure));
 }

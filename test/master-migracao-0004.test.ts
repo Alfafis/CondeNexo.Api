@@ -19,6 +19,7 @@ const ID = '0a0a0000-0000-4000-8000-000000000001';
 const SENHA = 'senha-atual-do-master-em-producao';
 let client: PGlite;
 let ate0003 = '';
+let ate0004 = '';
 
 beforeAll(async () => {
   // Pasta com as migrações até a 0003 (o estado de produção antes deste deploy).
@@ -29,6 +30,13 @@ beforeAll(async () => {
   expect(journal.entries.map((e) => e.tag).at(-1)).toBe('0003_master_auth');
   writeFileSync(join(ate0003, 'meta/_journal.json'), JSON.stringify(journal));
   rmSync(join(ate0003, '0004_master_sem_totp.sql'));
+  // E até a 0004: este arquivo prova a 0004 sozinha (a 0005 traz o 2º fator de volta; master-migracao-0005.test.ts).
+  ate0004 = mkdtempSync(join(tmpdir(), 'plataforma-0004-'));
+  cpSync(PASTA_MIGRACOES_PLATAFORMA, ate0004, { recursive: true });
+  const j4 = JSON.parse(readFileSync(join(ate0004, 'meta/_journal.json'), 'utf8')) as { entries: { tag: string }[] };
+  j4.entries = j4.entries.filter((e) => e.tag.slice(0, 4) <= '0004');
+  expect(j4.entries.map((e) => e.tag).at(-1)).toBe('0004_master_sem_totp');
+  writeFileSync(join(ate0004, 'meta/_journal.json'), JSON.stringify(j4));
 
   client = new PGlite();
   // Como db/bootstrap/10_plataforma.sh: app_migrator é dono do banco (e por isso das tabelas que cria).
@@ -50,6 +58,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await client?.close();
   rmSync(ate0003, { recursive: true, force: true });
+  rmSync(ate0004, { recursive: true, force: true });
 });
 
 describe('0004_master_sem_totp sobre o banco de produção', () => {
@@ -57,7 +66,7 @@ describe('0004_master_sem_totp sobre o banco de produção', () => {
     const antes = (await client.query<Record<string, unknown>>('SELECT id, nome, email, senha_hash, papel, ativo, deve_trocar_senha FROM master_usuario')).rows;
     await client.exec('SET ROLE app_migrator');
     try {
-      await migrate(drizzle(client), { migrationsFolder: PASTA_MIGRACOES_PLATAFORMA });
+      await migrate(drizzle(client), { migrationsFolder: ate0004 });
     } finally {
       await client.exec('RESET ROLE');
     }
@@ -75,7 +84,13 @@ describe('0004_master_sem_totp sobre o banco de produção', () => {
     expect((await client.query('SELECT id, nome, email, senha_hash, papel, ativo, deve_trocar_senha FROM master_usuario')).rows).toEqual(antes);
   });
 
-  it('com o schema novo, app_plataforma lê o Master e a sessão, a senha de antes confere e a sessão aberta continua lá', async () => {
+  it('com o schema novo (e as migrações seguintes), app_plataforma lê o Master e a sessão, a senha de antes confere e a sessão aberta continua lá', async () => {
+    await client.exec('SET ROLE app_migrator');
+    try {
+      await migrate(drizzle(client), { migrationsFolder: PASTA_MIGRACOES_PLATAFORMA });
+    } finally {
+      await client.exec('RESET ROLE');
+    }
     const db = drizzle(client, { schema: sp });
     const [u] = await comoAppPlataforma(client, () => db.select().from(masterUsuario).where(eq(masterUsuario.id, ID)));
     expect(await verify(u!.senhaHash, SENHA)).toBe(true);

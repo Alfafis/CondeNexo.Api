@@ -15,10 +15,16 @@ import { EntradaJson } from '../plataforma/provisionar';
 import { EMAIL_MAX, NOME_MAX, NOME_MIN, normalizarEmail, normalizarNome } from './usuario-plataforma';
 import { AuthMasterService, MENSAGEM_CREDENCIAIS_MASTER, MENSAGEM_TEMPORARIA_EXPIRADA_MASTER } from './auth-master.service';
 import { CondominiosMasterService } from './condominios-master.service';
-import { gravarCookieMaster, limparCookieMaster } from './cookie-master';
+import { gravarCookieDesafio, gravarCookieMaster, lerCookieDesafio, limparCookieDesafio, limparCookieMaster } from './cookie-master';
+import { normalizarCodigoRecuperacao } from './codigos-recuperacao';
+import {
+  type Bloqueado, DESAFIO_TTL_MS, type InicioEnrolamento, MENSAGEM_CODIGO_INVALIDO, MENSAGEM_DESAFIO_EXPIRADO, MENSAGEM_INDISPONIVEL,
+  MENSAGEM_TRAVADO, SegundoFatorService,
+} from './segundo-fator.service';
 import { Master, PlataformaAcao, PlataformaAutenticada, PlataformaPublica } from './decorators';
 import { SESSAO_MASTER_INATIVIDADE_MIN } from './sessao-master.service';
-import type { AuthMaster } from './tipos';
+import type { AuthMaster, SegundoFatorStatus, UsuarioPlataforma } from './tipos';
+import { HttpException } from '@nestjs/common';
 import { permissoesPlataformaDe } from '../auth/permissoes';
 import { SENHA_MIN_MASTER } from '../dominio/rbac-plataforma';
 
@@ -26,6 +32,31 @@ const LoginDto = z.strictObject({
   email: z.string().trim().min(1, 'Informe o e-mail.').max(254),
   senha: z.string().min(1, 'Informe a senha.').max(SENHA_MAX),
 });
+
+/** 6 dígitos (aparado, sem espaços). O valor recebido nunca volta na resposta (ZodPipe). */
+const CodigoTotp = z.string().max(32).transform((v) => v.replace(/\s+/g, '')).pipe(z.string().regex(/^\d{6}$/, 'O código tem 6 dígitos.'));
+/** `XXXX-XXXX-XXXX-XXXX` (16 caracteres base32; hífens, espaços e caixa não importam). */
+const MSG_RECUPERACAO = 'O código de recuperação tem 16 letras e números (XXXX-XXXX-XXXX-XXXX).';
+const CodigoRecuperacao = z.string().max(40).transform((v, ctx) => {
+  const n = normalizarCodigoRecuperacao(v);
+  if (n === null) { ctx.addIssue({ code: 'custom', message: MSG_RECUPERACAO }); return z.NEVER; }
+  return n;
+});
+const umSo = (b: { codigo?: string; codigoRecuperacao?: string }) => (b.codigo === undefined) !== (b.codigoRecuperacao === undefined);
+
+/** Etapa 2 do login: exatamente um de `codigo` (autenticador) e `codigoRecuperacao`. */
+const LoginSegundoFatorDto = z.strictObject({ codigo: CodigoTotp.optional(), codigoRecuperacao: CodigoRecuperacao.optional() })
+  .refine(umSo, { message: 'Informe o código do autenticador ou um código de recuperação (só um dos dois).' });
+
+/** `codigo`/`codigoRecuperacao` só são exigidos (pelo serviço) quando já há fator ativo: troca de dispositivo. */
+const IniciarSegundoFatorDto = z.strictObject({
+  senhaAtual: z.string().min(1, 'Informe a senha atual.').max(SENHA_MAX),
+  codigo: CodigoTotp.optional(),
+  codigoRecuperacao: CodigoRecuperacao.optional(),
+}).refine((b) => b.codigo === undefined || b.codigoRecuperacao === undefined, { message: 'Informe só um dos dois códigos.' });
+
+const ConfirmarSegundoFatorDto = z.strictObject({ codigo: CodigoTotp });
+const RegerarCodigosDto = z.strictObject({ senhaAtual: z.string().min(1, 'Informe a senha atual.').max(SENHA_MAX), codigo: CodigoTotp });
 
 const TrocarSenhaDto = z.strictObject({
   senhaAtual: z.string().min(1).max(SENHA_MAX),
@@ -87,26 +118,92 @@ const sessaoDe = (expiraEm: Date) => ({ expiraEm: expiraEm.toISOString(), inativ
  */
 const permissoesDe = (papel: AuthMaster['usuario']['papel']) => ({ acoes: permissoesPlataformaDe(papel), senhaMin: SENHA_MIN_MASTER });
 
+type SessaoResposta = ReturnType<typeof sessaoDe>;
+type PermissoesResposta = ReturnType<typeof permissoesDe>;
+
+/** Login concluído (com ou sem 2º fator): a sessão foi criada e o cookie de sessão gravado. */
+export interface LoginMasterConcluido {
+  etapa: 'concluido';
+  usuario: UsuarioPlataforma;
+  sessao: SessaoResposta;
+  permissoes: PermissoesResposta;
+  segundoFator: SegundoFatorStatus;
+  /** Só quando a etapa 2 usou um código de recuperação: quantos ainda restam. */
+  codigosRecuperacaoRestantes?: number;
+}
+/** Senha certa e 2º fator ativo: falta o código (POST /plataforma/auth/login/segundo-fator). Nenhum cookie de sessão. */
+export interface LoginMasterSegundoFator { etapa: 'segundo_fator'; expiraEm: Date }
+
+const desafioExpirado = () => erroApi(401, 'DESAFIO_EXPIRADO', MENSAGEM_DESAFIO_EXPIRADO);
+const travado = () => new HttpException({ codigo: 'SEGUNDO_FATOR_TRAVADO', mensagem: MENSAGEM_TRAVADO, semRegistroDeNegacao: true }, 403);
+const ehBloqueado = (r: object): r is Bloqueado => 'ok' in r && (r as { ok: unknown }).ok === false;
+function bloqueado(res: Response, b: Bloqueado): never {
+  res.setHeader('Retry-After', retryAfter(b.ate));
+  throw erroApi(429, 'LOGIN_BLOQUEADO', 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+}
+
 @Controller('plataforma/auth')
 export class AuthMasterController {
   constructor(
     @Inject(AuthMasterService) private readonly auth: AuthMasterService,
+    @Inject(SegundoFatorService) private readonly segundoFator: SegundoFatorService,
     @Inject(CONFIG) private readonly config: Config,
   ) {}
 
+  /**
+   * Etapa 1. Sem 2º fator ativo: entra como sempre (`etapa: 'concluido'`, cookie de sessão). Com 2º fator ativo: 200
+   * `{ etapa: 'segundo_fator', expiraEm }` e só o cookie de DESAFIO (Path do login, 5 min); 20 falhas seguidas do código:
+   * 403 SEGUNDO_FATOR_TRAVADO (só a CLI destrava).
+   */
   @Post('login')
   @PlataformaPublica()
   @HttpCode(200)
-  async login(@Body(new ZodPipe(LoginDto)) body: z.infer<typeof LoginDto>, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async login(@Body(new ZodPipe(LoginDto)) body: z.infer<typeof LoginDto>, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<LoginMasterConcluido | LoginMasterSegundoFator> {
     const r = await this.auth.login(body.email, body.senha, ipDe(req));
     if (!r.ok && r.motivo === 'bloqueado') {
       res.setHeader('Retry-After', retryAfter(r.ate));
       throw erroApi(429, 'LOGIN_BLOQUEADO', 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.');
     }
     if (!r.ok && r.motivo === 'senha_temporaria_expirada') throw erroApi(401, 'SENHA_TEMPORARIA_EXPIRADA', MENSAGEM_TEMPORARIA_EXPIRADA_MASTER);
+    if (!r.ok && r.motivo === 'segundo_fator_travado') throw travado();
     if (!r.ok) throw erroApi(401, 'CREDENCIAIS_INVALIDAS', MENSAGEM_CREDENCIAIS_MASTER);
+    if (r.etapa === 'segundo_fator') {
+      gravarCookieDesafio(res, this.config, r.token, DESAFIO_TTL_MS);
+      return { etapa: 'segundo_fator', expiraEm: r.expiraEm };
+    }
     gravarCookieMaster(res, this.config, r.token, r.expiraEm);
-    return { usuario: r.usuario, sessao: sessaoDe(r.expiraEm), permissoes: permissoesDe(r.usuario.papel) };
+    return {
+      etapa: 'concluido', usuario: r.usuario, sessao: sessaoDe(r.expiraEm), permissoes: permissoesDe(r.usuario.papel),
+      segundoFator: await this.segundoFator.status(r.usuario.id),
+    };
+  }
+
+  /**
+   * Etapa 2: `{ codigo }` (autenticador) ou `{ codigoRecuperacao }`, autenticada só pelo cookie de desafio. Desafio
+   * ausente, vencido, concluído ou com 5 tentativas: 401 DESAFIO_EXPIRADO (volta à senha). Código errado, reutilizado ou
+   * recuperação inválida: 401 CODIGO_INVALIDO (mesma mensagem). Limite do código: 429 com Retry-After. Sucesso: sessão
+   * NOVA (token novo, nunca o do desafio), mesma resposta do login concluído.
+   */
+  @Post('login/segundo-fator')
+  @PlataformaPublica()
+  @HttpCode(200)
+  async loginSegundoFator(@Body(new ZodPipe(LoginSegundoFatorDto)) body: z.infer<typeof LoginSegundoFatorDto>, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<LoginMasterConcluido> {
+    const prova = body.codigo !== undefined ? { codigo: body.codigo } : { codigoRecuperacao: body.codigoRecuperacao! };
+    const r = await this.segundoFator.loginSegundoFator(lerCookieDesafio(req, this.config), prova, ipDe(req));
+    if (!r.ok) {
+      if (r.motivo === 'bloqueado') bloqueado(res, r);
+      if (r.motivo === 'desafio_expirado') { limparCookieDesafio(res, this.config); throw desafioExpirado(); }
+      if (r.motivo === 'travado') { limparCookieDesafio(res, this.config); throw travado(); }
+      if (r.motivo === 'indisponivel') throw erroApi(503, 'SEGUNDO_FATOR_INDISPONIVEL', MENSAGEM_INDISPONIVEL);
+      throw erroApi(401, 'CODIGO_INVALIDO', MENSAGEM_CODIGO_INVALIDO);
+    }
+    limparCookieDesafio(res, this.config);
+    gravarCookieMaster(res, this.config, r.token, r.expiraEm);
+    return {
+      etapa: 'concluido', usuario: r.usuario, sessao: sessaoDe(r.expiraEm), permissoes: permissoesDe(r.usuario.papel),
+      segundoFator: await this.segundoFator.status(r.usuario.id),
+      ...(r.codigosRecuperacaoRestantes !== undefined ? { codigosRecuperacaoRestantes: r.codigosRecuperacaoRestantes } : {}),
+    };
   }
 
   @Post('logout')
@@ -121,7 +218,7 @@ export class AuthMasterController {
   @PlataformaAutenticada({ permiteTrocaPendente: true })
   async me(@Master() m: AuthMaster) {
     const usuario = await this.auth.me(m);
-    return { usuario, sessao: sessaoDe(m.expiraEm), permissoes: permissoesDe(usuario.papel) };
+    return { usuario, sessao: sessaoDe(m.expiraEm), permissoes: permissoesDe(usuario.papel), segundoFator: await this.segundoFator.status(usuario.id) };
   }
 
   /**
@@ -145,7 +242,51 @@ export class AuthMasterController {
   @HttpCode(200)
   async trocarSenha(@Master() m: AuthMaster, @Body(new ZodPipe(TrocarSenhaDto)) body: z.infer<typeof TrocarSenhaDto>) {
     const usuario = await this.auth.trocarSenha(m, body.senhaAtual, body.novaSenha);
-    return { usuario, permissoes: permissoesDe(usuario.papel) };
+    return { usuario, permissoes: permissoesDe(usuario.papel), segundoFator: await this.segundoFator.status(usuario.id) };
+  }
+
+  /**
+   * Começa o enrolamento (ou a troca de dispositivo): senha atual (limite do par login+IP) e, se já há fator ativo, um
+   * código válido (do autenticador ou de recuperação; este NÃO é consumido). Devolve o segredo e o `otpauthUri` UMA vez
+   * (no-store); o fator só vale depois de `confirmar`. Código errado: 422 CODIGO_INVALIDO (a sessão continua válida).
+   */
+  @Post('segundo-fator/iniciar')
+  @PlataformaAutenticada()
+  @HttpCode(200)
+  async iniciarSegundoFator(@Master() m: AuthMaster, @Body(new ZodPipe(IniciarSegundoFatorDto)) body: z.infer<typeof IniciarSegundoFatorDto>, @Res({ passthrough: true }) res: Response): Promise<InicioEnrolamento> {
+    res.setHeader('Cache-Control', 'no-store');
+    const r = await this.segundoFator.iniciar(m, body.senhaAtual, { codigo: body.codigo, codigoRecuperacao: body.codigoRecuperacao });
+    if (ehBloqueado(r)) bloqueado(res, r);
+    return r;
+  }
+
+  /**
+   * Confirma o enrolamento com um código do autenticador novo: ativa o fator, revoga as OUTRAS sessões (a atual
+   * continua) e devolve os 10 códigos de recuperação, a ÚNICA vez em que aparecem (no-store). Errado: 422
+   * CODIGO_INVALIDO; sem enrolamento pendente válido: 409 ENROLAMENTO_EXPIRADO.
+   */
+  @Post('segundo-fator/confirmar')
+  @PlataformaAutenticada()
+  @HttpCode(200)
+  async confirmarSegundoFator(@Master() m: AuthMaster, @Body(new ZodPipe(ConfirmarSegundoFatorDto)) body: z.infer<typeof ConfirmarSegundoFatorDto>, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'no-store');
+    const r = await this.segundoFator.confirmar(m, body.codigo);
+    if (ehBloqueado(r)) bloqueado(res, r);
+    return {
+      codigosRecuperacao: r.codigosRecuperacao, usuario: r.usuario, permissoes: permissoesDe(r.usuario.papel),
+      segundoFator: await this.segundoFator.status(r.usuario.id),
+    };
+  }
+
+  /** Nova geração de códigos de recuperação (a anterior deixa de valer inteira): senha atual e código do autenticador. */
+  @Post('segundo-fator/codigos-recuperacao')
+  @PlataformaAutenticada()
+  @HttpCode(200)
+  async regerarCodigos(@Master() m: AuthMaster, @Body(new ZodPipe(RegerarCodigosDto)) body: z.infer<typeof RegerarCodigosDto>, @Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'no-store');
+    const r = await this.segundoFator.regerarCodigos(m, body.senhaAtual, body.codigo);
+    if (ehBloqueado(r)) bloqueado(res, r);
+    return { codigosRecuperacao: r.codigosRecuperacao };
   }
 }
 

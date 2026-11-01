@@ -7337,60 +7337,86 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "properties": {
-                        "usuario": {
-                          "$ref": "#/components/schemas/UsuarioPlataforma"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/LoginMasterConcluido"
                         },
-                        "sessao": {
-                          "type": "object",
-                          "properties": {
-                            "expiraEm": {
-                              "type": "string"
-                            },
-                            "inatividadeMin": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "expiraEm",
-                            "inatividadeMin"
-                          ],
-                          "additionalProperties": false
-                        },
-                        "permissoes": {
-                          "type": "object",
-                          "properties": {
-                            "acoes": {
-                              "type": "array",
-                              "items": {
-                                "type": "string",
-                                "enum": [
-                                  "condominio.criar",
-                                  "condominio.ler",
-                                  "condominio.listar",
-                                  "condominio.modulos",
-                                  "condominio.sindicos"
-                                ]
-                              }
-                            },
-                            "senhaMin": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "acoes",
-                            "senhaMin"
-                          ],
-                          "additionalProperties": false
+                        {
+                          "$ref": "#/components/schemas/LoginMasterSegundoFator"
                         }
-                      },
-                      "required": [
-                        "usuario",
-                        "sessao",
-                        "permissoes"
-                      ],
-                      "additionalProperties": false
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/auth/login/segundo-fator": {
+      "post": {
+        "tags": [
+          "authmaster"
+        ],
+        "operationId": "authmaster_loginSegundoFator",
+        "summary": "POST /plataforma/auth/login/segundo-fator",
+        "description": "Plataforma (Master). Pública: não exige sessão.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
+                  "codigoRecuperacao": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/LoginMasterConcluido"
                     }
                   },
                   "required": [
@@ -7533,12 +7559,16 @@
                             "senhaMin"
                           ],
                           "additionalProperties": false
+                        },
+                        "segundoFator": {
+                          "$ref": "#/components/schemas/SegundoFatorStatus"
                         }
                       },
                       "required": [
                         "usuario",
                         "sessao",
-                        "permissoes"
+                        "permissoes",
+                        "segundoFator"
                       ],
                       "additionalProperties": false
                     }
@@ -7691,6 +7721,308 @@
         }
       }
     },
+    "/plataforma/auth/segundo-fator/codigos-recuperacao": {
+      "post": {
+        "tags": [
+          "authmaster"
+        ],
+        "operationId": "authmaster_regerarCodigos",
+        "summary": "POST /plataforma/auth/segundo-fator/codigos-recuperacao",
+        "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "senhaAtual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "codigo": {
+                    "type": "string",
+                    "maxLength": 32
+                  }
+                },
+                "required": [
+                  "senhaAtual",
+                  "codigo"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "codigosRecuperacao": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "codigosRecuperacao"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/auth/segundo-fator/confirmar": {
+      "post": {
+        "tags": [
+          "authmaster"
+        ],
+        "operationId": "authmaster_confirmarSegundoFator",
+        "summary": "POST /plataforma/auth/segundo-fator/confirmar",
+        "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "codigo": {
+                    "type": "string",
+                    "maxLength": 32
+                  }
+                },
+                "required": [
+                  "codigo"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "codigosRecuperacao": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "usuario": {
+                          "$ref": "#/components/schemas/UsuarioPlataforma"
+                        },
+                        "permissoes": {
+                          "type": "object",
+                          "properties": {
+                            "acoes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "condominio.criar",
+                                  "condominio.ler",
+                                  "condominio.listar",
+                                  "condominio.modulos",
+                                  "condominio.sindicos"
+                                ]
+                              }
+                            },
+                            "senhaMin": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "acoes",
+                            "senhaMin"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "segundoFator": {
+                          "$ref": "#/components/schemas/SegundoFatorStatus"
+                        }
+                      },
+                      "required": [
+                        "codigosRecuperacao",
+                        "usuario",
+                        "permissoes",
+                        "segundoFator"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
+    "/plataforma/auth/segundo-fator/iniciar": {
+      "post": {
+        "tags": [
+          "authmaster"
+        ],
+        "operationId": "authmaster_iniciarSegundoFator",
+        "summary": "POST /plataforma/auth/segundo-fator/iniciar",
+        "description": "Plataforma (Master): qualquer usuário da plataforma logado.",
+        "security": [
+          {
+            "sessaoPlataforma": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "senhaAtual": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "codigo": {
+                    "type": "string",
+                    "maxLength": 32
+                  },
+                  "codigoRecuperacao": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "senhaAtual"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso: envelope `{data}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/InicioEnrolamento"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Erro400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Erro401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Erro403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Erro404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Erro409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Erro422"
+          },
+          "429": {
+            "$ref": "#/components/responses/Erro429"
+          }
+        }
+      }
+    },
     "/plataforma/auth/trocar-senha": {
       "post": {
         "tags": [
@@ -7770,11 +8102,15 @@
                             "senhaMin"
                           ],
                           "additionalProperties": false
+                        },
+                        "segundoFator": {
+                          "$ref": "#/components/schemas/SegundoFatorStatus"
                         }
                       },
                       "required": [
                         "usuario",
-                        "permissoes"
+                        "permissoes",
+                        "segundoFator"
                       ],
                       "additionalProperties": false
                     }
@@ -15614,7 +15950,7 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "__Secure-portaria_plataforma",
-        "description": "Cookie da sessão do Master (app da plataforma), Path=/api/v1/plataforma, criado por `POST /plataforma/auth/login` (e-mail e senha; sem segundo fator desde 2026-10-23, SAAS-08). Nunca aceito nas rotas de condomínio, e o de condomínio nunca é aceito aqui. No modo local (http) o nome é `portaria_plataforma`."
+        "description": "Cookie da sessão do Master (app da plataforma), Path=/api/v1/plataforma, criado por `POST /plataforma/auth/login` (e-mail e senha) ou, para quem ativou o 2º fator (opcional), por `POST /plataforma/auth/login/segundo-fator` (autenticado pelo cookie de desafio `__Secure-portaria_plataforma_2fa`, Path=/api/v1/plataforma/auth/login, 5 min, que nunca autentica outra rota). Nunca aceito nas rotas de condomínio, e o de condomínio nunca é aceito aqui. No modo local (http) o nome é `portaria_plataforma`."
       },
       "sessao": {
         "type": "apiKey",
@@ -16796,6 +17132,27 @@
         ],
         "additionalProperties": false
       },
+      "InicioEnrolamento": {
+        "type": "object",
+        "properties": {
+          "segredo": {
+            "type": "string"
+          },
+          "otpauthUri": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "segredo",
+          "otpauthUri",
+          "expiraEm"
+        ],
+        "additionalProperties": false
+      },
       "LeiturasMaster": {
         "type": "object",
         "properties": {
@@ -16929,6 +17286,92 @@
           "situacao",
           "unidade",
           "motivo"
+        ],
+        "additionalProperties": false
+      },
+      "LoginMasterConcluido": {
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "const": "concluido"
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/UsuarioPlataforma"
+          },
+          "sessao": {
+            "type": "object",
+            "properties": {
+              "expiraEm": {
+                "type": "string"
+              },
+              "inatividadeMin": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "expiraEm",
+              "inatividadeMin"
+            ],
+            "additionalProperties": false
+          },
+          "permissoes": {
+            "type": "object",
+            "properties": {
+              "acoes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "condominio.criar",
+                    "condominio.ler",
+                    "condominio.listar",
+                    "condominio.modulos",
+                    "condominio.sindicos"
+                  ]
+                }
+              },
+              "senhaMin": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "acoes",
+              "senhaMin"
+            ],
+            "additionalProperties": false
+          },
+          "segundoFator": {
+            "$ref": "#/components/schemas/SegundoFatorStatus"
+          },
+          "codigosRecuperacaoRestantes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "etapa",
+          "usuario",
+          "sessao",
+          "permissoes",
+          "segundoFator"
+        ],
+        "additionalProperties": false
+      },
+      "LoginMasterSegundoFator": {
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string",
+            "const": "segundo_fator"
+          },
+          "expiraEm": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "etapa",
+          "expiraEm"
         ],
         "additionalProperties": false
       },
@@ -18338,6 +18781,34 @@
           "usuarios",
           "vinculos"
         ]
+      },
+      "SegundoFatorStatus": {
+        "type": "object",
+        "properties": {
+          "ativo": {
+            "type": "boolean"
+          },
+          "ativadoEm": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "codigosRestantes": {
+            "type": "number"
+          },
+          "obrigatorio": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ativo",
+          "ativadoEm",
+          "codigosRestantes",
+          "obrigatorio"
+        ],
+        "additionalProperties": false
       },
       "SeloPublico": {
         "type": "object",

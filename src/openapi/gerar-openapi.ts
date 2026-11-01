@@ -9,7 +9,7 @@ import { RouteParamtypes } from '@nestjs/common/enums/route-paramtypes.enum';
 import { ModulesContainer } from '@nestjs/core';
 import { z } from 'zod';
 import { POLITICA, type Politica } from '../auth/decorators';
-import { CAMINHO_COOKIE_MASTER, nomeCookieMaster } from '../plataforma/cookie-master';
+import { CAMINHO_COOKIE_DESAFIO, CAMINHO_COOKIE_MASTER, nomeCookieDesafio, nomeCookieMaster } from '../plataforma/cookie-master';
 import { MOTIVO_LEITURA, POLITICA_MASTER, type PoliticaMaster } from '../plataforma/decorators';
 import { ZodPipe } from '../comum/zod.pipe';
 import { PREFIXO_GLOBAL } from '../configurar-app';
@@ -295,7 +295,7 @@ export function gerarOpenApiComRelatorio(app: INestApplication, opcoes: OpcoesOp
       securitySchemes: {
         sessaoPlataforma: {
           type: 'apiKey', in: 'cookie', name: nomeCookieMaster(true),
-          description: `Cookie da sessão do Master (app da plataforma), Path=${CAMINHO_COOKIE_MASTER}, criado por \`POST /plataforma/auth/login\` (e-mail e senha; sem segundo fator desde 2026-10-23, SAAS-08). Nunca aceito nas rotas de condomínio, e o de condomínio nunca é aceito aqui. No modo local (http) o nome é \`${nomeCookieMaster(false)}\`.`,
+          description: `Cookie da sessão do Master (app da plataforma), Path=${CAMINHO_COOKIE_MASTER}, criado por \`POST /plataforma/auth/login\` (e-mail e senha) ou, para quem ativou o 2º fator (opcional), por \`POST /plataforma/auth/login/segundo-fator\` (autenticado pelo cookie de desafio \`${nomeCookieDesafio(true)}\`, Path=${CAMINHO_COOKIE_DESAFIO}, 5 min, que nunca autentica outra rota). Nunca aceito nas rotas de condomínio, e o de condomínio nunca é aceito aqui. No modo local (http) o nome é \`${nomeCookieMaster(false)}\`.`,
         },
         sessao: {
           type: 'apiKey', in: 'cookie', name: COOKIE_PRODUCAO,

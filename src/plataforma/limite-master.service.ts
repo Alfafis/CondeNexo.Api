@@ -2,7 +2,9 @@
 // MESMO algoritmo do condomínio (auth/limite-login.service.ts, migração 0008), na tabela `plataforma_login_limite`:
 //   - master_ip (par login+IP): config.login.maxFalhasLogin falhas na janela bloqueiam ESSE par;
 //   - ip: config.login.maxFalhasIp falhas bloqueiam o IP;
-//   - master (login sozinho): nunca bloqueia, só gradua o atraso (senão quem souber o e-mail do Master o tranca fora).
+//   - master (login sozinho): nunca bloqueia, só gradua o atraso (senão quem souber o e-mail do Master o tranca fora);
+//   - master_codigo (0005, por usuário, qualquer IP): o passo do 2º fator; MAX_FALHAS_CODIGO falhas na janela bloqueiam
+//     o passo do código. Só chega a ele quem acertou a senha (spec C2, D9, camada 2).
 // Reserva ANTES de verificar senha e código, num UPSERT atômico (requisições paralelas não ganham palpites extras).
 // Chaves: HMAC com subchave HKDF da chave mestra (o e-mail e o IP não vão em claro para a tabela).
 // Não reaproveita o LimiteLoginService do condomínio de propósito: aquele é durável por condomínio, usa a chave HMAC do
@@ -17,7 +19,10 @@ import type { ChaveMestra } from '../plataforma/chave-mestra';
 import { CHAVE_MESTRA, type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
 import { plataformaLoginLimite } from '../plataforma/schema-plataforma';
 
-export type TipoLimiteMaster = 'master' | 'master_ip' | 'ip';
+export type TipoLimiteMaster = 'master' | 'master_ip' | 'ip' | 'master_codigo';
+
+/** Camada 2 do limite do código (spec C2, D9): 5 falhas na janela (15 min) bloqueiam o passo do código por 15 min. */
+export const MAX_FALHAS_CODIGO = 5;
 
 export interface ChaveLimiteMaster { tipo: TipoLimiteMaster; chave: string }
 export interface ReservaMaster { chave: ChaveLimiteMaster; falhas: number; bloqueadoAte: Date | null }
@@ -42,6 +47,11 @@ export class LimiteMasterService {
     return { tipo, chave: this.hmac(`${tipo}:${tipo === 'master' ? normalizarLogin(valor) : valor}`) };
   }
 
+  /** Limite do código do 2º fator: pelo id do usuário (não pelo e-mail, que ele pode trocar). */
+  chaveCodigo(usuarioId: string): ChaveLimiteMaster {
+    return { tipo: 'master_codigo', chave: this.hmac(`master_codigo:${usuarioId}`) };
+  }
+
   /** Metade do HMAC do login + metade do HMAC do par: zerar todos os pares de um login sem saber os IPs. */
   chavePar(login: string, ip: string | null): ChaveLimiteMaster {
     const prefixo = this.chave('master', login).chave.slice(0, 32);
@@ -49,7 +59,8 @@ export class LimiteMasterService {
   }
 
   maximo(tipo: TipoLimiteMaster) {
-    return tipo === 'master_ip' ? this.config.login.maxFalhasLogin : tipo === 'ip' ? this.config.login.maxFalhasIp : Infinity;
+    return tipo === 'master_ip' ? this.config.login.maxFalhasLogin : tipo === 'ip' ? this.config.login.maxFalhasIp
+      : tipo === 'master_codigo' ? MAX_FALHAS_CODIGO : Infinity;
   }
 
   async reservar(c: ChaveLimiteMaster, agora: Date): Promise<ReservaMaster> {
@@ -100,6 +111,12 @@ export class LimiteMasterService {
       await this.db.update(plataformaLoginLimite).set({ falhas: sql`greatest(${plataformaLoginLimite.falhas} - 1, 0)`, atualizadoEm: agora })
         .where(and(eq(plataformaLoginLimite.tipo, ip.tipo), eq(plataformaLoginLimite.chave, ip.chave)));
     }
+  }
+
+  /** Zera uma chave (sucesso do código do 2º fator). */
+  async zerar(c: ChaveLimiteMaster, agora: Date) {
+    await this.db.update(plataformaLoginLimite).set({ falhas: 0, janelaInicio: agora, bloqueadoAte: null, atualizadoEm: agora })
+      .where(and(eq(plataformaLoginLimite.tipo, c.tipo), eq(plataformaLoginLimite.chave, c.chave)));
   }
 
   bloqueioMs() { return this.config.login.bloqueioMin * 60_000; }

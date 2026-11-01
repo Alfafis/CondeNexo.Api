@@ -1,8 +1,8 @@
-// Login do Master: e-mail + senha, sem segundo fator desde 2026-10-23 (decisão do usuário; docs/05_arquitetura_saas.md
-// SAAS-08 e §5.3; o TOTP da entrega 1 saiu na migração 0004). Qualquer falha (e-mail inexistente, usuário inativo,
+// Login do Master: e-mail + senha e, para quem ATIVOU o 2º fator (sub-projeto C2, fase A1, opcional), uma segunda etapa
+// com o código (segundo-fator.service.ts). Quem não ativou entra exatamente como antes (só a senha). Qualquer falha (e-mail inexistente, usuário inativo,
 // senha errada) dá a MESMA resposta, no mesmo custo de argon2 (inexistente gasta o hash fictício), sob o mesmo limite de
 // tentativas (login, par login+IP e IP). A senha temporária vencida só é revelada a quem acerta a senha (como no
-// condomínio). Compensações pela falta do 2º fator: senha mínima de 16 na troca (SENHA_MIN_MASTER), limite de
+// condomínio). Compensações enquanto o 2º fator é opcional: senha mínima de 16 na troca (SENHA_MIN_MASTER), limite de
 // tentativas, sessão curta (15 min / 8 h) e o IP em toda linha de login, falha e bloqueio da trilha da plataforma.
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { senhaTemporariaVencida } from '../dominio/rules';
@@ -16,6 +16,7 @@ import { problemasDaSenha, SenhaService } from '../auth/senha.service';
 import { type DbPlataforma, PLATAFORMA_DB } from '../plataforma/plataforma-db';
 import { masterUsuario } from '../plataforma/schema-plataforma';
 import { LimiteMasterService, type ReservaMaster } from './limite-master.service';
+import { SEGUNDO_FATOR_MAX_FALHAS, SegundoFatorService } from './segundo-fator.service';
 import { SessaoMasterService } from './sessao-master.service';
 import type { AuthMaster, UsuarioPlataforma } from './tipos';
 import { registrarPlataforma } from './trilha-plataforma';
@@ -28,8 +29,10 @@ export interface PerfilMaster { nome?: string; email?: string; senhaAtual?: stri
 export type ResultadoPerfilMaster = { ok: true; usuario: UsuarioPlataforma } | { ok: false; motivo: 'bloqueado'; ate: Date };
 
 export type ResultadoLoginMaster =
-  | { ok: true; token: string; expiraEm: Date; usuario: UsuarioPlataforma }
-  | { ok: false; motivo: 'credenciais' | 'senha_temporaria_expirada' }
+  | { ok: true; etapa: 'concluido'; token: string; expiraEm: Date; usuario: UsuarioPlataforma }
+  /** Senha certa e 2º fator ativo: só o desafio (cookie próprio), nenhuma sessão. */
+  | { ok: true; etapa: 'segundo_fator'; token: string; expiraEm: Date }
+  | { ok: false; motivo: 'credenciais' | 'senha_temporaria_expirada' | 'segundo_fator_travado' }
   | { ok: false; motivo: 'bloqueado'; ate: Date };
 
 const colunas = {
@@ -48,6 +51,7 @@ export class AuthMasterService {
     @Inject(SessaoMasterService) private readonly sessoes: SessaoMasterService,
     @Inject(LimiteMasterService) private readonly limite: LimiteMasterService,
     @Inject(EsperaLogin) private readonly espera: EsperaLogin,
+    @Inject(SegundoFatorService) private readonly segundoFator: SegundoFatorService,
   ) {}
 
   private fimDoBloqueio(rs: (ReservaMaster | null)[], agora: Date): Date {
@@ -66,6 +70,7 @@ export class AuthMasterService {
 
     const [u] = await this.db.select({
       ...colunas, ativo: masterUsuario.ativo, senhaHash: masterUsuario.senhaHash, senhaTemporariaExpiraEm: masterUsuario.senhaTemporariaExpiraEm,
+      totpAtivadoEm: masterUsuario.totpAtivadoEm, segundoFatorFalhas: masterUsuario.segundoFatorFalhas,
     }).from(masterUsuario).where(sql`lower(${masterUsuario.email}) = ${normalizarLogin(email)}`).limit(1);
     // O e-mail digitado NÃO vai para a trilha (append-only): login existente = o id do ator; inexistente = só o motivo.
     const falha = (motivo: string) => registrarPlataforma(this.db, {
@@ -90,6 +95,16 @@ export class AuthMasterService {
     }
 
     const usuario = u!;
+    if (usuario.totpAtivadoEm) {
+      // A senha conferiu: zera os contadores de senha como no login sem fator. O código tem limite próprio (etapa 2).
+      await this.limite.sucesso(chLogin, chPar, chIp, agora);
+      if (usuario.segundoFatorFalhas >= SEGUNDO_FATOR_MAX_FALHAS) {
+        await falha('segundo_fator_travado');
+        return { ok: false, motivo: 'segundo_fator_travado' };
+      }
+      const d = await this.segundoFator.criarDesafio(usuario.id, agora, ip);
+      return { ok: true, etapa: 'segundo_fator', token: d.token, expiraEm: d.expiraEm };
+    }
     const criada = await this.db.transaction(async (tx) => {
       await tx.update(masterUsuario).set({ ultimoAcesso: agora }).where(eq(masterUsuario.id, usuario.id));
       const s = await this.sessoes.criar(tx, usuario.id, agora, ip);
@@ -97,7 +112,7 @@ export class AuthMasterService {
       return s;
     });
     await this.limite.sucesso(chLogin, chPar, chIp, agora);
-    return { ok: true, token: criada.token, expiraEm: criada.expiraEm, usuario: publico(usuario) };
+    return { ok: true, etapa: 'concluido', token: criada.token, expiraEm: criada.expiraEm, usuario: publico(usuario) };
   }
 
   private async recusar(motivo: string, falha: (m: string) => Promise<void>, usuarioId: string | null, ip: string | null,

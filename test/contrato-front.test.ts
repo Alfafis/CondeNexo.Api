@@ -209,4 +209,16 @@ describe('plataforma: permissões, parâmetros e análise da lista de unidades',
     // O cookie do condomínio não vale aqui (e vice-versa): análise sem sessão da plataforma é 401.
     expect((await api.http().post(`${P}/unidades/analise`).set('Cookie', cookies.sindico).send(corpo)).status).toBe(401);
   });
+
+  it('2º fator (C2, fase A1): login traz `etapa` e `segundoFator`; me também; as rotas novas estão no contrato', async () => {
+    const m = await entrarMaster('contrato.fator@exemplo.test', 'master');
+    expect(m.corpo.etapa).toBe('concluido');
+    expect(m.corpo.segundoFator).toEqual({ ativo: false, ativadoEm: null, codigosRestantes: 0, obrigatorio: false });
+    expect((await api.http().get(`${P}/auth/me`).set('Cookie', m.cookie)).body.data.segundoFator).toEqual(m.corpo.segundoFator);
+    const { readFileSync } = await import('node:fs');
+    const doc = JSON.parse(readFileSync(new URL('../docs/api/openapi.json', import.meta.url), 'utf8')) as { paths: Record<string, { post?: unknown }> };
+    for (const r of ['/plataforma/auth/login/segundo-fator', '/plataforma/auth/segundo-fator/iniciar', '/plataforma/auth/segundo-fator/confirmar', '/plataforma/auth/segundo-fator/codigos-recuperacao']) {
+      expect(doc.paths[r]?.post, r).toBeDefined();
+    }
+  });
 });

@@ -152,15 +152,15 @@ export async function executar(c: Comando, amb: Pick<Ambiente, 'mestra' | 'nova'
     case 'dry-run': {
       const r = await inspecionar(exigir(p.plataforma, 'plataforma'), amb.mestra, p.bancoDe ?? null, amb.nova);
       const docs = r.condominios.reduce((n, x) => n + (x.documentos?.total ?? 0), 0);
-      if (r.falhas) return { codigo: 1, resultado: r, mensagem: `PROBLEMA: ${r.falhas} falha(s) (linhas que não abrem com a mestra v${r.mestraVersao}: ${r.linhasQueNaoAbrem}). Nada foi alterado.` };
-      return { codigo: 0, resultado: r, mensagem: `OK (dry-run): ${r.linhas} linha(s) de condominio_chave abrem com a mestra v${r.mestraVersao}; ${docs} anexo(s) conferido(s). Nada foi alterado.` };
+      if (r.falhas) return { codigo: 1, resultado: r, mensagem: `PROBLEMA: ${r.falhas} falha(s) (linhas que não abrem com a mestra v${r.mestraVersao}: ${r.linhasQueNaoAbrem}; segredos TOTP que não abrem: ${r.totp.naoAbrem}). Nada foi alterado.` };
+      return { codigo: 0, resultado: r, mensagem: `OK (dry-run): ${r.linhas} linha(s) de condominio_chave e ${r.totp.linhas} segredo(s) TOTP abrem com a mestra v${r.mestraVersao}; ${docs} anexo(s) conferido(s). Nada foi alterado.` };
     }
     case 'mestra': {
       const r = await rotacionarMestra(exigir(p.migratorPlataforma, 'plataforma (app_migrator)'), amb.mestra, amb.nova!);
       return {
         codigo: 0, resultado: r,
         mensagem: r.situacao === 'rotacionada'
-          ? `OK: ${r.linhas} linha(s) re-embrulhada(s) com a mestra v${r.mestraVersao} (ida e volta conferida). Agora atualize o .env e reinicie (docs/deploy-rotacao-chaves.md).`
+          ? `OK: ${r.linhas} linha(s) re-embrulhada(s) e ${r.totp} segredo(s) TOTP re-cifrado(s) com a mestra v${r.mestraVersao} (ida e volta conferida). Agora atualize o .env e reinicie (docs/deploy-rotacao-chaves.md).`
           : `OK: as ${r.linhas} linha(s) já estavam na mestra v${r.mestraVersao} e abrem com ela; nada mudou.`,
       };
     }

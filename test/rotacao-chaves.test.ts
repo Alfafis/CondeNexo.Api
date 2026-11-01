@@ -20,6 +20,8 @@ import { type ChaveMestra, desembrulhar, embrulhar } from '../src/plataforma/cha
 import type { DbPlataforma } from '../src/plataforma/registrar-piloto';
 import { ErroRotacao, inspecionar, migrarDocumentos, prepararKek, rotacionarMestra } from '../src/plataforma/rotacao-chaves';
 import * as sp from '../src/plataforma/schema-plataforma';
+import { cifrarSegredoTotp, decifrarSegredoTotp } from '../src/plataforma/segredo-totp';
+import { codigoTotp, gerarSegredoTotp, passoDe, verificarTotp } from '../src/plataforma/totp';
 import type { CondominioResolvido } from '../src/tenancy/condominio';
 import { ResolvedorCondominio } from '../src/tenancy/resolvedor';
 import { configDeTeste } from './helpers/app';
@@ -410,6 +412,89 @@ describe('rotação da KEK (os dois condomínios, cada um no seu banco)', () => 
     const [d] = await c.aguas.db.select().from(s.documento);
     await expect((await velha.cofre(c.aguas.id)).ler(d!)).rejects.toMatchObject({ status: 500 });
     await lerTodos(await subirApi(c, MESTRA_V1), c, 'aguas', conteudo);
+  });
+});
+
+// =================================================================================================================
+describe('segredo TOTP dos usuários da plataforma (sub-projeto C2)', () => {
+  let c: Cenario;
+  const ID = '0a0a0000-0000-4000-8000-00000000c2c2';
+  const ID2 = '0a0a0000-0000-4000-8000-00000000c2c3';
+  const ATIVO = gerarSegredoTotp();
+  const PENDENTE = gerarSegredoTotp();
+  SEGREDOS.push(ATIVO, PENDENTE);
+
+  /** Master com fator ativo e enrolamento pendente, os dois cifrados pela mestra `m` (como a API grava). */
+  async function comFator(id: string, email: string, m: ChaveMestra, pendente = true) {
+    const a = cifrarSegredoTotp(m, id, 'ativo', ATIVO);
+    const p = cifrarSegredoTotp(m, id, 'pendente', PENDENTE);
+    await c.dbPlat.insert(sp.masterUsuario).values({
+      id, nome: 'Master', email, senhaHash: '$argon2id$x', papel: 'master', deveTrocarSenha: false,
+      totpCifrado: a.cifrado, totpMestraVersao: a.mestraVersao, totpAtivadoEm: new Date(), totpUltimoPasso: 1,
+      ...(pendente ? { totpPendenteCifrado: p.cifrado, totpPendenteMestraVersao: p.mestraVersao, totpPendenteExpiraEm: new Date(Date.now() + 600_000) } : {}),
+    });
+  }
+  const linhaDe = async (id: string) => (await c.dbPlat.select().from(sp.masterUsuario).where(eq(sp.masterUsuario.id, id)))[0]!;
+
+  beforeEach(async () => { c = await cenario(); });
+
+  it('dry-run conta os segredos (ativo + pendente) e diz quantos a rotação re-cifraria; segredo que não abre é falha (código 1)', async () => {
+    await comFator(ID, 'c2@exemplo.test', copia(MESTRA_V1));
+    const s0 = anotar(await executar({ modo: 'dry-run' }, { mestra: copia(MESTRA_V1), nova: copia(MESTRA_V2) }, { plataforma: c.dbPlat, bancoDe: c.bancoDe }));
+    expect(s0.codigo).toBe(0);
+    expect(s0.resultado).toMatchObject({ totp: { linhas: 2, porMestraVersao: { 1: 2 }, naoAbrem: 0 }, mestraNova: { totpARecifrar: 2 }, falhas: 0 });
+    expect(s0.mensagem).toMatch(/2 segredo\(s\) TOTP/);
+    const s1 = anotar(await executar({ modo: 'dry-run' }, { mestra: { chave: randomBytes(32), versao: 1 }, nova: null }, { plataforma: c.dbPlat }));
+    expect(s1.codigo).toBe(1);
+    expect(s1.resultado).toMatchObject({ totp: { naoAbrem: 2 } });
+  });
+
+  it('a rotação da mestra re-cifra o TOTP na mesma transação (ida e volta); o código do autenticador continua o mesmo; reentrante', async () => {
+    await comFator(ID, 'c2@exemplo.test', copia(MESTRA_V1));
+    const antes = await linhaDe(ID);
+    const r = anotar(await rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2)));
+    expect(r).toMatchObject({ situacao: 'rotacionada', linhas: 4, totp: 2 });
+    const u = await linhaDe(ID);
+    expect([u.totpMestraVersao, u.totpPendenteMestraVersao]).toEqual([2, 2]);
+    expect(Buffer.from(u.totpCifrado!).equals(Buffer.from(antes.totpCifrado!))).toBe(false);
+    const ativo = decifrarSegredoTotp(MESTRA_V2, ID, 'ativo', { cifrado: u.totpCifrado!, mestraVersao: u.totpMestraVersao! });
+    expect(ativo.equals(ATIVO)).toBe(true);
+    expect(decifrarSegredoTotp(MESTRA_V2, ID, 'pendente', { cifrado: u.totpPendenteCifrado!, mestraVersao: u.totpPendenteMestraVersao! }).equals(PENDENTE)).toBe(true);
+    // Login com código depois da rotação: o segredo que a API (já com a v2) abre gera o mesmo código do autenticador.
+    const passo = passoDe(new Date());
+    expect(verificarTotp(ativo, codigoTotp(ATIVO, passo), passo)).toEqual({ passo, desvio: 0 });
+    expect(() => decifrarSegredoTotp(MESTRA_V1, ID, 'ativo', { cifrado: u.totpCifrado!, mestraVersao: 1 })).toThrow();
+    expect((await c.dbPlat.select().from(sp.plataformaAudit)).find((a) => a.acao === 'plataforma.mestraRotacionada')!.detalhes).toMatchObject({ totp: 2 });
+    // De novo: nada a fazer.
+    const foto = JSON.stringify(await linhaDe(ID));
+    expect(await rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2))).toMatchObject({ situacao: 'ja_rotacionada', totp: 0 });
+    expect(JSON.stringify(await linhaDe(ID))).toBe(foto);
+  });
+
+  it('segredo gravado com a mestra antiga DEPOIS da rotação (API não reiniciada): rodar de novo re-cifra só ele', async () => {
+    await rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2));
+    await comFator(ID2, 'tarde@exemplo.test', copia(MESTRA_V1), false);
+    const r = await rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2));
+    expect(r).toMatchObject({ situacao: 'rotacionada', totp: 1 });
+    expect((await linhaDe(ID2)).totpMestraVersao).toBe(2);
+  });
+
+  it('TOTP que não abre com a mestra atual, ou em versão inesperada: recusa sem escrever nada (nem as chaves de condomínio)', async () => {
+    const outra = { chave: randomBytes(32), versao: 1 };
+    await comFator(ID, 'c2@exemplo.test', outra);
+    const antes = [await fotoPlataforma(c), JSON.stringify(await linhaDe(ID))];
+    expect((await falha(rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2)))).message).toMatch(/não abre com a mestra atual/);
+    expect([await fotoPlataforma(c), JSON.stringify(await linhaDe(ID))]).toEqual(antes);
+    await c.dbPlat.update(sp.masterUsuario).set({ totpMestraVersao: 9, totpPendenteMestraVersao: 9 }).where(eq(sp.masterUsuario.id, ID));
+    expect((await falha(rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2)))).message).toMatch(/versão da mestra inesperada \(v9, v9\)/);
+    expect(await fotoPlataforma(c)).toBe(antes[0]);
+  });
+
+  it('falha injetada no meio da rotação: o TOTP também volta (mesma transação)', async () => {
+    await comFator(ID, 'c2@exemplo.test', copia(MESTRA_V1));
+    const antes = JSON.stringify(await linhaDe(ID));
+    await falha(rotacionarMestra(c.dbPlat, copia(MESTRA_V1), copia(MESTRA_V2), { aposReembrulhar: (i) => { if (i === 3) throw new Error('queda simulada'); } }));
+    expect(JSON.stringify(await linhaDe(ID))).toBe(antes);
   });
 });
 

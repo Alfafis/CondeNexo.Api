@@ -1,6 +1,6 @@
 // Sessão do Master (SAAS-08): token opaco de 256 bits no cookie da plataforma; no banco `plataforma` só o SHA-256.
 // Expira por inatividade (2 h) e por tempo absoluto (12 h), mais curtas que as do condomínio (4 h / 14 h; decisão do
-// usuário de 2026-10-29): é a conta que alcança todos os condomínios, e não tem 2FA. Revogada no logout, na troca de senha (as outras) e quando a CLI reemite a
+// usuário de 2026-10-29): é a conta que alcança todos os condomínios (o 2º fator é opcional na fase A1 do C2). Revogada no logout, na troca de senha (as outras) e quando a CLI reemite a
 // credencial. Usuário desativado ou com senha temporária vencida: a sessão deixa de valer na hora.
 import { Inject, Injectable } from '@nestjs/common';
 import { senhaTemporariaVencida } from '../dominio/rules';
@@ -18,7 +18,8 @@ export const SESSAO_MASTER_ABSOLUTA_MIN = 12 * 60;
 /** Intervalo mínimo entre gravações de `ultimo_uso_em` (uma escrita por minuto, não uma por requisição). */
 const TOQUE_MS = 60_000;
 
-export type MotivoRevogacaoMaster = 'logout' | 'troca_senha' | 'credencial_reemitida' | 'desativacao';
+/** `segundo_fator` (0005): ativar o 2º fator revoga as OUTRAS sessões, abertas só com senha. */
+export type MotivoRevogacaoMaster = 'logout' | 'troca_senha' | 'credencial_reemitida' | 'desativacao' | 'segundo_fator';
 
 export const hashTokenMaster = (token: string) => createHash('sha256').update(token, 'utf8').digest('hex');
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;

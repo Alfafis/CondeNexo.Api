@@ -4,9 +4,10 @@ import type { AddressInfo } from 'node:net';
 import { hash } from '@node-rs/argon2';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { lerArgsUsuario, textoCredenciais } from '../src/cli/criar-usuario-plataforma';
+import { lerArgsUsuario, textoCredenciais, textoReset } from '../src/cli/criar-usuario-plataforma';
 import { autorizado, criarServidor, tokenDoAmbiente } from '../src/cli/servidor-provisionador';
-import { criarUsuario, ErroUsuarioPlataforma, normalizarEmail, normalizarNome, reemitirSenha, validarCadastro } from '../src/plataforma/usuario-plataforma';
+import { criarUsuario, ErroUsuarioPlataforma, normalizarEmail, normalizarNome, reemitirSenha, resetarSegundoFator, validarCadastro } from '../src/plataforma/usuario-plataforma';
+import { masterCodigoRecuperacao } from '../src/plataforma/schema-plataforma';
 import { ErroProvisionamento, type ResultadoProvisionamento } from '../src/plataforma/provisionar';
 import { masterSessao, masterUsuario, plataformaAudit } from '../src/plataforma/schema-plataforma';
 import { ProvisionadorHttp, TEMPO_SAUDE_MS } from '../src/plataforma/provisionador';
@@ -91,14 +92,90 @@ describe('criar e reemitir', () => {
     await expect(reemitirSenha(p.db, f, 'ninguem@exemplo.test')).rejects.toThrow(/não encontrado/);
   });
 
-  it('o banco recusa e-mail fora do formato; as colunas de TOTP e a tabela de recuperação não existem mais (0004)', async () => {
+  it('o banco recusa e-mail fora do formato; as colunas de TOTP e a tabela de recuperação voltaram na 0005 (segundo fator opcional)', async () => {
     const base = { nome: 'X X X', senhaHash: '$argon2id$x', papel: 'master' };
     await expect(p.db.insert(masterUsuario).values({ ...base, email: 'sem-arroba' })).rejects.toThrow();
-    const r = await p.client.query<{ n: number }>(`SELECT count(*)::int AS n FROM information_schema.columns
-      WHERE table_name IN ('master_usuario', 'master_sessao') AND column_name LIKE 'totp%'`);
-    expect(r.rows[0]!.n).toBe(0);
+    // Só em master_usuario (a 0004 tirou totp_confirmado_em de master_sessao e ele não volta).
+    const r = await p.client.query<{ c: string }>(`SELECT table_name || '.' || column_name AS c FROM information_schema.columns
+      WHERE table_name IN ('master_usuario', 'master_sessao') AND column_name LIKE 'totp%' ORDER BY 1`);
+    expect(r.rows.map((x) => x.c)).toEqual(['master_usuario.totp_ativado_em', 'master_usuario.totp_cifrado', 'master_usuario.totp_mestra_versao',
+      'master_usuario.totp_pendente_cifrado', 'master_usuario.totp_pendente_expira_em', 'master_usuario.totp_pendente_mestra_versao', 'master_usuario.totp_ultimo_passo']);
     const t = await p.client.query<{ n: number }>(`SELECT count(*)::int AS n FROM information_schema.tables WHERE table_name = 'master_codigo_recuperacao'`);
-    expect(t.rows[0]!.n).toBe(0);
+    expect(t.rows[0]!.n).toBe(1);
+  });
+});
+
+describe('--resetar-2fa (sub-projeto C2)', () => {
+  const CIFRADO = new Uint8Array(48).fill(7);
+  let id = '';
+
+  /** Usuário com fator ativo, enrolamento pendente, falhas, códigos da geração 1 e duas sessões abertas. */
+  async function comFator(email: string) {
+    const c = await comoAppPlataforma(p.client, () => criarUsuario(p.db, f, validarCadastro({ email, nome: 'Com Fator' })));
+    await p.db.update(masterUsuario).set({
+      deveTrocarSenha: false, senhaTemporariaExpiraEm: null, totpCifrado: CIFRADO, totpMestraVersao: 1, totpAtivadoEm: new Date(), totpUltimoPasso: 99,
+      totpPendenteCifrado: CIFRADO, totpPendenteMestraVersao: 1, totpPendenteExpiraEm: new Date(Date.now() + 60_000), segundoFatorFalhas: 20, recuperacaoGeracao: 1,
+    }).where(eq(masterUsuario.id, c.id));
+    await p.db.insert(masterCodigoRecuperacao).values({ masterUsuarioId: c.id, geracao: 1, codigoHash: '9'.repeat(64) });
+    for (const t of ['5', '6']) await p.db.insert(masterSessao).values({ tokenHash: t.repeat(63) + c.id.slice(-1).replace(/[^0-9a-f]/, '0'), masterUsuarioId: c.id, expiraEm: new Date(Date.now() + 3600_000) });
+    return c.id;
+  }
+
+  it('argumentos: --resetar-2fa com ou sem --nova-senha; não aceita --nome/--papel nem repetição', () => {
+    expect(lerArgsUsuario(['--email', 'a@b.c', '--resetar-2fa'])).toEqual({ email: 'a@b.c', novaSenha: false, resetar2fa: true });
+    expect(lerArgsUsuario(['--resetar-2fa', '--email', 'a@b.c', '--nova-senha'])).toEqual({ email: 'a@b.c', novaSenha: true, resetar2fa: true });
+    expect(() => lerArgsUsuario(['--resetar-2fa'])).toThrow(/uso/);
+    expect(() => lerArgsUsuario(['--email', 'a@b.c', '--resetar-2fa', '--nome', 'Fulano'])).toThrow(/só na criação/);
+    expect(() => lerArgsUsuario(['--email', 'a@b.c', '--resetar-2fa', '--resetar-2fa'])).toThrow(/uso/);
+    expect(() => lerArgsUsuario(['--email', 'a@b.c', '--resetar2fa'])).toThrow(/uso/);
+  });
+
+  it('como app_plataforma, sem chave mestra: zera os dois trios, o passo e as falhas, invalida os códigos (geração + 1), revoga todas as sessões; a senha fica', async () => {
+    id = await comFator('reset@exemplo.test');
+    const [antes] = await p.db.select().from(masterUsuario).where(eq(masterUsuario.id, id));
+    const c = await comoAppPlataforma(p.client, () => resetarSegundoFator(p.db, f, 'RESET@exemplo.test', { novaSenha: false }));
+    expect(c).toEqual({ id, email: 'reset@exemplo.test', segundoFatorEstavaAtivo: true });
+    const [u] = await p.db.select().from(masterUsuario).where(eq(masterUsuario.id, id));
+    expect(u).toMatchObject({
+      totpCifrado: null, totpMestraVersao: null, totpAtivadoEm: null, totpUltimoPasso: null, totpPendenteCifrado: null, totpPendenteMestraVersao: null,
+      totpPendenteExpiraEm: null, segundoFatorFalhas: 0, recuperacaoGeracao: 2, senhaHash: antes!.senhaHash, deveTrocarSenha: false,
+    });
+    const sessoes = await p.db.select().from(masterSessao).where(eq(masterSessao.masterUsuarioId, id));
+    expect(sessoes.map((x) => x.motivoRevogacao)).toEqual(['credencial_reemitida', 'credencial_reemitida']);
+    const [l] = await p.db.select().from(plataformaAudit).where(eq(plataformaAudit.acao, 'master.resetar_segundo_fator'));
+    expect(l!.detalhes).toEqual({ origem: 'cli', usuario_id: id, estava_ativo: true, senha: false, sessoes_revogadas: 2 });
+    expect(l!.masterUsuarioId).toBeNull();
+    const texto = textoReset(c);
+    expect(texto).toContain('desligado');
+    expect(texto).not.toMatch(/otpauth|secret=|senha temporária/i);
+    expect(JSON.stringify(l)).not.toContain('9'.repeat(64));
+  });
+
+  it('com --nova-senha: senha temporária na MESMA transação (troca obrigatória) e mostrada só no terminal', async () => {
+    const outro = await comFator('reset.senha@exemplo.test');
+    const c = await comoAppPlataforma(p.client, () => resetarSegundoFator(p.db, f, 'reset.senha@exemplo.test', { novaSenha: true }));
+    expect(c).toMatchObject({ id: outro, senhaTemporaria: 'abcd-efgh-jkmn-pqrs', segundoFatorEstavaAtivo: true });
+    const [u] = await p.db.select().from(masterUsuario).where(eq(masterUsuario.id, outro));
+    expect([u!.deveTrocarSenha, u!.totpAtivadoEm, u!.senhaTemporariaExpiraEm !== null]).toEqual([true, null, true]);
+    expect(textoReset(c)).toContain('abcd-efgh-jkmn-pqrs');
+    const linhas = await p.db.select().from(plataformaAudit).where(eq(plataformaAudit.acao, 'master.resetar_segundo_fator'));
+    expect(JSON.stringify(linhas)).not.toContain('abcd-efgh');
+    expect(linhas.at(-1)!.detalhes).toMatchObject({ usuario_id: outro, senha: true });
+  });
+
+  it('--nova-senha sozinho não desliga o 2º fator, mas zera as falhas (destrava a trava de 20)', async () => {
+    const outro = await comFator('so.senha@exemplo.test');
+    await comoAppPlataforma(p.client, () => reemitirSenha(p.db, f, 'so.senha@exemplo.test'));
+    const [u] = await p.db.select().from(masterUsuario).where(eq(masterUsuario.id, outro));
+    expect([u!.segundoFatorFalhas, u!.totpAtivadoEm !== null, u!.recuperacaoGeracao]).toEqual([0, true, 1]);
+  });
+
+  it('erros: e-mail inexistente e usuário desativado são recusados sem escrever', async () => {
+    await expect(resetarSegundoFator(p.db, f, 'ninguem@exemplo.test', { novaSenha: false })).rejects.toThrow(/não encontrado/);
+    await p.db.update(masterUsuario).set({ ativo: false }).where(eq(masterUsuario.id, id));
+    const antes = await p.db.select().from(masterUsuario).where(eq(masterUsuario.id, id));
+    await expect(resetarSegundoFator(p.db, f, 'reset@exemplo.test', { novaSenha: false })).rejects.toBeInstanceOf(ErroUsuarioPlataforma);
+    expect(await p.db.select().from(masterUsuario).where(eq(masterUsuario.id, id))).toEqual(antes);
   });
 });
 

@@ -74,28 +74,61 @@ export function carregarChaveMestra(env: NodeJS.ProcessEnv = process.env): Chave
   };
 }
 
+/** Cifrado AES-256-GCM pela mestra: `cifrado` = texto cifrado || tag (16 bytes); nonce de 12 bytes à parte. */
+export interface CifradoMestra {
+  cifrado: Buffer;
+  nonce: Buffer;
+  mestraVersao: number;
+}
+
+/**
+ * Primitiva genérica: AES-256-GCM pela mestra com a AAD dada (que amarra o cifrado à identidade do que ele guarda).
+ * Não valida o tamanho do claro: quem chama (embrulhar, segredo-totp) valida o dele. Nonce novo a cada chamada.
+ */
+export function cifrarComAad(mestra: ChaveMestra, aad: string, claro: Buffer): CifradoMestra {
+  const nonce = randomBytes(NONCE);
+  const c = createCipheriv('aes-256-gcm', mestra.chave, nonce, { authTagLength: TAG });
+  c.setAAD(Buffer.from(aad, 'utf8'));
+  const cifrado = Buffer.concat([c.update(claro), c.final(), c.getAuthTag()]);
+  return { cifrado, nonce, mestraVersao: mestra.versao };
+}
+
+/**
+ * Inverso de cifrarComAad. Lança ErroChave (mensagem sem detalhe do OpenSSL e sem a AAD) se a versão da mestra não bater,
+ * o tamanho for inválido ou o GCM não autenticar (mestra errada, AAD de outra identidade, adulterado).
+ */
+export function decifrarComAad(mestra: ChaveMestra, aad: string, e: { cifrado: Uint8Array; nonce: Uint8Array; mestraVersao: number }): Buffer {
+  if (e.mestraVersao !== mestra.versao) {
+    throw new ErroChave(`cifrado com a mestra v${e.mestraVersao}, mas o ambiente tem a v${mestra.versao}`);
+  }
+  const cifrado = Buffer.from(e.cifrado);
+  if (e.nonce.length !== NONCE || cifrado.length <= TAG) throw new ErroChave('cifrado com tamanho inválido');
+  try {
+    const d = createDecipheriv('aes-256-gcm', mestra.chave, Buffer.from(e.nonce), { authTagLength: TAG });
+    d.setAAD(Buffer.from(aad, 'utf8'));
+    d.setAuthTag(cifrado.subarray(cifrado.length - TAG));
+    return Buffer.concat([d.update(cifrado.subarray(0, cifrado.length - TAG)), d.final()]);
+  } catch {
+    throw new ErroChave('cifrado não autenticou (chave mestra errada ou linha adulterada)');
+  }
+}
+
 export function embrulhar(mestra: ChaveMestra, id: IdChave, chave: Buffer): Embrulho {
   versaoValida(id.versao, 'versão da chave');
   if (chave.length < 32 || chave.length > 128) throw new ErroChave('chave do condomínio deve ter de 32 a 128 bytes');
-  const nonce = randomBytes(NONCE);
-  const c = createCipheriv('aes-256-gcm', mestra.chave, nonce, { authTagLength: TAG });
-  c.setAAD(Buffer.from(aadChave(id), 'utf8'));
-  const chaveCifrada = Buffer.concat([c.update(chave), c.final(), c.getAuthTag()]);
-  return { chaveCifrada, nonce, mestraVersao: mestra.versao };
+  const r = cifrarComAad(mestra, aadChave(id), chave);
+  return { chaveCifrada: r.cifrado, nonce: r.nonce, mestraVersao: r.mestraVersao };
 }
 
 /** Lança ErroChave se a mestra for de outra versão ou se o GCM não autenticar (mestra errada, linha trocada, adulterada). */
 export function desembrulhar(mestra: ChaveMestra, id: IdChave, e: { chaveCifrada: Uint8Array; nonce: Uint8Array; mestraVersao: number }): Buffer {
+  // Mensagens de sempre (a CLI de rotação e o boot as mostram): a checagem de versão e de tamanho fica aqui, antes.
   if (e.mestraVersao !== mestra.versao) {
     throw new ErroChave(`chave embrulhada com a mestra v${e.mestraVersao}, mas o ambiente tem a v${mestra.versao}`);
   }
-  const cifrado = Buffer.from(e.chaveCifrada);
-  if (e.nonce.length !== NONCE || cifrado.length <= TAG) throw new ErroChave('embrulho com tamanho inválido');
+  if (e.nonce.length !== NONCE || e.chaveCifrada.length <= TAG) throw new ErroChave('embrulho com tamanho inválido');
   try {
-    const d = createDecipheriv('aes-256-gcm', mestra.chave, Buffer.from(e.nonce), { authTagLength: TAG });
-    d.setAAD(Buffer.from(aadChave(id), 'utf8'));
-    d.setAuthTag(cifrado.subarray(cifrado.length - TAG));
-    return Buffer.concat([d.update(cifrado.subarray(0, cifrado.length - TAG)), d.final()]);
+    return decifrarComAad(mestra, aadChave(id), { cifrado: e.chaveCifrada, nonce: e.nonce, mestraVersao: e.mestraVersao });
   } catch {
     // Sem detalhe do OpenSSL: a única informação útil é "não autenticou".
     throw new ErroChave(`embrulho de ${id.tipo} v${id.versao} não autenticou (chave mestra errada ou linha adulterada)`);

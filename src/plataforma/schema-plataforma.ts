@@ -104,9 +104,14 @@ export const condominioChave = pgTable('condominio_chave', {
 export const PAPEIS_PLATAFORMA = ['master', 'suporte'] as const;
 
 /**
- * Usuário da plataforma (SAAS-07): fora do RBAC de condomínio. O e-mail é o login. Sem segundo fator desde a migração
- * 0004 (2026-10-23, decisão do usuário; SAAS-08): login só com e-mail e senha (mínimo 16 na troca, limite de
- * tentativas, sessão curta). As colunas de TOTP da 0003 e a tabela de códigos de recuperação da 0000 saíram na 0004.
+ * Usuário da plataforma (SAAS-07): fora do RBAC de condomínio. O e-mail é o login. O 2º fator (TOTP) saiu na 0004
+ * (2026-10-23) e voltou na 0005 (sub-projeto C2, fase A1), OPCIONAL: quem não enrolou entra só com e-mail e senha.
+ *  - trio ativo (`totp_cifrado`, `totp_mestra_versao`, `totp_ativado_em`): o fator em uso; tudo nulo = sem 2º fator;
+ *  - trio pendente: o enrolamento em curso (o ativo continua valendo até a confirmação);
+ *  - `totp_cifrado` = nonce(12) || cifrado(20) || tag(16), AES-256-GCM pela chave mestra, AAD
+ *    `portaria:totp:<id>:ativo|pendente` (src/plataforma/segredo-totp.ts); a rotação da mestra re-cifra (rotacao-chaves.ts);
+ *  - `totp_ultimo_passo`: anti-replay (só passo MAIOR vale); `segundo_fator_falhas`: trava após 20 seguidas (só a CLI
+ *    desfaz); `recuperacao_geracao`: a geração válida dos códigos de recuperação (regerar invalida a anterior sem DELETE).
  */
 export const masterUsuario = pgTable('master_usuario', {
   id: pk(),
@@ -119,12 +124,63 @@ export const masterUsuario = pgTable('master_usuario', {
   deveTrocarSenha: boolean('deve_trocar_senha').notNull().default(true),
   senhaTemporariaExpiraEm: instante('senha_temporaria_expira_em'),
   ultimoAcesso: instante('ultimo_acesso'),
+  totpCifrado: bytea('totp_cifrado'),
+  totpMestraVersao: smallint('totp_mestra_versao'),
+  totpAtivadoEm: instante('totp_ativado_em'),
+  totpUltimoPasso: bigint('totp_ultimo_passo', { mode: 'number' }),
+  totpPendenteCifrado: bytea('totp_pendente_cifrado'),
+  totpPendenteMestraVersao: smallint('totp_pendente_mestra_versao'),
+  totpPendenteExpiraEm: instante('totp_pendente_expira_em'),
+  segundoFatorFalhas: smallint('segundo_fator_falhas').notNull().default(0),
+  recuperacaoGeracao: smallint('recuperacao_geracao').notNull().default(0),
 }, (t) => [
   uniqueIndex('master_usuario_email_uq').on(sql`lower(${t.email})`),
   check('master_usuario_senha_ck', sql`senha_hash LIKE '$argon2id$%'`),
   check('master_usuario_papel_ck', sql`papel IN ('master', 'suporte')`),
   check('master_usuario_email_ck', sql`email ~ '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$' AND length(email) <= 254`),
   check('master_usuario_temporaria_ck', sql`deve_trocar_senha OR senha_temporaria_expira_em IS NULL`),
+  check('master_usuario_totp_ck', sql`((totp_cifrado IS NULL) = (totp_mestra_versao IS NULL) AND (totp_cifrado IS NULL) = (totp_ativado_em IS NULL)) AND (totp_cifrado IS NULL OR length(totp_cifrado) = 48) AND (totp_mestra_versao IS NULL OR totp_mestra_versao > 0)`),
+  check('master_usuario_totp_pendente_ck', sql`((totp_pendente_cifrado IS NULL) = (totp_pendente_mestra_versao IS NULL) AND (totp_pendente_cifrado IS NULL) = (totp_pendente_expira_em IS NULL)) AND (totp_pendente_cifrado IS NULL OR length(totp_pendente_cifrado) = 48) AND (totp_pendente_mestra_versao IS NULL OR totp_pendente_mestra_versao > 0)`),
+  check('master_usuario_totp_passo_ck', sql`totp_ultimo_passo IS NULL OR totp_ultimo_passo > 0`),
+  check('master_usuario_segundo_fator_ck', sql`segundo_fator_falhas >= 0 AND recuperacao_geracao >= 0`),
+]);
+
+/**
+ * Códigos de recuperação do 2º fator (0005; o nome é o da 0000, com outro desenho). Só o SHA-256 rotulado do código
+ * normalizado (`portaria:recuperacao:v1:`), nunca o claro. Vale se `geracao` = `master_usuario.recuperacao_geracao` e
+ * `usado_em` nulo. app_plataforma: SELECT, INSERT e UPDATE só em `usado_em` (sem DELETE: regerar troca a geração).
+ */
+export const masterCodigoRecuperacao = pgTable('master_codigo_recuperacao', {
+  masterUsuarioId: uuid('master_usuario_id').notNull().references(() => masterUsuario.id),
+  geracao: smallint('geracao').notNull(),
+  codigoHash: text('codigo_hash').notNull(),
+  criadoEm: instante('criado_em').notNull().defaultNow(),
+  usadoEm: instante('usado_em'),
+}, (t) => [
+  primaryKey({ name: 'master_codigo_recuperacao_pk', columns: [t.masterUsuarioId, t.codigoHash] }),
+  check('master_codigo_recuperacao_hash_ck', sql`codigo_hash ~ '^[0-9a-f]{64}$'`),
+  check('master_codigo_recuperacao_geracao_ck', sql`geracao > 0`),
+]);
+
+/**
+ * Login em duas etapas (0005): "senha ok, falta o código". Tabela PRÓPRIA, fora de `master_sessao`: um desafio nunca
+ * autentica rota nenhuma (a PlataformaGuard só lê `master_sessao`). Só o SHA-256 do token do cookie de desafio.
+ */
+export const masterLoginPendente = pgTable('master_login_pendente', {
+  id: pk(),
+  tokenHash: text('token_hash').notNull(),
+  masterUsuarioId: uuid('master_usuario_id').notNull().references(() => masterUsuario.id),
+  criadoEm: instante('criado_em').notNull().defaultNow(),
+  expiraEm: instante('expira_em').notNull(),
+  tentativas: smallint('tentativas').notNull().default(0),
+  concluidoEm: instante('concluido_em'),
+  ip: inet('ip'),
+}, (t) => [
+  uniqueIndex('master_login_pendente_token_uq').on(t.tokenHash),
+  index('master_login_pendente_usuario_idx').on(t.masterUsuarioId),
+  check('master_login_pendente_token_hash_ck', sql`token_hash ~ '^[0-9a-f]{64}$'`),
+  check('master_login_pendente_expira_ck', sql`expira_em > criado_em`),
+  check('master_login_pendente_tentativas_ck', sql`tentativas >= 0`),
 ]);
 
 /** Mesmo desenho de `sessao` (src/db/schema.ts), outra tabela em outro banco. */
@@ -144,12 +200,12 @@ export const masterSessao = pgTable('master_sessao', {
   index('master_sessao_usuario_idx').on(t.masterUsuarioId),
   check('master_sessao_token_hash_ck', sql`token_hash ~ '^[0-9a-f]{64}$'`),
   check('master_sessao_expira_ck', sql`expira_em > criada_em`),
-  check('master_sessao_revogacao_ck', sql`(revogada_em IS NULL) = (motivo_revogacao IS NULL) AND (motivo_revogacao IS NULL OR motivo_revogacao IN ('logout', 'troca_senha', 'credencial_reemitida', 'desativacao'))`),
+  check('master_sessao_revogacao_ck', sql`(revogada_em IS NULL) = (motivo_revogacao IS NULL) AND (motivo_revogacao IS NULL OR motivo_revogacao IN ('logout', 'troca_senha', 'credencial_reemitida', 'desativacao', 'segundo_fator'))`),
 ]);
 
 /**
  * Mesmo desenho de `login_limite` (0008 do condomínio): `master` (por login: só gradua o atraso, nunca bloqueia),
- * `master_ip` (par login+IP: bloqueia) e `ip` (bloqueia). Chaves: HMAC com subchave HKDF da chave mestra.
+ * `master_ip` (par login+IP: bloqueia), `ip` (bloqueia) e `master_codigo` (0005: o passo do 2º fator, por usuário). Chaves: HMAC com subchave HKDF da chave mestra.
  */
 export const plataformaLoginLimite = pgTable('plataforma_login_limite', {
   tipo: text('tipo').notNull(),
@@ -160,7 +216,7 @@ export const plataformaLoginLimite = pgTable('plataforma_login_limite', {
   atualizadoEm: instante('atualizado_em').notNull().defaultNow(),
 }, (t) => [
   primaryKey({ name: 'plataforma_login_limite_pk', columns: [t.tipo, t.chave] }),
-  check('plataforma_login_limite_tipo_ck', sql`tipo IN ('ip', 'master', 'master_ip')`),
+  check('plataforma_login_limite_tipo_ck', sql`tipo IN ('ip', 'master', 'master_ip', 'master_codigo')`),
   check('plataforma_login_limite_chave_ck', sql`chave ~ '^[0-9a-f]{64}$'`),
   check('plataforma_login_limite_falhas_ck', sql`falhas >= 0`),
 ]);

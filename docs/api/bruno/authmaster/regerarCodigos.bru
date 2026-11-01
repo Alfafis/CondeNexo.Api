@@ -1,0 +1,22 @@
+meta {
+  name: authmaster / regerarCodigos
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/plataforma/auth/segundo-fator/codigos-recuperacao
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "senhaAtual": "{{senhaAtual}}",
+    "codigo": "exemplo"
+  }
+}
+
+docs {
+  Plataforma (Master): qualquer usuário da plataforma logado.
+}
