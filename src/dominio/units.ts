@@ -182,7 +182,11 @@ export const LIMITE_UNIDADES = 5000;
  * (a célula colada do Excel). Prefixo "Bloco"/"Torre" e "Ap"/"Apto" opcionais; maiúsculas e minúsculas tanto faz.
  * Exemplos aceitos: "A-101", "a 101", "B/12", "Bloco A 101", "Torre 2 - 34", "A;101", "Bloco A · AP 32".
  */
-const LINHA_UNIDADE = /^(?:(?:bloco|torre)\s+)?([a-z0-9]+)\s*(?:[-/.·;,|\t]\s*|\s+)(?:(?:ap|apto|apartamento|unidade)\.?\s*)?([0-9]+)$/i;
+// O separador é `\s*[-/.·;,|\t]\s*` OU `\s+` (era `\s*(?:[-...]\s*|\s+)`: o `\s*` antes do `\s+` se sobrepunha e uma linha de
+// espaços custava tempo quadrático). Mesma linguagem aceita, sem ambiguidade.
+const LINHA_UNIDADE = /^(?:(?:bloco|torre)\s+)?([a-z0-9]+)(?:\s*[-/.·;,|\t]\s*|\s+)(?:(?:ap|apto|apartamento|unidade)\.?\s*)?([0-9]+)$/i;
+/** Linha de unidade real tem poucos caracteres; mais que isso nem passa pela regex. */
+const LINHA_UNIDADE_MAX = 80;
 
 export type SituacaoLinhaUnidade = 'ok' | 'invalida' | 'duplicada';
 
@@ -211,6 +215,7 @@ export interface ResultadoListaUnidades {
 export function lerLinhaUnidade(texto: string, agrupamento: Agrupamento = 'Bloco'): { unidade: EstruturaUnidade } | { motivo: string } {
   const t = texto.trim().replace(/[–—]/g, '-');
   const falta = `Falta ${agrupamento === 'Torre' ? 'a torre' : 'o bloco'} (ex.: A-101).`;
+  if (t.length > LINHA_UNIDADE_MAX) return { motivo: 'Linha longa demais. Use BLOCO-NÚMERO (ex.: A-101).' };
   const m = LINHA_UNIDADE.exec(t);
   if (!m) {
     if (/^(?:(?:bloco|torre)\s*)?[0-9]+$/i.test(t)) return { motivo: falta };

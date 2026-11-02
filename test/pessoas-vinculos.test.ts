@@ -466,6 +466,18 @@ describe('vínculos: paginação e filtros', () => {
     expect((await get('auditor', `/vinculos?ordem=prazo&cursor=${encodeURIComponent(r.body.pagination.cursor)}`)).body.code).toBe('CURSOR_INVALIDO');
   });
 
+  it('cursor adulterado com data inexistente é 400 CURSOR_INVALIDO, não 500 do Postgres', async () => {
+    const id = '11111111-1111-4111-8111-111111111111';
+    const forjar = (c: unknown) => Buffer.from(JSON.stringify(c), 'utf8').toString('base64url');
+    for (const [ordem, cursor] of [
+      ['recentes', { o: 'recentes', t: 'x', id }], ['decisao', { o: 'decisao', t: '2026-13-45T00:00:00Z', id }],
+      ['prazo', { o: 'prazo', d: '2026-02-30', id }], ['prazo', { o: 'prazo', d: '2026-13-45', id }],
+    ] as const) {
+      const r = await get('auditor', `/vinculos?ordem=${ordem}&cursor=${forjar(cursor)}`);
+      expect([r.status, r.body.code]).toEqual([400, 'CURSOR_INVALIDO']);
+    }
+  });
+
   it('filtro por vários status, por unidade e por pessoa', async () => {
     const r = await get('administracao', '/vinculos?status=aprovado,rejeitado&ordem=decisao&limite=100');
     expect(r.body.data.every((v: { status: string }) => ['aprovado', 'rejeitado'].includes(v.status))).toBe(true);

@@ -110,3 +110,13 @@ describe('sugestões', () => {
     expect(LOGIN_SINDICO.test(l)).toBe(true);
   });
 });
+
+describe('lerLinhaUnidade: entrada hostil (ReDoS)', () => {
+  it('linha enorme de espaços é recusada na hora; a regex não é quadrática nem em linha curta de espaços', () => {
+    const inicio = Date.now();
+    expect(lerLinhaUnidade(`a${' '.repeat(300_000)}x`)).toEqual({ motivo: expect.stringMatching(/Linha longa demais/) });
+    // Abaixo do teto (80) a regex roda, e o separador sem sobreposição não degrada.
+    expect('motivo' in lerLinhaUnidade(`a${' '.repeat(60)}x`)).toBe(true);
+    expect(Date.now() - inicio).toBeLessThan(200);
+  });
+});

@@ -386,6 +386,11 @@ describe('ocorrências: anexos cifrados (RNF-03, spec §9.2)', () => {
     expect(semArquivo.status).toBe(400);
   });
 
+  it('corpo JSON acima de 1 MB é 413 CORPO_GRANDE_DEMAIS (era 500 ERRO_INTERNO)', async () => {
+    const r = await post('porteiro', '/ocorrencias', { tipo: 'outro', descricao: 'x'.repeat(1_200_000), unidadeId: null });
+    expect([r.status, r.body.code]).toEqual([413, 'CORPO_GRANDE_DEMAIS']);
+  });
+
   it('porteiro não anexa em ocorrência alheia (403) nem o auditor; até 5 anexos; encerrada não recebe anexo; falha não deixa arquivo', async () => {
     const daAdm = (await post('administracao', '/ocorrencias', { tipo: 'outro', descricao: 'Da administração', unidadeId: null })).body.data.id;
     const antes = (await readdir(api.config.documentos.dir)).length;

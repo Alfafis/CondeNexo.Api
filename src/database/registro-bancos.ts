@@ -33,12 +33,24 @@ export function urlDoBanco(base: string, banco: string): string {
   return u.toString();
 }
 
+/** Inteiro de variável de ambiente, dentro de [min, max]; ausente ou fora da faixa usa o padrão (sem derrubar o boot). */
+function inteiroDoAmbiente(nome: string, padrao: number, min: number, max: number): number {
+  const bruto = process.env[nome]?.trim();
+  if (!bruto) return padrao;
+  const n = Number(bruto);
+  return Number.isInteger(n) && n >= min && n <= max ? n : padrao;
+}
+
 export class RegistroBancosPg implements RegistroBancos {
   private readonly bancos = new Map<string, { pool: Pool; db: Db }>();
   private readonly log = new Logger('Pool');
 
-  /** `max`: conexões por banco (hoje o mesmo 10 da API de um banco só; SAAS-01 sugere 3 com muitos condomínios). */
-  constructor(private readonly base: string, private readonly max = 10) {
+  /**
+   * `max`: conexões por banco de condomínio. Cada condomínio ativo abre o seu pool e o Postgres de produção aceita 40
+   * conexões no total (docker-compose.prod.yml): com 10 por banco, 4 condomínios sob carga já estouravam. Padrão 5
+   * (`PG_POOL_MAX`); com muitos condomínios, baixe para 3 (SAAS-01) ou suba o `max_connections`.
+   */
+  constructor(private readonly base: string, private readonly max = inteiroDoAmbiente('PG_POOL_MAX', 5, 1, 20)) {
     urlDoBanco(base, 'portaria'); // URL inválida derruba o boot, não a primeira requisição
   }
 
@@ -46,7 +58,13 @@ export class RegistroBancosPg implements RegistroBancos {
     let b = this.bancos.get(banco);
     if (!b) {
       // keepAlive: o SO sonda a conexão ociosa; connectionTimeoutMillis: falha rápida em vez de pendurar o request.
-      const pool = new Pool({ connectionString: urlDoBanco(this.base, banco), max: this.max, keepAlive: true, connectionTimeoutMillis: 5000 });
+      const pool = new Pool({
+        connectionString: urlDoBanco(this.base, banco), max: this.max, keepAlive: true, connectionTimeoutMillis: 5000,
+        // Teto do servidor: consulta que nunca volta e transação aberta esquecida seguram conexão (e, na trilha, a cabeça da
+        // cadeia, travando as entradas do condomínio). Folgado para relatório e retenção; 0 desliga.
+        statement_timeout: inteiroDoAmbiente('PG_STATEMENT_TIMEOUT_MS', 120_000, 0, 3_600_000),
+        idle_in_transaction_session_timeout: inteiroDoAmbiente('PG_IDLE_TX_TIMEOUT_MS', 60_000, 0, 3_600_000),
+      });
       // Erro em conexão ociosa não pode derrubar o processo. Só a mensagem do driver (não traz a senha).
       pool.on('error', (erro) => this.log.error(erro.message));
       b = { pool, db: drizzle(pool, { schema }) as unknown as Db };

@@ -18,6 +18,14 @@ const CODIGO_POR_STATUS: Record<number, string> = {
   409: 'CONFLITO', 413: 'CORPO_GRANDE_DEMAIS', 415: 'TIPO_NAO_SUPORTADO', 422: 'REGRA_VIOLADA', 429: 'MUITAS_REQUISICOES',
 };
 
+/** Erro 4xx no formato do pacote http-errors (`status` + `expose`), como o do body-parser; null se não for. Só a classe do erro, nunca a mensagem. */
+function statusHttpDeTerceiro(e: unknown): number | null {
+  if (!e || typeof e !== 'object') return null;
+  const { status, statusCode, expose } = e as { status?: unknown; statusCode?: unknown; expose?: unknown };
+  const s = typeof status === 'number' ? status : typeof statusCode === 'number' ? statusCode : null;
+  return s !== null && s >= 400 && s < 500 && expose === true ? s : null;
+}
+
 function corpoDe(e: HttpException): CorpoErro {
   const r = e.getResponse();
   if (r && typeof r === 'object' && 'codigo' in r && 'mensagem' in r) return r as CorpoErro;
@@ -45,6 +53,10 @@ export class FiltroExcecao implements ExceptionFilter {
     if (erro instanceof HttpException) {
       status = erro.getStatus();
       corpo = corpoDe(erro);
+    } else if (statusHttpDeTerceiro(erro) !== null) {
+      // body-parser (corpo grande demais, charset ou encoding recusado): era 500 com log de erro; o cliente errou, não o servidor.
+      status = statusHttpDeTerceiro(erro)!;
+      corpo = { codigo: CODIGO_POR_STATUS[status] ?? 'REQUISICAO_INVALIDA', mensagem: status === 413 ? 'O corpo da requisição é grande demais.' : 'Requisição recusada.' };
     } else if (codigoPg(erro)) {
       const pg = codigoPg(erro)!;
       if (pg === '23505') { status = 409; corpo = { codigo: 'CONFLITO', mensagem: 'Registro duplicado.' }; }

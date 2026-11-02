@@ -420,6 +420,29 @@ describe('transição e status do condomínio', () => {
     ping.mockRestore();
   });
 
+  it('/saude: banco de condomínio que não responde não segura o healthcheck (teto por banco, em paralelo)', async () => {
+    const saudeSvc = api.app.get(SaudeService) as unknown as { cache: null; bancos: { db: (b: string) => unknown } };
+    saudeSvc.cache = null;
+    const resolvedor = api.app.get(ResolvedorCondominio);
+    const atendidos = resolvedor.atendidosComFalhas.bind(resolvedor);
+    // Um segundo condomínio (não piloto) cujo banco nunca responde.
+    const lento = { condominio: { id: 'lento', banco: 'banco_lento', piloto: false, codigo: 'lento', nome: 'Lento' } };
+    const espiao = vi.spyOn(resolvedor, 'atendidosComFalhas').mockImplementation(async () => {
+      const r = await atendidos();
+      return { ...r, resolvidos: [...r.resolvidos, lento as never] };
+    });
+    const travado = { select: () => ({ from: () => ({ limit: () => new Promise(() => undefined) }) }) };
+    const dbOriginal = saudeSvc.bancos.db.bind(saudeSvc.bancos);
+    saudeSvc.bancos.db = (b: string) => (b === 'banco_lento' ? travado : dbOriginal(b));
+    try {
+      const t0 = Date.now();
+      const r = await api.http().get(`${V1}/saude`);
+      expect(Date.now() - t0).toBeLessThan(5_000);
+      expect(r.status).toBe(200); // não é o piloto: só entra na contagem
+      expect(r.body.data.condominios_com_falha).toBeGreaterThanOrEqual(1);
+    } finally { saudeSvc.bancos.db = dbOriginal; espiao.mockRestore(); saudeSvc.cache = null; }
+  });
+
   it('condomínio encerrado: não é atendido (sem código vai a lugar nenhum; a API nem sobe sem condomínio atendido)', async () => {
     await expect(novaApi({}, { statusPiloto: 'encerrado' })).rejects.toThrow(/nenhum condomínio ativo ou suspenso/);
   });

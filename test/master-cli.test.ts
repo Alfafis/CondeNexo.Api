@@ -117,7 +117,7 @@ describe('--resetar-2fa (sub-projeto C2)', () => {
       totpPendenteCifrado: CIFRADO, totpPendenteMestraVersao: 1, totpPendenteExpiraEm: new Date(Date.now() + 60_000), segundoFatorFalhas: 20, recuperacaoGeracao: 1,
     }).where(eq(masterUsuario.id, c.id));
     await p.db.insert(masterCodigoRecuperacao).values({ masterUsuarioId: c.id, geracao: 1, codigoHash: '9'.repeat(64) });
-    for (const t of ['5', '6']) await p.db.insert(masterSessao).values({ tokenHash: t.repeat(63) + c.id.slice(-1).replace(/[^0-9a-f]/, '0'), masterUsuarioId: c.id, expiraEm: new Date(Date.now() + 3600_000) });
+    for (const t of ['5', '6']) await p.db.insert(masterSessao).values({ tokenHash: t.repeat(32) + c.id.replaceAll('-', ''), masterUsuarioId: c.id, expiraEm: new Date(Date.now() + 3600_000) });
     return c.id;
   }
 

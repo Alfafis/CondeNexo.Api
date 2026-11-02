@@ -56,9 +56,10 @@ export function traduzirErroVinculo(e: unknown): unknown {
 const ROTULO_STATUS: Record<Status, string> = { pendente: 'pendente', aprovado: 'aprovado', rejeitado: 'rejeitado', legado: 'legado', encerrado: 'encerrado' };
 
 const Cursor = z.discriminatedUnion('o', [
-  z.strictObject({ o: z.literal('recentes'), t: z.string().max(40), id: z.uuid() }),
-  z.strictObject({ o: z.literal('decisao'), t: z.string().max(40), id: z.uuid() }),
-  z.strictObject({ o: z.literal('prazo'), d: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), id: z.uuid() }),
+  z.strictObject({ o: z.literal('recentes'), t: z.iso.datetime(), id: z.uuid() }),
+  z.strictObject({ o: z.literal('decisao'), t: z.iso.datetime(), id: z.uuid() }),
+  // Data de calendário real (2026-02-30 passa na regex e no Date.parse, mas o Postgres recusa e viraria 500).
+  z.strictObject({ o: z.literal('prazo'), d: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((d) => { const ms = Date.parse(`${d}T00:00:00Z`); return !Number.isNaN(ms) && new Date(ms).toISOString().startsWith(d); }, 'data inválida'), id: z.uuid() }),
 ]);
 
 /** Chave de ordenação "decisão": a decisão, o encerramento ou o registro, o que houver (mais recente primeiro). */

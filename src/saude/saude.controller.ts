@@ -6,6 +6,8 @@ import { ResolvedorCondominio } from '../tenancy/resolvedor';
 
 /** Validade do resultado do /saude: o healthcheck e quem chama de fora não viram uma consulta por banco a cada vez. */
 export const SAUDE_CACHE_MS = 5_000;
+/** Teto da checagem de cada banco de condomínio (o healthcheck do compose espera 5 s no total). */
+export const SAUDE_TETO_BANCO_MS = 3_000;
 
 type Resultado = { ok: true; condominiosComFalha: number } | { ok: false };
 
@@ -40,15 +42,22 @@ export class SaudeService {
     }
     const { resolvidos, falhas } = await this.resolvedor.atendidosComFalhas();
     let comFalha = falhas.length;
-    for (const { condominio } of resolvidos) {
+    // Em paralelo e com teto por banco: um condomínio lento (não só com erro) não pode estourar o timeout do healthcheck
+    // e fazer o deploy voltar a imagem por causa de um condomínio que nem é o piloto.
+    const testes = await Promise.all(resolvidos.map(async ({ condominio }) => {
       try {
-        await this.bancos.db(condominio.banco).select({ id: eventoAcessoCadeia.id }).from(eventoAcessoCadeia).limit(1);
+        await Promise.race([
+          this.bancos.db(condominio.banco).select({ id: eventoAcessoCadeia.id }).from(eventoAcessoCadeia).limit(1),
+          new Promise<never>((_, rejeitar) => { setTimeout(() => rejeitar(new Error('tempo esgotado na checagem do condomínio')), SAUDE_TETO_BANCO_MS).unref(); }),
+        ]);
+        return { piloto: false, falhou: false };
       } catch (erro) {
         this.registrar(erro);
-        if (condominio.piloto) return { ok: false };
-        comFalha++;
+        return { piloto: !!condominio.piloto, falhou: true };
       }
-    }
+    }));
+    if (testes.some((t) => t.falhou && t.piloto)) return { ok: false };
+    comFalha += testes.filter((t) => t.falhou).length;
     return { ok: true, condominiosComFalha: comFalha };
   }
 
