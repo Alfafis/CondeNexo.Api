@@ -605,11 +605,52 @@ curl -sI https://www.condenexo.com.br/ | grep -iE 'content-security|x-frame'   #
 cd /opt/tcc-portaria
 git fetch && git checkout --detach origin/main
 sed -i "s|^API_TAG=.*|API_TAG=$(git rev-parse --short HEAD)|" .env      # a tag mora no .env: `up` sem variável usa a mesma
-docker compose build && docker compose up -d --wait
+docker compose build api && docker compose build migrate                # UMA imagem por vez (o dockerd caiu com as duas em paralelo, 2026-10-24)
+docker compose up -d --wait && curl -fsS http://127.0.0.1:3100/api/v1/saude \
+  && git rev-parse HEAD > /var/lib/tcc-portaria/publicado               # estado: SÓ depois do /saude
 ```
 
 A tag anterior continua em `docker images tcc-portaria-api`. Só o `api`, o `migrate` e o `permissoes` dependem de
 `API_TAG`, e o `db` não é recriado.
+
+**Estado publicado (`/var/lib/tcc-portaria/publicado`).** O script automático não confia no HEAD do clone para saber o
+que está no ar (o checkout acontece antes do build; um processo morto no meio deixaria HEAD == alvo e a próxima execução
+diria "nada a fazer" com a produção velha). Ele compara com o commit completo gravado nesse arquivo, e só o grava depois
+do `/saude` passar. Por isso **toda atualização ou rollback manual termina gravando o arquivo** (última linha acima). Sem
+ele, ou com o clone divergindo dele e a API rodando outra versão, o script sai com **código 3** e não mexe em nada.
+Semear (primeira vez, ou depois do código 3), só depois de conferir que o que roda é o que o arquivo vai dizer:
+
+```bash
+cd /opt/tcc-portaria
+head=$(git rev-parse HEAD); tag=$(sed -n 's/^API_TAG=//p' .env)
+img=$(docker inspect -f '{{.Config.Image}}' "$(docker compose ps -q api)")
+echo "$head | env=$tag | rodando=$img"; git status --porcelain --untracked-files=no
+git merge-base --is-ancestor HEAD origin/main && echo ancestral-ok; curl -fsS http://127.0.0.1:3100/api/v1/saude
+# Seguir SÓ se: img = tcc-portaria-api:$tag, $head começa com $tag, status limpo, "ancestral-ok" e /saude ok.
+install -d -m 755 /var/lib/tcc-portaria && printf '%s\n' "$head" > /var/lib/tcc-portaria/publicado
+```
+
+Semente errada reproduz o defeito que o arquivo existe para evitar: commit mais novo que o real = "nada a fazer" com a
+produção velha; mais antigo = código 2 para sempre (ou rollback para imagem já podada). A semente vem do que está rodando.
+
+**Códigos de saída do script:** 0 ok ou nada a fazer; 1 falha com rollback da imagem; 2 infra mudou (ou `main`
+reescrita): publicar à mão; 3 sem estado válido ou clone divergente: conferir e semear; 4 falha **e** o rollback também
+falhou (produção possivelmente fora: intervir já); 5 API no ar mas o estado não foi gravado (gravar à mão); 75 outra
+publicação em curso. O script roda sob `systemd-run --wait` (sobrevive à queda do SSH; a saída sai do journal ao final:
+`journalctl -u 'tcc-portaria-deploy-*'`). Testar com override: `TCC_DEPLOY_EM_UNIDADE=1 ESTADO=/tmp/x tcc-portaria-deploy`
+(sem a variável, o systemd-run descarta o `ESTADO` e o teste usaria o estado real).
+
+**Instalar/atualizar o script na VPS** (cópia manual; o push do script sai com código 2 de propósito, porque
+`scripts/deploy/` é infra). Antes do push, sem efeito nenhum: `systemctl --version | head -1`; o código de saída e o
+journal do `systemd-run`:
+`u=teste-rc-$$; systemd-run --quiet --collect --wait --unit=$u /bin/sh -c 'echo a; echo b >&2; exit 7'; echo rc=$?; journalctl -u $u -o cat --no-pager`
+(esperado `rc=7`, `a`, `b`; se der `rc=0`, **não instalar**); e `sshd -T | grep -Ei '^(acceptenv|permituserenvironment)'`
+(esperado: só `LANG LC_*` e `no`). Depois do push, na VPS: semear o estado (acima); guardar o script atual
+(`cp -p /usr/local/sbin/tcc-portaria-deploy /root/tcc-portaria-deploy.anterior`); extrair o novo sem mover o HEAD
+(`git show origin/main:scripts/deploy/deploy-vps.sh > /root/novo.sh`), conferir com `bash -n` e `diff -u`, e
+`install -m 755 -o root -g root /root/novo.sh /usr/local/sbin/tcc-portaria-deploy`; rodar uma vez à mão (esperado: código
+2 listando a infra, já pelo journal); fazer a atualização manual acima (que grava o estado); rodar de novo (esperado
+código 0, "já em …"); por fim, Actions > Run workflow (esperado verde, "nada a fazer").
 
 **Deploy automático** (`.github/workflows/deploy-api.yml`): push na `main` que mude o que entra na imagem
 (`src/`, migrações, dependências, tsconfig, Dockerfile e infra) entra por SSH na VPS com a chave do CI, **sem rodar teste
@@ -623,7 +664,10 @@ nenhum** (desde 2026-11-01 os testes são só `npm test` à mão; a rede de segu
    `/var/backups/tcc-portaria/pre-deploy` (root, 600, os 3 últimos);
 3. build com a tag nova; falhou, nada muda no que está rodando;
 4. troca `API_TAG`, `up -d --wait` (o `migrate` roda antes da API) e confere `/saude`;
-5. falhou: volta commit e tag anteriores. Migração aplicada **não** volta: o log aponta o backup do passo 2.
+5. falhou: volta commit e tag anteriores e confere o `/saude` de novo (se ele também falhar, código 4). Migração
+   aplicada **não** volta: o log aponta o backup do passo 2. Regra de escrita das migrações: sempre compatíveis com o
+   código anterior (adiciona antes, remove depois), porque o rollback é só da imagem;
+6. passou: grava o commit em `/var/lib/tcc-portaria/publicado` (ver acima).
 
 Configuração (uma vez, pelo dono do repositório): variáveis `DEPLOY_HOST` e `DEPLOY_KNOWN_HOSTS`; environment
 `producao` com regra de branch `main` e o secret `DEPLOY_SSH_KEY`. Sem `DEPLOY_HOST` o job de deploy é pulado.
@@ -638,7 +682,8 @@ sem passar por uma pessoa na VPS.
 ```bash
 git checkout --detach <commit anterior>
 sed -i "s|^API_TAG=.*|API_TAG=<tag anterior>|" .env
-docker compose up -d --wait
+docker compose up -d --wait && curl -fsS http://127.0.0.1:3100/api/v1/saude \
+  && git rev-parse HEAD > /var/lib/tcc-portaria/publicado
 ```
 
 **Migração no meio:** as migrações só andam para a frente. Voltar o código depois de aplicar uma migração exige o restore

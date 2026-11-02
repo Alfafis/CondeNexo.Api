@@ -1,0 +1,43 @@
+# Monitor externo do /saude. Roda nos servidores do GitHub, FORA da VPS: se a VPS, o nginx, o certificado ou a API caírem,
+# este job fica vermelho e o GitHub avisa por e-mail quem criou o workflow ou alterou o `cron` por último (Settings >
+# Notifications > Actions). Uma vez por hora, para não gastar os minutos de Actions que a publicação também usa.
+# Não usa secret nem acessa a VPS: é um GET público em /api/v1/saude.
+#
+# Limites conhecidos: o agendador do GitHub é "melhor esforço" (atrasa em horário de pico e pode pular uma execução) e
+# desliga workflows agendados depois de 60 dias sem atividade em repositório público. Serve para detectar queda em minutos
+# ou dezenas de minutos, não para SLA. Este arquivo não está em `paths` do deploy-api.yml: mexer aqui não publica a API.
+name: Monitor do /saude
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: monitor-saude
+  cancel-in-progress: true
+
+jobs:
+  saude:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Conferir o /saude de produção
+        run: |
+          url="https://api.condenexo.com.br/api/v1/saude"
+          for tentativa in 1 2 3; do
+            corpo="$(curl -fsS --max-time 15 "$url" 2>&1)" && break
+            echo "tentativa $tentativa falhou: $corpo"
+            [ "$tentativa" -lt 3 ] && sleep 20
+          done
+          echo "$corpo"
+          if ! grep -q '"status":"ok"' <<<"$corpo" || ! grep -q '"banco":"ok"' <<<"$corpo"; then
+            echo "::error::/saude de produção fora do ar ou com banco indisponível"
+            exit 1
+          fi
+          if ! grep -q '"condominios_com_falha":0' <<<"$corpo"; then
+            echo "::error::/saude responde, mas algum banco de condomínio está com falha: $corpo"
+            exit 1
+          fi

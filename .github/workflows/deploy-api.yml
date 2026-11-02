@@ -68,8 +68,36 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           # A chave do host fica fixada: nada de accept-new. O comando remoto é ignorado pelo servidor (forced command).
-          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            -o ServerAliveInterval=30 "root@$DEPLOY_HOST" deploy
+          # Código 255 do ssh em menos de 40 s é falha de CONEXÃO (timeout de rede do runner, já visto em 2026-11-02): nada
+          # rodou na VPS, então tentar de novo é seguro. Demorou mais que isso, o script pode ter rodado até a metade: não repete.
+          for tentativa in 1 2 3; do
+            inicio=$SECONDS
+            codigo=0
+            ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=20 -o ServerAliveInterval=30 "root@$DEPLOY_HOST" deploy || codigo=$?
+            if [ "$codigo" = 255 ] && [ $((SECONDS - inicio)) -lt 40 ] && [ "$tentativa" -lt 3 ]; then
+              echo "::warning::sem conexão com a VPS (tentativa $tentativa de 3); aguardando 20 s"
+              sleep 20
+              continue
+            fi
+            break
+          done
+          duracao=$((SECONDS - inicio))
+          case "$codigo" in
+            0) ;;
+            3) echo "::error::A VPS não tem commit publicado válido, ou o clone diverge dele. Nada foi alterado. Conferir e semear: docs/deploy.md, seção 11." ;;
+            4) echo "::error::A publicação falhou e o ROLLBACK também: a produção pode estar fora. Intervir na VPS agora." ;;
+            5) echo "::error::A API foi publicada, mas o estado não foi gravado na VPS. Gravar à mão (docs/deploy.md, seção 11)." ;;
+            2) echo "::error::A VPS RECUSOU a publicação: o intervalo de commits muda infra (compose, Dockerfile, db/bootstrap, db/backup, scripts/deploy ou .env.producao.example) ou a main foi reescrita. Publicar à mão: docs/deploy.md, seção 11. A API NÃO foi atualizada." ;;
+            75) echo "::error::Outra publicação está em andamento na VPS. Aguardar e conferir /saude; só então rodar de novo." ;;
+            255) if [ "$duracao" -lt 40 ]; then
+                   echo "::error::Sem conexão SSH com a VPS; nada deve ter rodado. Use Re-run failed jobs."
+                 else
+                   echo "::error::A conexão caiu com a publicação em curso; ela CONTINUA na VPS. Conferir /saude e journalctl -u 'tcc-portaria-deploy-*'. Rodar de novo é seguro (dá 75 ou nada a fazer)."
+                 fi ;;
+            *) echo "::error::A publicação falhou na VPS (código $codigo). O script volta a imagem anterior; migração aplicada não volta (ver o log acima e docs/deploy.md, seção 11)." ;;
+          esac
+          exit "$codigo"
       - name: Apagar a chave do runner
         if: ${{ always() }}
         run: rm -f ~/.ssh/deploy
