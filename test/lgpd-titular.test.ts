@@ -273,7 +273,8 @@ describe('retenção de veículo, operador e sessão (0007)', () => {
     const [velha] = await m.api.db.select().from(s.sessao).where(sql`${s.sessao.usuarioId} <> ${sindico}`).limit(1);
     const [nova] = await m.api.db.select().from(s.sessao).where(eq(s.sessao.usuarioId, sindico)).limit(1);
     await m.api.client.exec(`UPDATE sessao SET ip = '10.9.9.9', user_agent = 'Navegador de teste' WHERE id IN ('${velha!.id}', '${nova!.id}');
-      UPDATE sessao SET ultimo_uso_em = now() - interval '91 days', criada_em = now() - interval '92 days', expira_em = now() - interval '91 days' WHERE id = '${velha!.id}'`);
+      UPDATE sessao SET ultimo_uso_em = now() - interval '91 days', criada_em = now() - interval '92 days', expira_em = now() - interval '89 days' WHERE id = '${velha!.id}'`);
+    // expira_em há 89 dias: já morta, mas ainda dentro dos 90 dias da purga (0017), então só perde IP e navegador; a linha fica.
     const r = await m.post('sindico', '/lgpd/retencao');
     expect(r.body.data.sessoesLimpas).toBeGreaterThanOrEqual(1);
     expect((await m.api.db.select().from(s.sessao).where(eq(s.sessao.id, velha!.id)))[0]).toMatchObject({ ip: null, userAgent: null });

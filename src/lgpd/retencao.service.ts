@@ -12,6 +12,7 @@
 //  5. Veículo: apagado 3 anos depois da desativação (`retencao_eliminar_veiculos`, 0007; fato gerador `desativado_em`).
 //  6. Operador: nome e login genéricos 3 anos depois da desativação (`retencao_anonimizar_operadores`, 0007).
 //  7. Sessão: IP e navegador apagados 90 dias depois do último uso (`retencao_limpar_sessoes`, 0007; spec 9.4).
+//     Desde a 0017 a mesma função também apaga a sessão expirada há mais de 90 dias e o contador de login parado há mais de 7 dias.
 // Antes de tudo, a reaplicação das anonimizações registradas na plataforma (restore, `LgpdService.reaplicar`), e no
 // fim a cópia para a plataforma das anonimizações deste banco que ainda não estão lá (`sincronizarRegistro`). Falha na
 // plataforma não para a retenção: vai ao resultado (`registroExterno`) e ao log.

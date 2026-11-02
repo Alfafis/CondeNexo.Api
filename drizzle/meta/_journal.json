@@ -113,6 +113,20 @@
       "when": 1793395448952,
       "tag": "0015_meio_celular",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793643796521,
+      "tag": "0016_indices_listagens",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793643803272,
+      "tag": "0017_purga_sessoes",
+      "breakpoints": true
     }
   ]
 }

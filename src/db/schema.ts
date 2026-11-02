@@ -359,6 +359,7 @@ export const veiculo = pgTable('veiculo', {
   criadoEm: criadoEm(),
 }, (t) => [
   uniqueIndex('veiculo_placa_ativa_uq').on(t.placa).where(sql`ativo`),
+  index('veiculo_unidade_ix').on(t.unidadeId),
   check('veiculo_placa_ck', sql`placa ~ '^[A-Z0-9]{7}$'`),
   check('veiculo_desativado_ck', sql`NOT ativo OR desativado_em IS NULL`),
 ]);
@@ -418,6 +419,8 @@ export const restricao = pgTable('restricao', {
   revogadaEm: instante('revogada_em'),
 }, (t) => [
   index('restricao_pessoa_vigente_ix').on(t.pessoaId).where(sql`revogada_em IS NULL`),
+  // Contagem de restrições vigentes por unidade na lista de unidades (subconsulta correlacionada por linha da página).
+  index('restricao_unidade_vigente_ix').on(t.unidadeId).where(sql`revogada_em IS NULL`),
   check('restricao_motivo_ck', sql`length(btrim(motivo)) > 0`),
   check('restricao_escopo_unidade_ck', sql`escopo <> 'unidade'
     OR (unidade_id IS NOT NULL AND solicitada_por_pessoa_id IS NOT NULL AND aprovada_por_id IS NULL)`),
@@ -554,6 +557,9 @@ export const encomenda = pgTable('encomenda', {
   retiradaAutorizacaoId: uuid('retirada_autorizacao_id'),
 }, (t): PgTableExtraConfigValue[] => [
   index('encomenda_pendente_ix').on(t.unidadeId).where(sql`retirada_em IS NULL`),
+  // Listagem por cursor: ORDER BY recebida_em DESC, id DESC (encomendas.service). Índice ASC de propósito: a varredura reversa
+  // entrega DESC NULLS FIRST, que é o que o ORDER BY ... DESC pede; um índice DESC NULLS LAST (o do drizzle-kit) não era usado.
+  index('encomenda_recebida_ix').on(t.recebidaEm, t.id),
   check('encomenda_destinatario_ck', sql`length(btrim(destinatario)) > 0`),
   check('encomenda_unidade_confirmada_ck', sql`unidade_confirmada`),
   check('encomenda_retirada_ck', sql`num_nonnulls(retirada_em, retirada_por_pessoa_id, retirada_registrada_por_id) IN (0, 3)`),
@@ -597,6 +603,8 @@ export const ocorrencia = pgTable('ocorrencia', {
   atualizadoEm: atualizadoEm(),
 }, (t) => [
   index('ocorrencia_status_ix').on(t.status),
+  // Listagem por cursor: keyset (aberta_em, id) (ocorrencias.service).
+  index('ocorrencia_aberta_ix').on(t.abertaEm, t.id),
   check('ocorrencia_descricao_ck', sql`length(btrim(descricao)) > 0`),
 ]);
 
