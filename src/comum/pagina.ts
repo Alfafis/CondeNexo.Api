@@ -20,10 +20,13 @@ export type Paginacao = z.infer<typeof PaginacaoDto>;
 /** Cursor opaco (base64url de JSON). O conteúdo é a chave de ordenação do último item, não um offset. */
 export const codificarCursor = (chave: unknown) => Buffer.from(JSON.stringify(chave), 'utf8').toString('base64url');
 
+/** 400 de cursor que não vale (forjado, de outra listagem, ou cuja âncora não existe mais). */
+export const cursorInvalido = () => erroApi(400, 'CURSOR_INVALIDO', 'Cursor de paginação inválido.', [{ field: 'cursor', message: 'cursor inválido' }]);
+
 export function decodificarCursor<T>(cursor: string, schema: z.ZodType<T>): T {
   let bruto: unknown;
   try { bruto = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')); } catch { bruto = undefined; }
   const r = schema.safeParse(bruto);
-  if (!r.success) throw erroApi(400, 'CURSOR_INVALIDO', 'Cursor de paginação inválido.', [{ field: 'cursor', message: 'cursor inválido' }]);
+  if (!r.success) throw cursorInvalido();
   return r.data;
 }

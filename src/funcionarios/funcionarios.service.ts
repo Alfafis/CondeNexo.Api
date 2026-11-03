@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import type { Contexto } from '../auth/tipos';
 import { codigoPg, erroApi } from '../comum/erros';
-import { codificarCursor, decodificarCursor, Pagina } from '../comum/pagina';
+import { codificarCursor, cursorInvalido, decodificarCursor, Pagina } from '../comum/pagina';
 import { RELOGIO, type Relogio } from '../comum/relogio';
 import { DB, type Db, type Executor } from '../database/database.module';
 import { funcionario, pessoa } from '../db/schema';
@@ -61,15 +61,22 @@ export class FuncionariosService {
 
   async listar(f: { limite: number; cursor?: string }) {
     const depois = f.cursor ? decodificarCursor(f.cursor, CursorFuncionarios) : null;
+    // Âncora pela chave primária; sumiu = 400 (a subconsulta direta viraria uma página vazia calada).
+    let ancora: string | null = null;
+    if (depois) {
+      const [a] = await this.db.select({ nome: pessoa.nome }).from(pessoa).where(eq(pessoa.id, depois.id)).limit(1);
+      if (!a) throw cursorInvalido();
+      ancora = a.nome;
+    }
     const filtros: SQL[] = [];
-    if (depois) filtros.push(sql`(${pessoa.nome}, ${pessoa.id}) > (${depois.n}, ${depois.id}::uuid)`);
+    if (depois && ancora !== null) filtros.push(sql`(${pessoa.nome}, ${pessoa.id}) > (${ancora}, ${depois.id}::uuid)`);
     const linhas = await this.db.select({ f: colunasFuncionario, p: colunasPessoa }).from(funcionario)
       .innerJoin(pessoa, eq(pessoa.id, funcionario.pessoaId))
       .where(filtros.length ? and(...filtros) : undefined)
       .orderBy(asc(pessoa.nome), asc(pessoa.id)).limit(f.limite + 1);
     const pagina = linhas.slice(0, f.limite);
     const ultimo = pagina[pagina.length - 1];
-    const proximo = linhas.length > f.limite && ultimo ? codificarCursor({ n: ultimo.p.nome, id: ultimo.p.id }) : null;
+    const proximo = linhas.length > f.limite && ultimo ? codificarCursor({ id: ultimo.p.id }) : null;
     return new Pagina(pagina.map((l) => this.view(l.f, l.p)), proximo);
   }
 

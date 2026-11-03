@@ -173,7 +173,8 @@ export class AutorizacoesService {
     const ls = await this.db.select().from(autorizacaoPrevia).where(and(
       isNull(autorizacaoPrevia.revogadaEm), lte(autorizacaoPrevia.validaDe, new Date(fimDoDia(n))), gte(autorizacaoPrevia.validaAte, new Date(inicioDoDia(n))),
       sql`(${autorizacaoPrevia.diasSemana} IS NULL OR ${dow}::smallint = ANY(${autorizacaoPrevia.diasSemana}))`,
-    )).orderBy(asc(autorizacaoPrevia.cadastradaEm)).limit(500);
+    )).orderBy(sql`${autorizacaoPrevia.horaInicio} ASC NULLS FIRST`, asc(autorizacaoPrevia.id)).limit(500);
+    // Corte do LIMIT na ordem de exibição (hora de início): antes era por cadastro, e a autorização cadastrada hoje era a que caía fora.
     return (await this.viewsAutorizacao(ls)).sort((a, b) => (a.horaInicio ?? '').localeCompare(b.horaInicio ?? ''));
   }
 
@@ -195,7 +196,9 @@ export class AutorizacoesService {
         isNull(autorizacaoPrevia.revogadaEm), isNull(pessoa.desativadaEm), isNull(pessoa.anonimizadaEm),
         gte(autorizacaoPrevia.validaAte, new Date(n)), lte(autorizacaoPrevia.validaDe, new Date(n + horizonte)),
         sql`NOT ${dentro}`,
-      )).limit(1000);
+      )).orderBy(asc(autorizacaoPrevia.validaDe), asc(autorizacaoPrevia.id)).limit(1000);
+    // Ordem definida antes do corte (sem ORDER BY o LIMIT era arbitrário). Limite aceito: com mais de 1000 no horizonte, uma recorrente
+    // antiga (valida_de antigo) ocupa vaga de uma que abre logo; o volume real é muito menor.
     const out: PrevistoView[] = [];
     for (const l of ls) {
       const ap = paraAutorizacaoDominio(l.a);

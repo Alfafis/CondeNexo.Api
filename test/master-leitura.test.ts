@@ -223,6 +223,22 @@ describe('minimização do dado de terceiros (LGPD: o Master é operador)', () =
     expect(vistosPeloSindico.size).toBeGreaterThan(10);
   });
 
+  it('o cursor de paginação não carrega nome de pessoa (limite=1 sempre devolve cursor; funcionários: pessoa-desativacao.test.ts)', async () => {
+    const nomes = await nomesDePessoas();
+    for (const rota of ['/pessoas']) {
+      const r = await getM(`${rota}?limite=1`);
+      const cursor: string | null = r.body.pagination.cursor;
+      expect(cursor, rota).toBeTruthy();
+      const decodificado = Buffer.from(cursor!, 'base64url').toString('utf8');
+      for (const n of [...nomes, 'Ribeiro']) expect(decodificado, `${rota}: ${n}`).not.toContain(n);
+      expect(Object.keys(JSON.parse(decodificado))).toEqual(['id']);
+      // E o cursor continua servindo: a segunda página começa depois da primeira, sem repetir o item.
+      const r2 = await getM(`${rota}?limite=1&cursor=${cursor}`);
+      expect(r2.status, rota).toBe(200);
+      expect(r2.body.data[0]?.id, rota).not.toBe(r.body.data[0].id);
+    }
+  });
+
   it('ficha: nome mascarado no formato do protótipo para o Master, completo para o síndico', async () => {
     const m = await getM(`/pessoas/${ids.pessoa}`);
     const sx = await getS(`/pessoas/${ids.pessoa}`);

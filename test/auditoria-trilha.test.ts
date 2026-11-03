@@ -147,6 +147,20 @@ describe('exportação verificável (POST /auditoria/exportacoes) e trilha de al
     expect((await m.post('porteiro', '/auditoria/exportacoes', { eventoId: e3!.id })).status).toBe(403);
   });
 
+  it('período da trilha: valor acima do limite de Date e intervalo invertido são 400 (antes: 500 e lista vazia calada)', async () => {
+    for (const rota of ['/auditoria/alteracoes', '/auditoria/acessos-plataforma']) {
+      for (const q of ['de=9007199254740991', 'ate=9007199254740991', 'de=2000&ate=1000']) {
+        const r = await m.get('auditor', `${rota}?${q}`);
+        expect([rota, q, r.status, r.body.code]).toEqual([rota, q, 400, 'DADOS_INVALIDOS']);
+      }
+      // A fronteira: 9999-12-31T23:59:59.999Z vale; um ms a mais é 400.
+      expect((await m.get('auditor', `${rota}?ate=253402300799999`)).status).toBe(200);
+      expect((await m.get('auditor', `${rota}?ate=253402300800000`)).status).toBe(400);
+      // de=0 (data apagada no Front) e um período normal continuam valendo.
+      expect((await m.get('auditor', `${rota}?de=0&ate=${Date.now()}`)).status).toBe(200);
+    }
+  });
+
   it('trilha de alterações: paginada (mais recente primeiro), filtros por ação e entidade; SI/AD/AU; sem IP', async () => {
     const ana = await m.pessoaId('Ana Ribeiro');
     const bruno = await m.pessoaId('Bruno Teixeira');

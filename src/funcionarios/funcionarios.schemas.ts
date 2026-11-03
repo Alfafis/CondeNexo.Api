@@ -6,4 +6,5 @@ export const NovoFuncionarioDto = z.strictObject({
   funcao: z.string().max(80), escala: EscalaDto, ativo: z.boolean().optional(),
 });
 export const EdicaoFuncionarioDto = z.strictObject({ funcao: z.string().max(80).optional(), escala: EscalaDto.optional(), ativo: z.boolean().optional() });
-export const CursorFuncionarios = z.strictObject({ n: z.string().max(400), id: z.uuid() });
+/** Só o id (o nome completo no cursor passava intacto pela leitura do Master). O formato antigo `{ n, id }` vale, com o `n` ignorado. */
+export const CursorFuncionarios = z.union([z.strictObject({ id: z.uuid() }), z.strictObject({ n: z.string().max(400), id: z.uuid() })]);

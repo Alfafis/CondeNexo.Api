@@ -287,7 +287,7 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 9007199254740991
+              "maximum": 253402300799999
             }
           },
           {
@@ -305,7 +305,7 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 9007199254740991
+              "maximum": 253402300799999
             }
           },
           {
@@ -398,7 +398,7 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 9007199254740991
+              "maximum": 253402300799999
             }
           },
           {
@@ -416,7 +416,7 @@
             "schema": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 9007199254740991
+              "maximum": 253402300799999
             }
           },
           {

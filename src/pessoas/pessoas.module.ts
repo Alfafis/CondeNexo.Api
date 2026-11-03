@@ -9,7 +9,7 @@ import { PaginacaoDto } from '../comum/pagina';
 import { uuidParam, ZodPipe } from '../comum/zod.pipe';
 import { categoriaPessoa } from '../db/schema';
 import { BuscaService } from './busca.service';
-import { veRestricao } from './pessoa-view';
+import { veDesativadas, veRestricao } from './pessoa-view';
 import { PessoasService } from './pessoas.service';
 
 const Termo = z.string().max(100);
@@ -66,7 +66,7 @@ export class PessoasController {
   @HttpCode(200)
   buscar(@Ctx() ctx: Contexto, @Body(new ZodPipe(BuscaPessoasDto)) b: z.infer<typeof BuscaPessoasDto>) {
     return this.busca.pessoas(b.q, {
-      limite: b.limite, semMoradores: b.semMoradores, incluirDesativadas: b.incluirDesativadas, restricao: veRestricao(ctx.ator.papel),
+      limite: b.limite, semMoradores: b.semMoradores, incluirDesativadas: b.incluirDesativadas && veDesativadas(ctx.ator.papel), restricao: veRestricao(ctx.ator.papel),
     });
   }
 

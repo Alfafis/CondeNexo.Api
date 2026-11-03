@@ -4,7 +4,7 @@
 //   nenhum papel. Só `telefoneMascarado`; a correção do cadastro envia o número novo sem precisar ler o atual.
 //   Exceção desde 2026-11-01 (Fase B, decisão do dono do produto): o "Revelar" do app do Master, um registro por vez,
 //   com limite e linha em plataforma_audit (PessoasService.paraRevelarNaPlataforma). Nenhum papel do condomínio.
-import { pode } from '../dominio/rbac';
+import { pode, ROTAS } from '../dominio/rbac';
 import type { Papel } from '../dominio/types';
 import { mascararTelefone } from '../auditoria/snapshot';
 import { pessoa } from '../db/schema';
@@ -53,6 +53,9 @@ export const veMotivoDesativacao = (papel: Papel) => pode(papel, 'pessoa.desativ
 
 /** Selo de restrição (lista e busca do Cadastro): a mesma permissão das rotas de restrição (unidade.ver). */
 export const veRestricao = (papel: Papel) => pode(papel, 'unidade.ver');
+
+/** Cadastros desativados (RF-02): só quem tem a tela Cadastro (síndico, administração, auditor). O porteiro não. */
+export const veDesativadas = (papel: Papel) => (ROTAS.cadastro as readonly Papel[]).includes(papel);
 
 /**
  * Resumo para o selo da lista e da busca, sem motivo (texto livre sensível). `ativa`: vigente (de unidade, ou de condomínio

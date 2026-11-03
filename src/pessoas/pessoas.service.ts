@@ -27,7 +27,7 @@ import type { Contexto } from '../auth/tipos';
 import { chavesDe, CONDOMINIO, type CondominioResolvido } from '../tenancy/condominio';
 import { diaBrt } from '../comum/datas';
 import { AcessoNegado, codigoPg, erroApi } from '../comum/erros';
-import { codificarCursor, decodificarCursor, Pagina } from '../comum/pagina';
+import { codificarCursor, cursorInvalido, decodificarCursor, Pagina } from '../comum/pagina';
 import { RELOGIO, type Relogio } from '../comum/relogio';
 import { DB, type Db, type Executor } from '../database/database.module';
 import { documentoBusca } from '../db/cpf';
@@ -38,7 +38,7 @@ import { vinculoValidoSql } from '../vinculos/vinculo-valido';
 import { carregarVinculos } from '../vinculos/vinculo-view';
 import { BuscaService, nomeSemAcentoSql, normalizar } from './busca.service';
 import {
-  colunasPessoa, paraPessoaApi, veMotivoDesativacao, veRestricao, type LinhaPessoa, type PessoaApi,
+  colunasPessoa, paraPessoaApi, veDesativadas, veMotivoDesativacao, veRestricao, type LinhaPessoa, type PessoaApi,
 } from './pessoa-view';
 
 type Categoria = (typeof pessoa.categoria.enumValues)[number];
@@ -72,7 +72,11 @@ function duplicadaCom(mensagem: string, igual: { id: string; desativadaEm: Date 
 /** Ordem de prioridade do "vínculo principal" na lista do Cadastro */
 const PRIORIDADE = ['aprovado', 'legado', 'pendente', 'rejeitado', 'encerrado'] as const;
 
-const CursorPessoas = z.strictObject({ n: z.string().max(400), id: z.uuid() });
+/**
+ * Só o id da última pessoa: o cursor passa inteiro pela leitura do Master, e com o nome dentro ele entregava o nome completo
+ * que os itens mostram mascarado. O formato antigo `{ n, id }` ainda vale (quem paginava na hora da troca), com o `n` ignorado.
+ */
+const CursorPessoas = z.union([z.strictObject({ id: z.uuid() }), z.strictObject({ n: z.string().max(400), id: z.uuid() })]);
 
 @Injectable()
 export class PessoasService {
@@ -214,10 +218,20 @@ export class PessoasService {
     const agora = this.relogio.agora();
     const hoje = diaBrt(agora);
     const depois = f.cursor ? decodificarCursor(f.cursor, CursorPessoas) : null;
+    // Âncora pela chave primária, sem os filtros da lista: se sumiu, 400 (a subconsulta direta viraria NULL e uma página vazia calada).
+    // Limite aceito: vale o nome ATUAL da âncora. Se a última linha da página anterior for renomeada ou anonimizada antes da próxima
+    // página, a posição muda (pula ou repete linhas) até um refresh. Posição congelada exigiria cifrar o `{n,id}` (AEAD), não expor o nome.
+    let ancora: string | null = null;
+    if (depois) {
+      const [a] = await this.db.select({ nome: pessoa.nome }).from(pessoa).where(eq(pessoa.id, depois.id)).limit(1);
+      if (!a) throw cursorInvalido();
+      ancora = a.nome;
+    }
     const filtros: SQL[] = [];
     if (f.categoria) filtros.push(eq(pessoa.categoria, f.categoria));
-    if (!f.incluirDesativadas) filtros.push(isNull(pessoa.desativadaEm));
-    if (depois) filtros.push(sql`(${pessoa.nome}, ${pessoa.id}) > (${depois.n}, ${depois.id}::uuid)`);
+    // Desativados só para quem tem a tela Cadastro (a portaria nunca os vê, mesmo que mande o parâmetro).
+    if (!(f.incluirDesativadas && veDesativadas(papel))) filtros.push(isNull(pessoa.desativadaEm));
+    if (depois && ancora !== null) filtros.push(sql`(${pessoa.nome}, ${pessoa.id}) > (${ancora}, ${depois.id}::uuid)`);
     const linhas = await this.db.select(colunasPessoa).from(pessoa)
       .where(filtros.length ? and(...filtros) : undefined)
       .orderBy(asc(pessoa.nome), asc(pessoa.id))
@@ -230,7 +244,7 @@ export class PessoasService {
       comRestricao ? this.busca.resumosRestricao(ids, agora) : null,
     ]);
     const ultimo = pagina[pagina.length - 1];
-    const proximo = linhas.length > f.limite && ultimo ? codificarCursor({ n: ultimo.nome, id: ultimo.id }) : null;
+    const proximo = linhas.length > f.limite && ultimo ? codificarCursor({ id: ultimo.id }) : null;
     return new Pagina(pagina.map((p) => {
       const us = validas.get(p.id) ?? [];
       return {

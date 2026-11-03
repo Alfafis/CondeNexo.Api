@@ -132,6 +132,57 @@ describe('desativar cadastro: efeitos', () => {
     expect(busca.find((p) => p.nome === 'Bruno Teixeira')!.desativadaEm).toEqual(expect.any(Number));
   });
 
+  it('desativados só para quem tem a tela Cadastro: o porteiro manda incluirDesativadas e não os recebe; auditor recebe', async () => {
+    const nomes = (r: { body: { data: { nome: string }[] } }) => r.body.data.map((p) => p.nome);
+    expect(nomes(await get('porteiro', '/pessoas?limite=100&incluirDesativadas=true'))).not.toContain('Bruno Teixeira');
+    expect((await nomesDaBusca('porteiro', 'Bruno', { incluirDesativadas: true })).map((p) => p.nome)).not.toContain('Bruno Teixeira');
+    expect(nomes(await get('auditor', '/pessoas?limite=100&incluirDesativadas=true'))).toContain('Bruno Teixeira');
+    expect((await nomesDaBusca('auditor', 'Bruno', { incluirDesativadas: true })).map((p) => p.nome)).toContain('Bruno Teixeira');
+  });
+
+  it('cursor da lista de pessoas: só o id (sem nome); o formato antigo {n,id} ainda vale; âncora inexistente é 400', async () => {
+    const p1 = (await get('administracao', '/pessoas?limite=2')).body;
+    const cursor: string = p1.pagination.cursor;
+    expect(Object.keys(JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')))).toEqual(['id']);
+    const p2 = (await get('administracao', `/pessoas?limite=2&cursor=${cursor}`)).body;
+    const ids1 = p1.data.map((p: { id: string }) => p.id);
+    expect(p2.data.length).toBeGreaterThan(0);
+    for (const x of p2.data) expect(ids1).not.toContain(x.id);
+    // Cursor emitido por versão anterior (com o nome): vale e dá a mesma página. O `n` é IGNORADO: com `n` forjado a página é a mesma
+    // (antes ele era um oráculo de busca binária do nome completo que o Master vê mascarado).
+    const ultimo = p1.data[1] as { id: string; nome: string };
+    for (const n of [ultimo.nome, '', 'ZZZZZZ']) {
+      const antigo = Buffer.from(JSON.stringify({ n, id: ultimo.id }), 'utf8').toString('base64url');
+      expect((await get('administracao', `/pessoas?limite=2&cursor=${antigo}`)).body.data.map((p: { id: string }) => p.id), `n=${JSON.stringify(n)}`)
+        .toEqual(p2.data.map((p: { id: string }) => p.id));
+    }
+    // Âncora que não existe: 400, não uma página vazia em silêncio.
+    const fantasma = Buffer.from(JSON.stringify({ id: '00000000-0000-4000-8000-000000000000' }), 'utf8').toString('base64url');
+    const r = await get('administracao', `/pessoas?limite=2&cursor=${fantasma}`);
+    expect([r.status, r.body.code]).toEqual([400, 'CURSOR_INVALIDO']);
+  });
+
+  it('cursor da lista de funcionários: só o id; formato antigo {n,id} vale; âncora inexistente é 400', async () => {
+    const escala = { diasSemana: [1], horaInicio: '08:00', horaFim: '17:00' };
+    for (const [nome, cpf] of [['Func Cursor A', '311111111'], ['Func Cursor B', '322222222']] as const) {
+      const c = await post('administracao', '/funcionarios', { nome, documento: cpfComDv(cpf), telefone: '11912345678', funcao: 'Zelador', escala });
+      expect(c.status, JSON.stringify(c.body)).toBe(201);
+    }
+    const p1 = (await get('administracao', '/funcionarios?limite=1')).body;
+    const cursor: string = p1.pagination.cursor;
+    expect(cursor).toBeTruthy();
+    expect(Object.keys(JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')))).toEqual(['id']);
+    const p2 = (await get('administracao', `/funcionarios?limite=1&cursor=${cursor}`)).body;
+    expect(p2.data[0].pessoaId).not.toBe(p1.data[0].pessoaId);
+    for (const n of [p1.data[0].pessoa.nome, '', 'ZZZZZZ']) { // o `n` do formato antigo é ignorado (não é oráculo do nome)
+      const antigo = Buffer.from(JSON.stringify({ n, id: p1.data[0].pessoaId }), 'utf8').toString('base64url');
+      expect((await get('administracao', `/funcionarios?limite=1&cursor=${antigo}`)).body.data[0].pessoaId, `n=${JSON.stringify(n)}`).toBe(p2.data[0].pessoaId);
+    }
+    const fantasma = Buffer.from(JSON.stringify({ id: '00000000-0000-4000-8000-000000000000' }), 'utf8').toString('base64url');
+    const r = await get('administracao', `/funcionarios?limite=1&cursor=${fantasma}`);
+    expect([r.status, r.body.code]).toEqual([400, 'CURSOR_INVALIDO']);
+  });
+
   it('entrada recusada (422 PESSOA_DESATIVADA, nem retroativa), sem evento gravado; autorização e vínculo novos também', async () => {
     const d32 = await un('D', '32');
     const antes = (await api.db.select().from(s.eventoAcesso)).length;

@@ -37,20 +37,25 @@ export interface ResultadoIntegridadeApi extends ResultadoVerificacao {
   selosConferidos: number;
 }
 
+/** Instante em ms. Teto = 9999-12-31T23:59:59.999Z, o maior com ISO de 4 dígitos: acima dele o driver serializa `+0XXXXX-…` ou lança RangeError (500). */
+const InstanteMs = z.coerce.number().int().min(0).max(253_402_300_799_999);
+const periodoOrdenado = (v: { de?: number; ate?: number }) => v.de === undefined || v.ate === undefined || v.de <= v.ate;
+const MSG_PERIODO = { message: 'a data inicial é depois da final', path: ['de'] };
+
 const AlteracoesDto = PaginacaoDto.extend({
-  de: z.coerce.number().int().min(0).optional(),
-  ate: z.coerce.number().int().min(0).optional(),
+  de: InstanteMs.optional(),
+  ate: InstanteMs.optional(),
   usuarioId: z.uuid().optional(),
   acao: z.string().regex(/^[a-z][a-zA-Z_]*\.[a-z][a-zA-Z_]*$/).optional(),
   entidade: z.string().regex(/^[a-z_]{1,40}$/).optional(),
-});
+}).refine(periodoOrdenado, MSG_PERIODO);
 const CursorSeq = z.strictObject({ s: z.number().int().positive() });
 
 /** Período (ms, como em /auditoria/alteracoes) e paginação. */
 const AcessosPlataformaDto = PaginacaoDto.extend({
-  de: z.coerce.number().int().min(0).optional(),
-  ate: z.coerce.number().int().min(0).optional(),
-});
+  de: InstanteMs.optional(),
+  ate: InstanteMs.optional(),
+}).refine(periodoOrdenado, MSG_PERIODO);
 
 /**
  * Ações do app do Master na trilha do condomínio (SAAS-09 e §5.5; src/plataforma/acesso-plataforma.service.ts): a gestão
